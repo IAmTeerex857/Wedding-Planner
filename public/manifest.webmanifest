@@ -1,0 +1,17 @@
+{
+  "name": "Timmy & Bisola Wedding Office",
+  "short_name": "T&B Wedding",
+  "description": "Private planning for the Court, Traditional, and White weddings.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111111",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
