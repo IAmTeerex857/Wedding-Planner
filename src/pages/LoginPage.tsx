@@ -35,7 +35,6 @@ export function LoginPage() {
           <h1>One place for every part of the celebration.</h1>
           <p>Court. Traditional. White. Planned together, without the spreadsheet.</p>
         </div>
-        <p className="login-footnote">For Timmy and Bisola only.</p>
       </section>
       <section className="login-panel">
         <form className="login-form" onSubmit={handleSubmit}>

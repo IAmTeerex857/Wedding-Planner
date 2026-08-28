@@ -1,6 +1,7 @@
 import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from 'lucide-react'
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
@@ -42,11 +43,12 @@ const emptyDraft: TaskDraft = {
 }
 
 export function TasksPage() {
+  const [searchParams] = useSearchParams()
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [tasks, setTasks] = useState<PlanningTask[]>([])
   const [view, setView] = useState<TaskView>('list')
-  const [isAdding, setIsAdding] = useState(false)
+  const [isAdding, setIsAdding] = useState(() => searchParams.get('new') === '1')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft)
   const ceremonyQuery = useQuery({

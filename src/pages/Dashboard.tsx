@@ -72,8 +72,8 @@ export function Dashboard() {
           <p className="page-lead">Three celebrations. One clear view of what comes next.</p>
         </div>
         <div className="header-actions">
-          <button className="button secondary" type="button"><CalendarPlus size={16} /> Add date</button>
-          <button className="button primary" type="button"><Plus size={16} /> New task</button>
+          <Link className="button secondary" to="/ceremonies"><CalendarPlus size={16} /> Add date</Link>
+          <Link className="button primary" to="/tasks?new=1"><Plus size={16} /> New task</Link>
         </div>
       </header>
 
