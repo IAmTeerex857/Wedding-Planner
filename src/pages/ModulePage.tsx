@@ -2,22 +2,24 @@ import { useDeferredValue, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, FileText, Pencil, Plus, Search, Trash2, X } from '../components/KoboyoIcon'
 import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
+import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import { pillTone } from '../lib/pills'
 import './registry.css'
 
 type Field = { key: string; label: string; type?: 'text' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number; step?: number }
 type Definition = { eyebrow: string; description: string; noun: string; fields: Field[]; statuses: string[]; primaryKey?: string }
+type VendorCategory = { id: string; name: string; position: number }
 
 const eventField: Field = { key: 'event', label: 'Ceremony', options: ['Court', 'Traditional', 'White', 'General / shared'] }
 const requiredEventField: Field = { ...eventField, required: true, options: ['Court', 'Traditional', 'White'] }
-const vendorCategories = ['Hall', 'Cars', 'Hotels', 'Tailor', 'Catering', 'Photography', 'Videography', 'Decor', 'Entertainment', 'Beauty', 'Cake', 'Invitations', 'Security', 'Rentals', 'Gifts', 'Other']
+const defaultVendorCategories = ['Hall', 'Cars', 'Hotels', 'Tailor', 'Food', 'Drinks', 'Photography', 'Videography', 'Decor', 'Entertainment', 'Beauty', 'Cake', 'Invitations', 'Security', 'Rentals', 'Gifts', 'Other']
 
 const definitions: Record<string, Definition> = {
   Calendar: { eyebrow: 'Schedule', description: 'See ceremonies, appointments, payments, and planning deadlines together.', noun: 'calendar entry', fields: [{ key: 'title', label: 'Entry title', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'type', label: 'Type', options: ['Task', 'Appointment', 'Payment', 'Personal'] }, eventField], statuses: ['Scheduled', 'Complete', 'Cancelled'] },
   Itineraries: { eyebrow: 'Run of show', description: 'Build ordered schedules for every part of each celebration.', noun: 'itinerary item', fields: [{ key: 'activity', label: 'Activity', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'location', label: 'Location' }, { key: 'owner', label: 'Person responsible' }, requiredEventField], statuses: ['Planned', 'Confirmed', 'Complete'] },
   Seating: { eyebrow: 'Traditional & White', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section' }, { ...eventField, options: ['Traditional', 'White'] }], statuses: ['Open', 'Locked'] },
-  Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true }, { key: 'category', label: 'Category', required: true, options: vendorCategories }, { key: 'contact', label: 'Contact person' }, { key: 'phone', label: 'Phone' }, { key: 'quote', label: 'Quote / package' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
+  Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true }, { key: 'category', label: 'Category', required: true, options: defaultVendorCategories }, { key: 'contact', label: 'Contact person' }, { key: 'phone', label: 'Phone' }, { key: 'quote', label: 'Quote / package' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
   Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true }, { key: 'location', label: 'Location' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
   'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
   'Wedding party': { eyebrow: 'People & roles', description: 'Coordinate roles, ceremony participation, responsibilities, and outfits.', noun: 'party member', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'role', label: 'Role', required: true }, { key: 'phone', label: 'Phone' }, { key: 'order', label: 'Processional order', type: 'number' }, { key: 'responsibility', label: 'Responsibility' }, eventField], statuses: ['Invited', 'Confirmed', 'Ready'] },
@@ -50,8 +52,20 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const [editing, setEditing] = useState<RegistryRecord | null>(null)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
+  const [newCategory, setNewCategory] = useState('')
+  const [previewCategories, setPreviewCategories] = useState<VendorCategory[]>(() => defaultVendorCategories.map((name, position) => ({ id: crypto.randomUUID(), name, position })))
+  const categoryPersistent = title === 'Vendors' && !isPreview
   const ceremoniesQuery = useQuery({ queryKey: ['ceremony-options', workspace.id], enabled: persistent, queryFn: () => loadCeremonies(workspace.id) })
   const recordsQuery = useQuery({ queryKey: ['registry', title, workspace.id], enabled: persistent, queryFn: () => loadRegistry(title as RegistryTitle, workspace.id) })
+  const categoryQuery = useQuery({
+    queryKey: ['vendor-categories', workspace.id],
+    enabled: categoryPersistent,
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('vendor_categories').select('id,name,position').eq('workspace_id', workspace.id).is('deleted_at', null).order('position').order('name')
+      if (error) throw error
+      return data as VendorCategory[]
+    },
+  })
   const addMutation = useMutation({
     mutationFn: (values: Record<string, string>) => addRegistryRecord(title as RegistryTitle, values, { workspaceId: workspace.id, userId, currency: workspace.reporting_currency, ceremonies: ceremoniesQuery.data ?? [] }),
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }); setAdding(false) },
@@ -68,11 +82,28 @@ function Registry({ title, definition }: { title: string; definition: Definition
     mutationFn: (record: RegistryRecord) => softDeleteRegistry(title as RegistryTitle, record.id, workspace.id, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }),
   })
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const position = (categoryQuery.data?.at(-1)?.position ?? -1) + 1
+      const { error } = await supabase!.from('vendor_categories').insert({ workspace_id: workspace.id, name, position, created_by: userId, updated_by: userId })
+      if (error) throw error
+    },
+    onSuccess: async () => { setNewCategory(''); await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+  })
+  const removeCategoryMutation = useMutation({
+    mutationFn: async (category: VendorCategory) => {
+      const { error } = await supabase!.from('vendor_categories').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('workspace_id', workspace.id).eq('id', category.id)
+      if (error) throw error
+    },
+    onSuccess: async (_, category) => { if (categoryFilter === category.name) setCategoryFilter('All'); await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+  })
   const records = persistent ? recordsQuery.data ?? [] : previewRecords
   const deferredQuery = useDeferredValue(query.toLocaleLowerCase())
-  const categories = title === 'Vendors' ? Array.from(new Set([...vendorCategories, ...records.map((record) => record.values.category).filter(Boolean)])) : []
+  const categoryRecords = categoryPersistent ? categoryQuery.data ?? (categoryQuery.isLoading ? defaultVendorCategories.map((name, position) => ({ id: name, name, position })) : []) : previewCategories
+  const categories = title === 'Vendors' ? Array.from(new Set([...categoryRecords.map((category) => category.name), ...records.map((record) => record.values.category).filter(Boolean)])) : []
+  const formDefinition: Definition = title === 'Vendors' ? { ...definition, fields: definition.fields.map((field) => field.key === 'category' ? { ...field, options: categories.length ? categories : ['Other'] } : field) } : definition
   const filtered = records.filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery) && (categoryFilter === 'All' || record.values.category === categoryFilter))
-  const error = recordsQuery.error ?? ceremoniesQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error
+  const error = recordsQuery.error ?? ceremoniesQuery.error ?? categoryQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error ?? addCategoryMutation.error ?? removeCategoryMutation.error
 
   async function addRecord(values: Record<string, string>) {
     if (!persistent) {
@@ -103,14 +134,28 @@ function Registry({ title, definition }: { title: string; definition: Definition
     else deleteMutation.mutate(record)
   }
 
+  function addCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const name = newCategory.trim()
+    if (!name || categories.some((category) => category.toLocaleLowerCase() === name.toLocaleLowerCase())) return
+    if (categoryPersistent) addCategoryMutation.mutate(name)
+    else { setPreviewCategories((current) => [...current, { id: crypto.randomUUID(), name, position: current.length }]); setNewCategory('') }
+  }
+
+  function removeCategory(category: VendorCategory) {
+    if (records.some((record) => record.values.category.toLocaleLowerCase() === category.name.toLocaleLowerCase())) return
+    if (categoryPersistent) removeCategoryMutation.mutate(category)
+    else { setPreviewCategories((current) => current.filter((item) => item.id !== category.id)); if (categoryFilter === category.name) setCategoryFilter('All') }
+  }
+
   return <div className="page registry-page">
     <header className="page-header"><div><p className="eyebrow">{definition.eyebrow}</p><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><button className="button primary" type="button" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</button></header>
-    {adding && <RegistryForm definition={definition} saving={addMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
-    {editing && <RegistryForm key={editing.id} definition={definition} initialValues={editing.values} saving={updateMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
+    {adding && <RegistryForm definition={formDefinition} saving={addMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
+    {editing && <RegistryForm key={editing.id} definition={formDefinition} initialValues={editing.values} saving={updateMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
     {error && <p className="data-error">{error.message}</p>}
     <section className="registry-panel">
       <header><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
-      {title === 'Vendors' && <div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => <button className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} type="button" onClick={() => setCategoryFilter(category)} key={category}>{category}</button>)}</div>}
+      {title === 'Vendors' && <div className="category-tools"><form onSubmit={addCategory}><input value={newCategory} maxLength={100} placeholder="New category" aria-label="New vendor category" onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" disabled={!newCategory.trim() || addCategoryMutation.isPending}><Plus size={12} /> Add</button></form><div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => { const categoryRecord = categoryRecords.find((item) => item.name === category); const inUse = records.some((record) => record.values.category.toLocaleLowerCase() === category.toLocaleLowerCase()); const canRemove = Boolean(categoryRecord && (!categoryPersistent || categoryQuery.data)); const isLast = categoryRecords.length === 1; return <span className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} key={category}><button type="button" onClick={() => setCategoryFilter(category)}>{category}</button>{canRemove && <button className="category-remove" type="button" disabled={inUse || isLast || removeCategoryMutation.isPending} title={inUse ? 'Reassign vendors before removing this category' : isLast ? 'Keep at least one vendor category' : `Remove ${category}`} aria-label={`Remove ${category}`} onClick={() => categoryRecord && removeCategory(categoryRecord)}><X size={9} /></button>}</span> })}</div></div>}
       {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => <article key={record.id}><div><strong>{record.values[definition.primaryKey ?? definition.fields[0].key]}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || field.key !== 'category')).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small></div><select className={pillTone(record.status)} value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => removeRecord(record)}><Trash2 size={14} /></button></div></article>)}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
     </section>
   </div>
