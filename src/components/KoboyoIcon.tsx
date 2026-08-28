@@ -8,13 +8,13 @@ type IconProps = Omit<HTMLAttributes<HTMLSpanElement>, 'color'> & {
   color?: string
 }
 
-function createIcon(slug: string) {
+function createIcon(slug: string, emphasis = '') {
   return function KoboyoIcon({ size = 24, className = '', color, style, strokeWidth: _strokeWidth, ...props }: IconProps) {
     return (
       <span
         {...props}
         aria-hidden={props['aria-label'] ? undefined : true}
-        className={`koboyo-icon ${className}`.trim()}
+        className={`koboyo-icon ${emphasis} ${className}`.trim()}
         style={{
           '--koboyo-icon': `url("/koboyo/${slug}.svg")`,
           width: size,
@@ -63,7 +63,7 @@ export const MailCheck = createIcon('mail-check')
 export const MapPin = createIcon('map-pin')
 export const Menu = createIcon('menu')
 export const PackageCheck = createIcon('package-check')
-export const Pencil = createIcon('pencil')
+export const Pencil = createIcon('pencil', 'koboyo-icon-pencil')
 export const Phone = createIcon('phone')
 export const Plane = createIcon('plane')
 export const Plus = createIcon('plus')
