@@ -149,6 +149,34 @@ async function link(table: string, payload: Record<string, unknown>) {
   if (error) throw error
 }
 
+async function updateRow(table: string, id: string, context: Context, payload: Record<string, unknown>) {
+  const { error } = await requireSupabase().from(table).update({ ...payload, updated_by: context.userId }).eq('workspace_id', context.workspaceId).eq('id', id)
+  if (error) throw error
+}
+
+async function setJoinCeremony(table: string, recordKey: string, recordId: string, ceremonyId: string | null, context: Context) {
+  const db = requireSupabase()
+  const { data, error } = await db.from(table).select('ceremony_id').eq('workspace_id', context.workspaceId).eq(recordKey, recordId)
+  if (error) throw error
+  const linkedIds = new Set((data ?? []).map((item) => item.ceremony_id as string))
+  if (ceremonyId && !linkedIds.has(ceremonyId)) {
+    await link(table, { workspace_id: context.workspaceId, [recordKey]: recordId, ceremony_id: ceremonyId, created_by: context.userId })
+  }
+  let deleteQuery = db.from(table).delete().eq('workspace_id', context.workspaceId).eq(recordKey, recordId)
+  if (ceremonyId) deleteQuery = deleteQuery.neq('ceremony_id', ceremonyId)
+  const { error: deleteError } = await deleteQuery
+  if (deleteError) throw deleteError
+}
+
+async function packingListId(context: Context, ceremonyId: string | null, event?: string) {
+  const db = requireSupabase()
+  let listQuery = db.from('packing_lists').select('id').eq('workspace_id', context.workspaceId).is('deleted_at', null)
+  listQuery = ceremonyId ? listQuery.eq('ceremony_id', ceremonyId) : listQuery.is('ceremony_id', null)
+  const { data, error } = await listQuery.limit(1).maybeSingle()
+  if (error) throw error
+  return data?.id as string | undefined ?? await insertRow('packing_lists', { ...audit(context), ceremony_id: ceremonyId, name: ceremonyId ? `${event} packing` : 'General packing', list_type: ceremonyId ? 'ceremony' : 'custom' })
+}
+
 export async function addRegistryRecord(title: RegistryTitle, values: Record<string, string>, context: Context) {
   const base = audit(context)
   const ceremonyId = ceremonyIdForEvent(context.ceremonies, values.event)
@@ -185,12 +213,7 @@ export async function addRegistryRecord(title: RegistryTitle, values: Record<str
     return
   }
   if (title === 'Packing') {
-    const db = requireSupabase()
-    let listQuery = db.from('packing_lists').select('id').eq('workspace_id', context.workspaceId).is('deleted_at', null)
-    listQuery = ceremonyId ? listQuery.eq('ceremony_id', ceremonyId) : listQuery.is('ceremony_id', null)
-    const { data: existing, error } = await listQuery.limit(1).maybeSingle()
-    if (error) throw error
-    const listId = existing?.id ?? await insertRow('packing_lists', { ...base, ceremony_id: ceremonyId, name: ceremonyId ? `${values.event} packing` : 'General packing', list_type: ceremonyId ? 'ceremony' : 'custom' })
+    const listId = await packingListId(context, ceremonyId, values.event)
     await insertRow('packing_items', { ...base, packing_list_id: listId, category: values.category || 'General', name: values.item, quantity: values.quantity ? Number(values.quantity) : 1, responsible_person: values.owner || null, packed: false })
     return
   }
@@ -209,6 +232,74 @@ export async function addRegistryRecord(title: RegistryTitle, values: Record<str
   const amount = toMinor(values.cost)
   const money = await moneyDetails(context, amount, context.currency)
   await insertRow('honeymoon_bookings', { ...base, trip_id: tripId, booking_type: ({ Flight: 'flight', Accommodation: 'accommodation', Transport: 'transport', Activity: 'activity', Expense: 'other' } as Record<string, string>)[values.type || 'Flight'], provider: values.provider || null, title: values.name, starts_at: lagosIso(values.date), booking_reference: values.reference || null, status: 'planned', amount_minor: amount, currency: amount === null ? null : context.currency, ...money })
+}
+
+export async function updateRegistryRecord(title: RegistryTitle, record: RegistryRecord, values: Record<string, string>, context: Context) {
+  const ceremonyId = ceremonyIdForEvent(context.ceremonies, values.event)
+  if (title === 'Calendar') {
+    const startsAt = lagosIso(values.date, values.time)
+    if (!startsAt) throw new Error('Date is required.')
+    const entryType = ({ Task: 'task', Appointment: 'vendor_appointment', Payment: 'payment', Personal: 'custom' } as Record<string, string>)[values.type]
+    if (!entryType) throw new Error('Choose a valid calendar entry type.')
+    await updateRow('calendar_entries', record.id, context, { ceremony_id: ceremonyId, title: values.title, entry_type: entryType, starts_at: startsAt, all_day: !values.time })
+    return
+  }
+  if (title === 'Itineraries') {
+    const startsAt = lagosIso(values.date, values.time)
+    if (!startsAt) throw new Error('Date is required.')
+    await updateRow('itinerary_items', record.id, context, { ceremony_id: requireCeremony(context, values.event), title: values.activity, starts_at: startsAt, location: values.location || null, responsible_person: values.owner || null })
+    return
+  }
+  if (title === 'Vendors') {
+    await updateRow('vendors', record.id, context, { name: values.name, category: values.category || 'General', package_details: values.quote || null })
+    const db = requireSupabase()
+    const { data: contacts, error } = await db.from('vendor_contacts').select('id').eq('workspace_id', context.workspaceId).eq('vendor_id', record.id).is('deleted_at', null).order('is_primary', { ascending: false }).limit(1)
+    if (error) throw error
+    const contactId = contacts?.[0]?.id as string | undefined
+    if (values.contact) {
+      if (contactId) await updateRow('vendor_contacts', contactId, context, { name: values.contact, phone: values.phone || null, is_primary: true })
+      else await insertRow('vendor_contacts', { ...audit(context), vendor_id: record.id, name: values.contact, phone: values.phone || null, is_primary: true })
+    } else if (contactId) {
+      await updateRow('vendor_contacts', contactId, context, { deleted_at: new Date().toISOString() })
+    }
+    await setJoinCeremony('vendor_ceremonies', 'vendor_id', record.id, ceremonyId, context)
+    return
+  }
+  if (title === 'Venues') {
+    await updateRow('venues', record.id, context, { name: values.name, address: values.location || null, capacity: values.capacity ? Number(values.capacity) : null, ceremony_fee_minor: toMinor(values.cost), currency: context.currency, availability_notes: values.availability || null })
+    await setJoinCeremony('venue_ceremonies', 'venue_id', record.id, ceremonyId, context)
+    return
+  }
+  if (title === 'Food & drinks') {
+    const serviceType = ({ Food: 'caterer', Drink: 'bartender', Service: 'combined', Cake: 'self_managed' } as Record<string, string>)[values.category]
+    if (!serviceType) throw new Error('Choose a valid food and drink category.')
+    await updateRow('food_drink_plans', record.id, context, { ceremony_id: requireCeremony(context, values.event), name: values.name, service_type: serviceType, package_name: values.vendor || null, guest_count: values.quantity ? Number(values.quantity) : null, package_price_minor: toMinor(values.cost), currency: context.currency })
+    return
+  }
+  if (title === 'Wedding party') {
+    await updateRow('wedding_party_members', record.id, context, { name: values.name, role: values.role || 'Wedding party', phone: values.phone || null, processional_order: values.order ? Number(values.order) : null, responsibilities: values.responsibility || null })
+    await setJoinCeremony('wedding_party_ceremonies', 'member_id', record.id, ceremonyId, context)
+    return
+  }
+  if (title === 'Packing') {
+    const listId = await packingListId(context, ceremonyId, values.event)
+    await updateRow('packing_items', record.id, context, { packing_list_id: listId, category: values.category || 'General', name: values.item, quantity: values.quantity ? Number(values.quantity) : 1, responsible_person: values.owner || null })
+    return
+  }
+  if (title === 'Gifts') {
+    const isCash = values.type === 'Cash'
+    if (!isCash && values.type !== 'Gift') throw new Error('Choose a valid gift type.')
+    const amount = isCash ? toMinor(values.amount) : null
+    const currency = values.currency || context.currency
+    const money = await moneyDetails(context, amount, currency)
+    await updateRow('gifts', record.id, context, { ceremony_id: ceremonyId, giver_name: values.guest || null, description: values.description, gift_type: isCash ? 'cash' : 'physical', cash_amount_minor: amount, currency: amount === null ? null : currency, exchange_rate: null, rate_source: null, rate_retrieved_at: null, ngn_minor: null, ...money })
+    return
+  }
+  const bookingType = ({ Flight: 'flight', Accommodation: 'accommodation', Transport: 'transport', Activity: 'activity', Expense: 'other' } as Record<string, string>)[values.type]
+  if (!bookingType) throw new Error('Choose a valid honeymoon booking type.')
+  const amount = toMinor(values.cost)
+  const money = await moneyDetails(context, amount, context.currency)
+  await updateRow('honeymoon_bookings', record.id, context, { booking_type: bookingType, provider: values.provider || null, title: values.name, starts_at: lagosIso(values.date), booking_reference: values.reference || null, amount_minor: amount, currency: amount === null ? null : context.currency, exchange_rate: null, rate_source: null, rate_retrieved_at: null, ngn_minor: null, ...money })
 }
 
 export async function updateRegistryStatus(title: RegistryTitle, record: RegistryRecord, status: string, workspaceId: string, userId: string) {

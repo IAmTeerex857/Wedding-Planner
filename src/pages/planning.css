@@ -49,7 +49,7 @@
 .task-count { color: var(--faint); font-family: ui-monospace, monospace; font-size: 10px; text-transform: uppercase; }
 .data-error { margin-bottom: 12px; padding: 9px 11px; border: 1px solid #d5b7b4; color: #813c36; background: #fff8f7; font-size: 10px; }
 .task-list { border: 1px solid var(--line); }
-.task-list-head, .task-list-row { display: grid; grid-template-columns: minmax(260px, 1.7fr) minmax(100px, .55fr) minmax(130px, .7fr) 115px; align-items: center; gap: 14px; padding: 0 16px; }
+.task-list-head, .task-list-row { display: grid; grid-template-columns: minmax(260px, 1.7fr) minmax(100px, .55fr) minmax(130px, .7fr) 115px 58px; align-items: center; gap: 14px; padding: 0 16px; }
 .task-list-head { min-height: 39px; border-bottom: 1px solid var(--line); color: var(--faint); background: #fafaf8; font-size: 9px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
 .task-list-row { min-height: 72px; border-bottom: 1px solid var(--soft-line); }
 .task-list-row:last-child { border-bottom: 0; }
@@ -82,6 +82,10 @@
 .column-empty p { max-width: 180px; margin-top: 7px; font-size: 10px; line-height: 1.5; }
 .task-card { padding: 13px; border: 1px solid var(--line); background: var(--paper); }
 .task-card-top, .task-card-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.task-card-actions, .task-actions { display: inline-flex; align-items: center; gap: 3px; }
+.task-actions button { display: grid; width: 26px; height: 26px; place-items: center; border: 0; border-radius: 50%; color: var(--faint); background: transparent; cursor: pointer; }
+.task-actions button:hover { color: var(--ink); background: var(--wash); }
+.task-actions button:last-child:hover { color: var(--planning-red); background: #fff5f4; }
 .task-card h3 { margin: 16px 0 0; font-family: Georgia, "Times New Roman", serif; font-size: 18px; font-weight: 400; letter-spacing: -.02em; }
 .task-card > p { margin-top: 6px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .task-card-foot { margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--soft-line); }
@@ -101,10 +105,11 @@
 .task-modal form { display: flex; flex-direction: column; gap: 18px; padding: 22px; }
 .task-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 4px -22px -22px; padding: 15px 22px; border-top: 1px solid var(--line); background: #fafaf8; }
+.modal-actions .button.danger { margin-right: auto; border-color: #d5b7b4; color: #813c36; background: #fff8f7; }
 
 @media (max-width: 900px) {
   .task-list-head { display: none; }
-  .task-list-row { grid-template-columns: 1fr auto; gap: 12px; padding: 14px; }
+  .task-list-row { grid-template-columns: 1fr auto auto; gap: 12px; padding: 14px; }
   .task-list-row .event-tag, .task-list-row .assignee { grid-column: auto; }
   .task-list-row .task-title-cell { grid-column: 1 / -1; }
   .task-list-row .task-status-control { width: 110px; }

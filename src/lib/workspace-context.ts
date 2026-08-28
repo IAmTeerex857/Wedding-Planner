@@ -27,7 +27,8 @@ export function ceremonyLabel(ceremony?: Pick<CeremonyOption, 'kind' | 'name'> |
 
 export function ceremonyIdForEvent(ceremonies: CeremonyOption[], event?: string) {
   if (!event || event === 'General / shared') return null
-  return ceremonies.find(({ kind, name }) => kind === event.toLocaleLowerCase() || name.replace(/ Wedding$/i, '').toLocaleLowerCase() === event.toLocaleLowerCase())?.id ?? null
+  const normalizedEvent = event.replace(/ Wedding$/i, '').toLocaleLowerCase()
+  return ceremonies.find(({ kind, name }) => kind === normalizedEvent || name.replace(/ Wedding$/i, '').toLocaleLowerCase() === normalizedEvent)?.id ?? null
 }
 
 export function relationOne<T>(value: T | T[] | null | undefined): T | null {

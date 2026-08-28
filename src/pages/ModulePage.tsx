@@ -1,11 +1,11 @@
 import { useDeferredValue, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, FileText, Plus, Search, Trash2, X } from 'lucide-react'
-import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
+import { Download, FileText, Pencil, Plus, Search, Trash2, X } from 'lucide-react'
+import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
 import { useWorkspace } from '../lib/workspace-context'
 import './registry.css'
 
-type Field = { key: string; label: string; type?: 'text' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number }
+type Field = { key: string; label: string; type?: 'text' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number; step?: number }
 type Definition = { eyebrow: string; description: string; noun: string; fields: Field[]; statuses: string[]; primaryKey?: string }
 
 const eventField: Field = { key: 'event', label: 'Ceremony', options: ['Court', 'Traditional', 'White', 'General / shared'] }
@@ -16,13 +16,13 @@ const definitions: Record<string, Definition> = {
   Itineraries: { eyebrow: 'Run of show', description: 'Build ordered schedules for every part of each celebration.', noun: 'itinerary item', fields: [{ key: 'activity', label: 'Activity', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'location', label: 'Location' }, { key: 'owner', label: 'Person responsible' }, requiredEventField], statuses: ['Planned', 'Confirmed', 'Complete'] },
   Seating: { eyebrow: 'Traditional & White', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section' }, { ...eventField, options: ['Traditional', 'White'] }], statuses: ['Open', 'Locked'] },
   Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'contact', label: 'Contact person' }, { key: 'phone', label: 'Phone' }, { key: 'quote', label: 'Quote / package' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
-  Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true }, { key: 'location', label: 'Location' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number' }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
-  'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number' }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
+  Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true }, { key: 'location', label: 'Location' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
+  'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
   'Wedding party': { eyebrow: 'People & roles', description: 'Coordinate roles, ceremony participation, responsibilities, and outfits.', noun: 'party member', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'role', label: 'Role', required: true }, { key: 'phone', label: 'Phone' }, { key: 'order', label: 'Processional order', type: 'number' }, { key: 'responsibility', label: 'Responsibility' }, eventField], statuses: ['Invited', 'Confirmed', 'Ready'] },
   Packing: { eyebrow: 'Packing lists', description: 'Prepare ceremony, wedding-weekend, and honeymoon packing lists.', noun: 'packing item', fields: [{ key: 'item', label: 'Item', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'quantity', label: 'Quantity', type: 'number', min: 1 }, { key: 'owner', label: 'Person responsible' }, eventField], statuses: ['Not packed', 'Packed'] },
-  Gifts: { eyebrow: 'Gifts & thanks', description: 'Record gifts, cash amounts, ceremony links, and thank-you progress.', noun: 'gift', primaryKey: 'description', fields: [{ key: 'guest', label: 'Guest' }, { key: 'description', label: 'Gift description', required: true }, { key: 'type', label: 'Type', options: ['Gift', 'Cash'] }, { key: 'amount', label: 'Cash amount', type: 'number' }, { key: 'currency', label: 'Currency', options: ['NGN', 'GBP', 'USD', 'EUR'] }, eventField], statuses: ['Received', 'Thank-you due', 'Thank-you sent'] },
+  Gifts: { eyebrow: 'Gifts & thanks', description: 'Record gifts, cash amounts, ceremony links, and thank-you progress.', noun: 'gift', primaryKey: 'description', fields: [{ key: 'guest', label: 'Guest' }, { key: 'description', label: 'Gift description', required: true }, { key: 'type', label: 'Type', options: ['Gift', 'Cash'] }, { key: 'amount', label: 'Cash amount', type: 'number', step: 0.01 }, { key: 'currency', label: 'Currency', options: ['NGN', 'GBP', 'USD', 'EUR'] }, eventField], statuses: ['Received', 'Thank-you due', 'Thank-you sent'] },
   'Photos & files': { eyebrow: 'Private library', description: 'Keep inspiration, receipts, contracts, images, and wedding documents private.', noun: 'file', fields: [{ key: 'name', label: 'Title' }, { key: 'category', label: 'Category', options: ['Photo', 'Inspiration', 'Receipt', 'Contract', 'Quote', 'Invitation', 'Travel'] }, { key: 'file', label: 'Choose file', type: 'file' }, eventField], statuses: ['Active', 'Archived'] },
-  Honeymoon: { eyebrow: 'Travel planning', description: 'Plan destinations, bookings, itinerary, expenses, and documents.', noun: 'honeymoon record', fields: [{ key: 'name', label: 'Booking or activity', required: true }, { key: 'type', label: 'Type', options: ['Flight', 'Accommodation', 'Transport', 'Activity', 'Expense'] }, { key: 'date', label: 'Date', type: 'date' }, { key: 'provider', label: 'Provider' }, { key: 'reference', label: 'Booking reference' }, { key: 'cost', label: 'Cost', type: 'number' }], statuses: ['Researching', 'Reserved', 'Paid', 'Complete'] },
+  Honeymoon: { eyebrow: 'Travel planning', description: 'Plan destinations, bookings, itinerary, expenses, and documents.', noun: 'honeymoon record', fields: [{ key: 'name', label: 'Booking or activity', required: true }, { key: 'type', label: 'Type', options: ['Flight', 'Accommodation', 'Transport', 'Activity', 'Expense'] }, { key: 'date', label: 'Date', type: 'date' }, { key: 'provider', label: 'Provider' }, { key: 'reference', label: 'Booking reference' }, { key: 'cost', label: 'Cost', type: 'number', step: 0.01 }], statuses: ['Researching', 'Reserved', 'Paid', 'Complete'] },
 }
 
 const persistedTitles = new Set<RegistryTitle>(['Calendar', 'Itineraries', 'Vendors', 'Venues', 'Food & drinks', 'Wedding party', 'Packing', 'Gifts', 'Honeymoon'])
@@ -45,6 +45,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const persistent = isRegistryTitle(title) && !isPreview
   const [previewRecords, setPreviewRecords] = useState<RegistryRecord[]>([])
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<RegistryRecord | null>(null)
   const [query, setQuery] = useState('')
   const ceremoniesQuery = useQuery({ queryKey: ['ceremony-options', workspace.id], enabled: persistent, queryFn: () => loadCeremonies(workspace.id) })
   const recordsQuery = useQuery({ queryKey: ['registry', title, workspace.id], enabled: persistent, queryFn: () => loadRegistry(title as RegistryTitle, workspace.id) })
@@ -56,6 +57,10 @@ function Registry({ title, definition }: { title: string; definition: Definition
     mutationFn: ({ record, status }: { record: RegistryRecord; status: string }) => updateRegistryStatus(title as RegistryTitle, record, status, workspace.id, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }),
   })
+  const updateMutation = useMutation({
+    mutationFn: ({ record, values }: { record: RegistryRecord; values: Record<string, string> }) => updateRegistryRecord(title as RegistryTitle, record, values, { workspaceId: workspace.id, userId, currency: workspace.reporting_currency, ceremonies: ceremoniesQuery.data ?? [] }),
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }); setEditing(null) },
+  })
   const deleteMutation = useMutation({
     mutationFn: (record: RegistryRecord) => softDeleteRegistry(title as RegistryTitle, record.id, workspace.id, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }),
@@ -63,7 +68,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const records = persistent ? recordsQuery.data ?? [] : previewRecords
   const deferredQuery = useDeferredValue(query.toLocaleLowerCase())
   const filtered = records.filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery))
-  const error = recordsQuery.error ?? ceremoniesQuery.error ?? addMutation.error ?? statusMutation.error
+  const error = recordsQuery.error ?? ceremoniesQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error
 
   async function addRecord(values: Record<string, string>) {
     if (!persistent) {
@@ -72,6 +77,16 @@ function Registry({ title, definition }: { title: string; definition: Definition
       return
     }
     await addMutation.mutateAsync(values)
+  }
+
+  async function updateRecord(values: Record<string, string>) {
+    if (!editing) return
+    if (!persistent) {
+      setPreviewRecords((current) => current.map((record) => record.id === editing.id ? { ...record, values } : record))
+      setEditing(null)
+      return
+    }
+    await updateMutation.mutateAsync({ record: editing, values })
   }
 
   function changeStatus(record: RegistryRecord, status: string) {
@@ -85,20 +100,21 @@ function Registry({ title, definition }: { title: string; definition: Definition
   }
 
   return <div className="page registry-page">
-    <header className="page-header"><div><p className="eyebrow">{definition.eyebrow}</p><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><button className="button primary" type="button" onClick={() => setAdding(true)}><Plus size={15} /> Add {definition.noun}</button></header>
-    {adding && <RegistryForm definition={definition} saving={addMutation.isPending} onClose={() => setAdding(false)} onAdd={addRecord} />}
+    <header className="page-header"><div><p className="eyebrow">{definition.eyebrow}</p><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><button className="button primary" type="button" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</button></header>
+    {adding && <RegistryForm definition={definition} saving={addMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
+    {editing && <RegistryForm key={editing.id} definition={definition} initialValues={editing.values} saving={updateMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
     {error && <p className="data-error">{error.message}</p>}
     <section className="registry-panel">
       <header><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
-      {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => <article key={record.id}><div><strong>{record.values[definition.primaryKey ?? definition.fields[0].key]}</strong><small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key)).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small></div><select value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => removeRecord(record)}><Trash2 size={14} /></button></article>)}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
+      {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => <article key={record.id}><div><strong>{record.values[definition.primaryKey ?? definition.fields[0].key]}</strong><small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key)).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small></div><select value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => removeRecord(record)}><Trash2 size={14} /></button></div></article>)}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
     </section>
   </div>
 }
 
-function RegistryForm({ definition, saving, onClose, onAdd }: { definition: Definition; saving: boolean; onClose: () => void; onAdd: (values: Record<string, string>) => Promise<void> }) {
-  const [values, setValues] = useState<Record<string, string>>(() => Object.fromEntries(definition.fields.filter((field) => field.options).map((field) => [field.key, field.options![0]])))
-  async function submit(event: FormEvent) { event.preventDefault(); const cleanValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])); await onAdd(cleanValues) }
-  return <section className="registry-form"><header><div><p className="eyebrow">New record</p><h2>Add {definition.noun}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.options ? <select required={field.required} value={values[field.key] ?? field.options[0]} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>{field.options.map((value) => <option key={value}>{value}</option>)}</select> : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}</div><footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></footer></form></section>
+function RegistryForm({ definition, initialValues, saving, onClose, onSave }: { definition: Definition; initialValues?: Record<string, string>; saving: boolean; onClose: () => void; onSave: (values: Record<string, string>) => Promise<void> }) {
+  const [values, setValues] = useState<Record<string, string>>(() => ({ ...Object.fromEntries(definition.fields.filter((field) => field.options).map((field) => [field.key, field.options![0]])), ...initialValues }))
+  async function submit(event: FormEvent) { event.preventDefault(); const cleanValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])); try { await onSave(cleanValues) } catch { /* Mutation errors are displayed above the registry. */ } }
+  return <section className="registry-form"><header><div><p className="eyebrow">{initialValues ? 'Edit record' : 'New record'}</p><h2>{initialValues ? 'Edit' : 'Add'} {definition.noun}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.options ? <select required={field.required} value={values[field.key] ?? field.options[0]} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>{field.options.map((value) => <option key={value}>{value}</option>)}</select> : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} step={field.step} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}</div><footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></footer></form></section>
 }
 
 function ReportsPage() {

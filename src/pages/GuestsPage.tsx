@@ -6,6 +6,7 @@ import {
   ChevronDown,
   FileSpreadsheet,
   Mail,
+  Pencil,
   Phone,
   Plus,
   Search,
@@ -69,6 +70,7 @@ export function GuestsPage() {
   const [eventFilter, setEventFilter] = useState<'all' | EventName>('all')
   const [rsvpFilter, setRsvpFilter] = useState<'all' | RsvpStatus>('all')
   const [entryOpen, setEntryOpen] = useState(false)
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase())
   const ceremonyQuery = useQuery({
@@ -84,7 +86,7 @@ export function GuestsPage() {
     queryKey: ['guests', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('guests').select('id,full_name,email,phone,plus_one_allowed,plus_one_name,guest_accommodations(name),guest_tag_assignments(guest_tags(name)),guest_invitations(rsvp_status,ceremonies(kind))').eq('workspace_id', workspace.id).is('deleted_at', null).order('full_name')
+      const { data, error } = await supabase!.from('guests').select('id,full_name,email,phone,plus_one_allowed,plus_one_name,guest_accommodations(name,deleted_at),guest_tag_assignments(guest_tags(name)),guest_invitations(rsvp_status,deleted_at,ceremonies(kind))').eq('workspace_id', workspace.id).is('deleted_at', null).order('full_name')
       if (error) throw error
       return data
     },
@@ -93,7 +95,10 @@ export function GuestsPage() {
     mutationFn: async ({ records, source }: { records: Omit<Guest, 'id'>[]; source: 'manual' | 'csv' | 'xlsx' | 'clipboard' }) => {
       for (const guest of records) await persistGuest(guest, source)
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['guests', workspace.id] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['guests', workspace.id] })
+      setEntryOpen(false)
+    },
   })
   const importMutation = useMutation({
     mutationFn: async ({ rows, source }: { rows: GuestImportReviewRow[]; source: 'csv' | 'xlsx' | 'clipboard' }) => {
@@ -111,10 +116,23 @@ export function GuestsPage() {
       }
       const ceremony = ceremonyQuery.data?.find((item) => item.kind === operation.event)
       if (!ceremony) throw new Error('Ceremony is unavailable')
-      const { error } = await supabase!.from('guest_invitations').update({ rsvp_status: operation.status === 'attending' ? 'accepted' : operation.status, responded_at: operation.status === 'pending' ? null : new Date().toISOString(), updated_by: userId }).eq('guest_id', operation.guestId).eq('ceremony_id', ceremony.id)
+      const values = { rsvp_status: operation.status === 'attending' ? 'accepted' : operation.status, responded_at: operation.status === 'pending' ? null : new Date().toISOString(), updated_by: userId }
+      const { data, error } = await supabase!.from('guest_invitations').update(values).eq('workspace_id', workspace.id).eq('guest_id', operation.guestId).eq('ceremony_id', ceremony.id).is('deleted_at', null).select('id')
       if (error) throw error
+      if (!data.length) {
+        const { error: insertError } = await supabase!.from('guest_invitations').insert({ ...values, workspace_id: workspace.id, guest_id: operation.guestId, ceremony_id: ceremony.id, invited_plus_one: guests.find((guest) => guest.id === operation.guestId)?.plusOneAllowed ?? false, created_by: userId })
+        if (insertError) throw insertError
+      }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['guests', workspace.id] }),
+    onError: () => queryClient.invalidateQueries({ queryKey: ['guests', workspace.id] }),
+  })
+  const guestEditMutation = useMutation({
+    mutationFn: async (guest: Guest) => persistGuestUpdate(guest),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['guests', workspace.id] })
+      setEditingGuest(null)
+    },
   })
 
   // oxlint-disable react/set-state-in-effect
@@ -124,38 +142,105 @@ export function GuestsPage() {
     // oxlint-disable-next-line react(set-state-in-effect)
     setGuests(guestsQuery.data.map((row) => {
       const nameParts = row.full_name.trim().split(/\s+/)
-      const invitationRows = Array.isArray(row.guest_invitations) ? row.guest_invitations : []
+      const invitationRows = Array.isArray(row.guest_invitations) ? row.guest_invitations.filter((invitation) => !invitation.deleted_at) : []
       const rsvps: ImportableGuest['rsvps'] = { court: 'pending', traditional: 'pending', white: 'pending' }
       invitationRows.forEach((invitation) => {
         const kind = relationOne(invitation.ceremonies)?.kind as keyof typeof rsvps | undefined
         if (kind) rsvps[kind] = invitation.rsvp_status === 'accepted' ? 'attending' : invitation.rsvp_status === 'declined' ? 'declined' : 'pending'
       })
-      return { id: row.id, firstName: nameParts.shift() ?? '', lastName: nameParts.join(' '), email: row.email ?? '', phone: row.phone ?? '', plusOneAllowed: row.plus_one_allowed, plusOneName: row.plus_one_name ?? '', tags: (row.guest_tag_assignments ?? []).map((assignment) => relationOne(assignment.guest_tags)?.name).filter(Boolean) as string[], accommodation: relationOne(row.guest_accommodations)?.name ?? '', rsvps }
+      const accommodations = Array.isArray(row.guest_accommodations) ? row.guest_accommodations : []
+      return { id: row.id, firstName: nameParts.shift() ?? '', lastName: nameParts.join(' '), email: row.email ?? '', phone: row.phone ?? '', plusOneAllowed: row.plus_one_allowed, plusOneName: row.plus_one_name ?? '', tags: (row.guest_tag_assignments ?? []).map((assignment) => relationOne(assignment.guest_tags)?.name).filter(Boolean) as string[], accommodation: accommodations.find((item) => !item.deleted_at)?.name ?? '', rsvps }
     }))
   }, [guestsQuery.data])
   // oxlint-enable react/set-state-in-effect
 
   async function persistGuest(guest: Omit<Guest, 'id'>, source: 'manual' | 'csv' | 'xlsx' | 'clipboard') {
+    if (!ceremonyQuery.data) throw new Error('Ceremony details are still loading. Please try again.')
     const { data: created, error } = await supabase!.from('guests').insert({ workspace_id: workspace.id, full_name: `${guest.firstName} ${guest.lastName}`.trim(), email: guest.email || null, normalized_email: guest.email || null, phone: guest.phone || null, normalized_phone: guest.phone || null, plus_one_allowed: guest.plusOneAllowed, plus_one_name: guest.plusOneName || null, source_type: source, created_by: userId, updated_by: userId }).select('id').single()
     if (error) throw error
-    if (guest.accommodation) {
-      const { error: accommodationError } = await supabase!.from('guest_accommodations').insert({ workspace_id: workspace.id, guest_id: created.id, name: guest.accommodation, created_by: userId, updated_by: userId })
+    try {
+      if (guest.accommodation) {
+        const { error: accommodationError } = await supabase!.from('guest_accommodations').insert({ workspace_id: workspace.id, guest_id: created.id, name: guest.accommodation, created_by: userId, updated_by: userId })
+        if (accommodationError) throw accommodationError
+      }
+      for (const ceremony of ceremonyQuery.data ?? []) {
+        const status = guest.rsvps[ceremony.kind as keyof typeof guest.rsvps]
+        const { error: invitationError } = await supabase!.from('guest_invitations').insert({ workspace_id: workspace.id, guest_id: created.id, ceremony_id: ceremony.id, rsvp_status: status === 'attending' ? 'accepted' : status, invited_plus_one: guest.plusOneAllowed, responded_at: status === 'pending' ? null : new Date().toISOString(), created_by: userId, updated_by: userId })
+        if (invitationError) throw invitationError
+      }
+      for (const tagName of guest.tags) {
+        const tagId = await getOrCreateTag(tagName)
+        const { error: assignmentError } = await supabase!.from('guest_tag_assignments').insert({ workspace_id: workspace.id, guest_id: created.id, tag_id: tagId, created_by: userId })
+        if (assignmentError) throw assignmentError
+      }
+    } catch (relatedError) {
+      await supabase!.from('guests').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('id', created.id)
+      throw relatedError
+    }
+  }
+
+  async function getOrCreateTag(tagName: string) {
+    const lookup = await supabase!.from('guest_tags').select('id').eq('workspace_id', workspace.id).ilike('name', tagName).is('deleted_at', null).maybeSingle()
+    if (lookup.error) throw lookup.error
+    if (lookup.data) return lookup.data.id
+    const created = await supabase!.from('guest_tags').insert({ workspace_id: workspace.id, name: tagName, created_by: userId, updated_by: userId }).select('id').single()
+    if (!created.error) return created.data.id
+    if (created.error.code !== '23505') throw created.error
+    const raced = await supabase!.from('guest_tags').select('id').eq('workspace_id', workspace.id).ilike('name', tagName).is('deleted_at', null).single()
+    if (raced.error) throw raced.error
+    return raced.data.id
+  }
+
+  async function persistGuestUpdate(guest: Guest) {
+    if (!ceremonyQuery.data) throw new Error('Ceremony details are still loading. Please try again.')
+    const cleanEmail = normalizeEmail(guest.email)
+    const cleanPhone = normalizePhone(guest.phone)
+    const cleanTags = [...new Map(guest.tags.map((tag) => tag.trim()).filter(Boolean).map((tag) => [tag.toLocaleLowerCase(), tag])).values()]
+    const { error } = await supabase!.from('guests').update({ full_name: `${guest.firstName} ${guest.lastName}`.trim(), email: cleanEmail || null, normalized_email: cleanEmail || null, phone: cleanPhone || null, normalized_phone: cleanPhone || null, plus_one_allowed: guest.plusOneAllowed, plus_one_name: guest.plusOneAllowed && guest.plusOneName.trim() ? guest.plusOneName.trim() : null, updated_by: userId }).eq('id', guest.id).eq('workspace_id', workspace.id)
+    if (error) throw error
+    const resolvedTags = await Promise.all(cleanTags.map(async (name) => ({ id: await getOrCreateTag(name), name })))
+
+    const accommodations = await supabase!.from('guest_accommodations').select('id').eq('workspace_id', workspace.id).eq('guest_id', guest.id).is('deleted_at', null)
+    if (accommodations.error) throw accommodations.error
+    const accommodation = guest.accommodation.trim()
+    if (accommodation && accommodations.data[0]) {
+      const { error: accommodationError } = await supabase!.from('guest_accommodations').update({ name: accommodation, updated_by: userId }).eq('id', accommodations.data[0].id)
+      if (accommodationError) throw accommodationError
+    } else if (accommodation) {
+      const { error: accommodationError } = await supabase!.from('guest_accommodations').insert({ workspace_id: workspace.id, guest_id: guest.id, name: accommodation, created_by: userId, updated_by: userId })
       if (accommodationError) throw accommodationError
     }
-    for (const ceremony of ceremonyQuery.data ?? []) {
-      const status = guest.rsvps[ceremony.kind as keyof typeof guest.rsvps]
-      const { error: invitationError } = await supabase!.from('guest_invitations').insert({ workspace_id: workspace.id, guest_id: created.id, ceremony_id: ceremony.id, rsvp_status: status === 'attending' ? 'accepted' : status, invited_plus_one: guest.plusOneAllowed, responded_at: status === 'pending' ? null : new Date().toISOString(), created_by: userId, updated_by: userId })
-      if (invitationError) throw invitationError
+    const obsoleteAccommodationIds = accommodations.data.slice(accommodation ? 1 : 0).map((item) => item.id)
+    if (obsoleteAccommodationIds.length) {
+      const { error: cleanupError } = await supabase!.from('guest_accommodations').update({ deleted_at: new Date().toISOString(), updated_by: userId }).in('id', obsoleteAccommodationIds)
+      if (cleanupError) throw cleanupError
     }
-    for (const tagName of guest.tags) {
-      let { data: tagRecord } = await supabase!.from('guest_tags').select('id').eq('workspace_id', workspace.id).ilike('name', tagName).is('deleted_at', null).maybeSingle()
-      if (!tagRecord) {
-        const { data, error: tagError } = await supabase!.from('guest_tags').insert({ workspace_id: workspace.id, name: tagName, created_by: userId, updated_by: userId }).select('id').single()
-        if (tagError) throw tagError
-        tagRecord = data
-      }
-      const { error: assignmentError } = await supabase!.from('guest_tag_assignments').insert({ workspace_id: workspace.id, guest_id: created.id, tag_id: tagRecord.id, created_by: userId })
+
+    const invitations = await supabase!.from('guest_invitations').select('id,ceremony_id').eq('workspace_id', workspace.id).eq('guest_id', guest.id).is('deleted_at', null)
+    if (invitations.error) throw invitations.error
+    for (const ceremony of ceremonyQuery.data ?? []) {
+      const status = guest.rsvps[ceremony.kind as EventName] ?? 'pending'
+      const values = { rsvp_status: status === 'attending' ? 'accepted' : status, invited_plus_one: guest.plusOneAllowed, responded_at: status === 'pending' ? null : new Date().toISOString(), updated_by: userId }
+      const invitation = invitations.data.find((item) => item.ceremony_id === ceremony.id)
+      const result = invitation
+        ? await supabase!.from('guest_invitations').update(values).eq('id', invitation.id)
+        : await supabase!.from('guest_invitations').insert({ ...values, workspace_id: workspace.id, guest_id: guest.id, ceremony_id: ceremony.id, created_by: userId })
+      if (result.error) throw result.error
+    }
+
+    const assignments = await supabase!.from('guest_tag_assignments').select('tag_id').eq('workspace_id', workspace.id).eq('guest_id', guest.id)
+    if (assignments.error) throw assignments.error
+    const desiredTagIds = new Set(resolvedTags.map((tag) => tag.id))
+    const existingTagIds = new Set(assignments.data.map((assignment) => assignment.tag_id))
+    const additions = resolvedTags.filter((tag) => !existingTagIds.has(tag.id)).map((tag) => ({ workspace_id: workspace.id, guest_id: guest.id, tag_id: tag.id, created_by: userId }))
+    if (additions.length) {
+      const { error: assignmentError } = await supabase!.from('guest_tag_assignments').insert(additions)
       if (assignmentError) throw assignmentError
+    }
+    const removals = assignments.data.filter((assignment) => !desiredTagIds.has(assignment.tag_id)).map((assignment) => assignment.tag_id)
+    if (removals.length) {
+      const { error: removalError } = await supabase!.from('guest_tag_assignments').delete().eq('guest_id', guest.id).in('tag_id', removals)
+      if (removalError) throw removalError
     }
   }
 
@@ -171,9 +256,20 @@ export function GuestsPage() {
   const pending = guests.filter((guest) => Object.values(guest.rsvps).includes('pending')).length
 
   function addGuest(guest: Omit<Guest, 'id'>) {
-    if (isPreview) setGuests((current) => [...current, { ...guest, id: crypto.randomUUID() }])
+    if (isPreview) {
+      setGuests((current) => [...current, { ...guest, id: crypto.randomUUID() }])
+      setEntryOpen(false)
+    }
     else saveMutation.mutate({ records: [guest], source: 'manual' })
-    setEntryOpen(false)
+  }
+
+  function editGuest(guest: Omit<Guest, 'id'>) {
+    if (!editingGuest) return
+    const updated = { ...guest, id: editingGuest.id }
+    if (isPreview) {
+      setGuests((current) => current.map((item) => item.id === updated.id ? updated : item))
+      setEditingGuest(null)
+    } else guestEditMutation.mutate(updated)
   }
 
   function addImportedGuests(rows: GuestImportReviewRow[], source: 'csv' | 'xlsx' | 'clipboard') {
@@ -205,7 +301,7 @@ export function GuestsPage() {
         </div>
         <div className="header-actions">
           <button className="button secondary" type="button" onClick={() => setImportOpen(true)}><Upload size={16} /> Import list</button>
-          <button className="button primary" type="button" onClick={() => setEntryOpen((open) => !open)}><Plus size={16} /> Add guest</button>
+          <button className="button primary" type="button" onClick={() => { setEditingGuest(null); setEntryOpen((open) => !open) }}><Plus size={16} /> Add guest</button>
         </div>
       </header>
 
@@ -216,8 +312,9 @@ export function GuestsPage() {
         <Summary value={guests.filter((guest) => guest.accommodation).length} label="Stays noted" detail="Accommodation tracked" />
       </section>
 
-      {entryOpen && <GuestEntry onAdd={addGuest} onClose={() => setEntryOpen(false)} />}
-      {(guestsQuery.error || saveMutation.error || importMutation.error) && <p className="guest-data-error">{guestsQuery.error?.message ?? saveMutation.error?.message ?? importMutation.error?.message}</p>}
+      {entryOpen && <GuestEntry onSave={addGuest} onClose={() => setEntryOpen(false)} isSaving={saveMutation.isPending} />}
+      {editingGuest && <GuestEntry initialGuest={editingGuest} onSave={editGuest} onClose={() => setEditingGuest(null)} isSaving={guestEditMutation.isPending} />}
+      {(guestsQuery.error || saveMutation.error || importMutation.error || guestUpdateMutation.error || guestEditMutation.error) && <p className="guest-data-error">{guestsQuery.error?.message ?? saveMutation.error?.message ?? importMutation.error?.message ?? guestUpdateMutation.error?.message ?? guestEditMutation.error?.message}</p>}
 
       <section className="guest-directory">
         <div className="guest-tools">
@@ -247,7 +344,7 @@ export function GuestsPage() {
 
         {filteredGuests.length ? (
           <div className="guest-list">
-            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} onRsvp={updateRsvp} onRemove={removeGuest} />)}
+            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={removeGuest} />)}
           </div>
         ) : (
           <div className="guest-empty"><Users size={22} /><h2>No guests found</h2><p>Try clearing a filter or add someone new.</p></div>
@@ -271,7 +368,7 @@ function SelectFilter({ label, value, onChange, children }: {
   )
 }
 
-function GuestRow({ guest, onRsvp, onRemove }: { guest: Guest; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onRemove: (guestId: string) => void }) {
+function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
   const initials = `${guest.firstName[0] ?? ''}${guest.lastName[0] ?? ''}`.toUpperCase()
   return (
     <article className="guest-row">
@@ -283,7 +380,7 @@ function GuestRow({ guest, onRsvp, onRemove }: { guest: Guest; onRsvp: (guestId:
       <div className="rsvp-list">
         {(Object.keys(EVENT_LABELS) as EventName[]).map((event) => <RsvpBadge key={event} event={event} status={guest.rsvps[event]} onChange={(status) => onRsvp(guest.id, event, status)} />)}
       </div>
-      <button className="guest-remove" type="button" aria-label={`Remove ${guest.firstName} ${guest.lastName}`} onClick={() => onRemove(guest.id)}><X size={14} /></button>
+      <div className="guest-row-actions"><button className="guest-edit" type="button" aria-label={`Edit ${guest.firstName} ${guest.lastName}`} onClick={() => onEdit(guest)}><Pencil size={14} /></button><button className="guest-remove" type="button" aria-label={`Remove ${guest.firstName} ${guest.lastName}`} onClick={() => onRemove(guest.id)}><X size={14} /></button></div>
     </article>
   )
 }
@@ -292,21 +389,22 @@ function RsvpBadge({ event, status, onChange }: { event: EventName; status: Rsvp
   return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
 }
 
-function GuestEntry({ onAdd, onClose }: { onAdd: (guest: Omit<Guest, 'id'>) => void; onClose: () => void }) {
-  const [guest, setGuest] = useState(emptyGuest)
-  const [tags, setTags] = useState('')
+function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?: Guest; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
+  const [guest, setGuest] = useState<Omit<Guest, 'id'>>(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation, rsvps: { ...initialGuest.rsvps } } : emptyGuest)
+  const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
   const canSubmit = Boolean((guest.firstName || guest.lastName) && (guest.email || guest.phone))
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
   return (
-    <section className="guest-entry" aria-labelledby="add-guest-title">
-      <div className="entry-intro"><p className="eyebrow">New record</p><h2 id="add-guest-title">Add a guest</h2><p>Name and one contact method are required.</p></div>
+    <section className="guest-entry" aria-labelledby="guest-entry-title">
+      <div className="entry-intro"><p className="eyebrow">{initialGuest ? 'Update record' : 'New record'}</p><h2 id="guest-entry-title">{initialGuest ? 'Edit guest' : 'Add a guest'}</h2><p>Name and one contact method are required.</p></div>
       <div className="entry-fields">
         <label><span>First name</span><input value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
         <label><span>Last name</span><input value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
         <label><span>Email</span><input type="email" value={guest.email} onChange={(event) => setField('email', event.target.value)} /></label>
         <label><span>Phone</span><input type="tel" value={guest.phone} onChange={(event) => setField('phone', event.target.value)} /></label>
-        <label><span>Plus-one name</span><input value={guest.plusOneName} onChange={(event) => setGuest((current) => ({ ...current, plusOneName: event.target.value, plusOneAllowed: Boolean(event.target.value.trim()) }))} /></label>
+        <label className="plus-one-toggle"><span>Plus-one allowed</span><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /></label>
+        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
         <label><span>Tags <small>comma separated</small></span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
         <label><span>Accommodation</span><input value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
       </div>
@@ -315,7 +413,7 @@ function GuestEntry({ onAdd, onClose }: { onAdd: (guest: Omit<Guest, 'id'>) => v
           <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
         ))}
       </div>
-      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" disabled={!canSubmit} onClick={() => onAdd({ ...guest, email: normalizeEmail(guest.email), phone: normalizePhone(guest.phone), tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) })}><UserPlus size={15} /> Add to list</button></div>
+      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" disabled={!canSubmit || isSaving} onClick={() => onSave({ ...guest, email: normalizeEmail(guest.email), phone: normalizePhone(guest.phone), tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) })}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>
     </section>
   )
 }

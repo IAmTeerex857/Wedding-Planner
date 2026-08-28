@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildGuestImportReview, normalizeEmail, normalizePhone, parseGuestData, suggestGuestFieldMapping } from '../guest-import'
+import { buildGuestImportReview, normalizeEmail, normalizePhone, parseGuestData, parseGuestWorkbookSheets, suggestGuestFieldMapping } from '../guest-import'
 
 describe('guest import parsing', () => {
   it('parses quoted CSV values and suggests common fields', () => {
@@ -12,6 +12,17 @@ describe('guest import parsing', () => {
   it('parses spreadsheet tab-separated rows', () => {
     const parsed = parseGuestData('First name\tPhone\nAda\t+234 800 000 0000')
     expect(parsed.rows[0].Phone).toBe('+234 800 000 0000')
+  })
+
+  it('returns every worksheet for explicit XLSX selection', async () => {
+    const XLSX = await import('xlsx')
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Name', 'Email'], ['Court guest', 'court@example.com']]), 'Court')
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['Name', 'Email'], ['White guest', 'white@example.com']]), 'White')
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+    const sheets = await parseGuestWorkbookSheets(new File([bytes], 'guests.xlsx'))
+    expect(sheets.map((sheet) => sheet.name)).toEqual(['Court', 'White'])
+    expect(sheets[1].data.rows[0].Name).toBe('White guest')
   })
 })
 

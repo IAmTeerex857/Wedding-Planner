@@ -30,7 +30,7 @@
 .compact-select > span { color: var(--faint); font-size: 9px; text-transform: uppercase; }
 .compact-select select { appearance: none; min-width: 0; border: 0; color: var(--ink); background: transparent; font: inherit; font-size: 11px; outline: none; }
 .directory-heading { display: flex; min-height: 40px; align-items: center; justify-content: space-between; padding: 0 18px; border-bottom: 1px solid var(--soft-line); color: var(--faint); background: #fafaf8; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
-.guest-row { display: grid; min-height: 112px; grid-template-columns: 1.3fr 1fr 1.4fr 28px; align-items: center; gap: 24px; padding: 18px; border-bottom: 1px solid var(--soft-line); }
+.guest-row { display: grid; min-height: 112px; grid-template-columns: 1.3fr 1fr 1.4fr 60px; align-items: center; gap: 24px; padding: 18px; border-bottom: 1px solid var(--soft-line); }
 .guest-row:last-child { border-bottom: 0; }
 .guest-row:hover { background: #fdfdfb; }
 .guest-identity { display: flex; min-width: 0; align-items: center; gap: 12px; }
@@ -53,7 +53,11 @@
 .guest-empty h2 { margin-top: 12px; color: var(--ink); font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; }
 .guest-empty p { margin-top: 5px; font-size: 11px; }
 .guest-data-error { margin-top: 18px; padding: 10px 12px; border: 1px solid #d5b7b4; color: #813c36; background: #fff8f7; font-size: 10px; }
-.guest-remove { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; color: var(--faint); background: transparent; cursor: pointer; }.guest-remove:hover { color: #8d3535; background: #fff5f4; }
+.guest-row-actions { display: flex; gap: 2px; }
+.guest-edit, .guest-remove { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 50%; color: var(--faint); background: transparent; cursor: pointer; }
+.guest-edit:hover { color: var(--ink); background: var(--wash); }.guest-remove:hover { color: #8d3535; background: #fff5f4; }
+.entry-fields .plus-one-toggle { justify-content: flex-end; }
+.entry-fields .plus-one-toggle input { width: 18px; height: 18px; accent-color: var(--ink); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 .import-layer { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px; }
@@ -117,7 +121,7 @@
 .import-footer > div { display: flex; gap: 8px; }
 
 @media (max-width: 1080px) {
-  .guest-row { grid-template-columns: 1.1fr .8fr 1.2fr 28px; gap: 14px; }
+  .guest-row { grid-template-columns: 1.1fr .8fr 1.2fr 60px; gap: 14px; }
   .guest-contact { flex-direction: column; }
 }
 

@@ -1,5 +1,5 @@
-import { AlignJustify, Columns3, Plus, UserRound, X } from 'lucide-react'
-import { useEffect, useState, type FormEvent } from 'react'
+import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from 'lucide-react'
+import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
@@ -47,6 +47,7 @@ export function TasksPage() {
   const [tasks, setTasks] = useState<PlanningTask[]>([])
   const [view, setView] = useState<TaskView>('list')
   const [isAdding, setIsAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft)
   const ceremonyQuery = useQuery({
     queryKey: ['ceremony-options', workspace.id],
@@ -68,17 +69,56 @@ export function TasksPage() {
   })
   const addMutation = useMutation({
     mutationFn: async (task: TaskDraft) => {
+      const ceremony = task.event === 'General' ? null : ceremonyQuery.data?.find((item) => item.kind === task.event.toLocaleLowerCase())
+      if (task.event !== 'General' && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
       const { data, error } = await supabase!.from('tasks').insert({ workspace_id: workspace.id, title: task.title, description: task.description || null, status: task.status, priority: task.priority, assignee_name: task.assignee || null, due_at: lagosDateTime(task.dueAt), reminder_at: lagosDateTime(task.reminderAt), created_by: userId, updated_by: userId }).select('id').single()
       if (error) throw error
-      if (task.event !== 'General') {
-        const ceremony = ceremonyQuery.data?.find((item) => item.kind === task.event.toLocaleLowerCase())
-        if (ceremony) {
-          const { error: linkError } = await supabase!.from('task_ceremonies').insert({ task_id: data.id, ceremony_id: ceremony.id })
-          if (linkError) throw linkError
+      if (ceremony) {
+        const { error: linkError } = await supabase!.from('task_ceremonies').insert({ task_id: data.id, ceremony_id: ceremony.id })
+        if (linkError) {
+          await supabase!.from('tasks').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('id', data.id)
+          throw linkError
         }
       }
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] }),
+  })
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, task }: { id: string; task: TaskDraft }) => {
+      const ceremony = task.event === 'General' ? null : ceremonyQuery.data?.find((item) => item.kind === task.event.toLocaleLowerCase())
+      if (task.event !== 'General' && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
+      const { error } = await supabase!.from('tasks').update({ title: task.title, description: task.description || null, status: task.status, priority: task.priority, assignee_name: task.assignee || null, due_at: lagosDateTime(task.dueAt), reminder_at: lagosDateTime(task.reminderAt), completed_at: task.status === 'done' ? new Date().toISOString() : null, updated_by: userId }).eq('id', id).eq('workspace_id', workspace.id)
+      if (error) throw error
+      if (ceremony) {
+        const { error: linkError } = await supabase!.from('task_ceremonies').upsert({ task_id: id, ceremony_id: ceremony.id }, { onConflict: 'task_id,ceremony_id', ignoreDuplicates: true })
+        if (linkError) throw linkError
+        const { error: cleanupError } = await supabase!.from('task_ceremonies').delete().eq('task_id', id).neq('ceremony_id', ceremony.id)
+        if (cleanupError) throw cleanupError
+      } else {
+        const { error: linkError } = await supabase!.from('task_ceremonies').delete().eq('task_id', id)
+        if (linkError) throw linkError
+      }
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] })
+      closeModal()
+    },
+  })
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase!.from('tasks').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('id', id).eq('workspace_id', workspace.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] }),
+    onError: () => queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] }),
+  })
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
+      const { error } = await supabase!.from('tasks').update({ status, completed_at: status === 'done' ? new Date().toISOString() : null, updated_by: userId }).eq('id', id).eq('workspace_id', workspace.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] }),
+    onError: () => queryClient.invalidateQueries({ queryKey: ['tasks', workspace.id] }),
   })
 
   useEffect(() => {
@@ -95,31 +135,47 @@ export function TasksPage() {
 
   function closeModal() {
     setIsAdding(false)
+    setEditingId(null)
     setDraft(emptyDraft)
+    addMutation.reset()
+    updateMutation.reset()
   }
+  const closeModalEvent = useEffectEvent(closeModal)
 
   useEffect(() => {
-    if (!isAdding) return
+    if (!isAdding && !editingId) return
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') closeModal()
+      if (event.key === 'Escape') closeModalEvent()
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isAdding])
+  }, [isAdding, editingId])
+
+  function editTask(task: PlanningTask) {
+    setDraft({ title: task.title, description: task.description, status: task.status, priority: task.priority, assignee: task.assignee, event: task.event, dueAt: task.dueAt, reminderAt: task.reminderAt })
+    setEditingId(task.id)
+  }
 
   function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const title = draft.title.trim()
     if (!title) return
     const cleanDraft = { ...draft, title, description: draft.description.trim(), assignee: draft.assignee.trim() }
-    if (isPreview) setTasks((current) => [...current, { ...cleanDraft, id: crypto.randomUUID() }])
-    else addMutation.mutate(cleanDraft)
-    closeModal()
+    if (isPreview) {
+      setTasks((current) => editingId ? current.map((task) => task.id === editingId ? { ...cleanDraft, id: editingId } : task) : [...current, { ...cleanDraft, id: crypto.randomUUID() }])
+      closeModal()
+    } else if (editingId) updateMutation.mutate({ id: editingId, task: cleanDraft })
+    else addMutation.mutate(cleanDraft, { onSuccess: closeModal })
   }
 
   function moveTask(id: string, status: TaskStatus) {
     setTasks((current) => current.map((task) => task.id === id ? { ...task, status } : task))
-    if (!isPreview) void supabase!.from('tasks').update({ status, completed_at: status === 'done' ? new Date().toISOString() : null, updated_by: userId }).eq('id', id)
+    if (!isPreview) statusMutation.mutate({ id, status })
+  }
+
+  function removeTask(id: string) {
+    setTasks((current) => current.filter((task) => task.id !== id))
+    if (!isPreview) deleteMutation.mutate(id)
   }
 
   return (
@@ -144,7 +200,7 @@ export function TasksPage() {
         </div>
         <span className="task-count">{tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}</span>
       </div>
-      {(tasksQuery.error || addMutation.error) && <p className="data-error">{tasksQuery.error?.message ?? addMutation.error?.message}</p>}
+      {(tasksQuery.error || addMutation.error || updateMutation.error || deleteMutation.error || statusMutation.error) && <p className="data-error">{tasksQuery.error?.message ?? addMutation.error?.message ?? updateMutation.error?.message ?? deleteMutation.error?.message ?? statusMutation.error?.message}</p>}
 
       {view === 'list' ? (
         <section className="task-list" aria-label="Task list">
@@ -152,7 +208,7 @@ export function TasksPage() {
           {tasks.length === 0 ? (
             <TaskEmpty title="Your task list is clear" detail="Add a task when there is something to decide, book, buy, or follow up." onAdd={() => setIsAdding(true)} />
           ) : tasks.map((task) => (
-            <TaskListRow task={task} onMove={moveTask} key={task.id} />
+             <TaskListRow task={task} onMove={moveTask} onEdit={editTask} onRemove={removeTask} key={task.id} />
           ))}
         </section>
       ) : (
@@ -165,7 +221,7 @@ export function TasksPage() {
                 <div className="kanban-stack">
                   {columnTasks.length === 0 ? (
                     <div className="column-empty"><span>Empty</span><p>{column.hint}</p></div>
-                  ) : columnTasks.map((task) => <TaskCard task={task} onMove={moveTask} key={task.id} />)}
+                  ) : columnTasks.map((task) => <TaskCard task={task} onMove={moveTask} onEdit={editTask} onRemove={removeTask} key={task.id} />)}
                 </div>
                 {column.id === 'todo' && <button className="add-inline" type="button" onClick={() => setIsAdding(true)}><Plus size={14} /> Add task</button>}
               </div>
@@ -174,11 +230,11 @@ export function TasksPage() {
         </section>
       )}
 
-      {isAdding && (
+      {(isAdding || editingId) && (
         <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeModal()}>
-          <section className="task-modal" role="dialog" aria-modal="true" aria-labelledby="new-task-title">
+          <section className="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-form-title">
             <div className="modal-header">
-              <div><p className="eyebrow">New action</p><h2 id="new-task-title">Add a task</h2></div>
+              <div><p className="eyebrow">{editingId ? 'Update action' : 'New action'}</p><h2 id="task-form-title">{editingId ? 'Edit task' : 'Add a task'}</h2></div>
               <button className="plain-icon-button" type="button" aria-label="Close" onClick={closeModal}><X size={18} /></button>
             </div>
             <form onSubmit={addTask}>
@@ -223,8 +279,9 @@ export function TasksPage() {
                 </label>
               </div>
               <div className="modal-actions">
+                {editingId && <button className="button danger" type="button" disabled={deleteMutation.isPending} onClick={() => { removeTask(editingId); closeModal() }}><Trash2 size={14} /> Delete</button>}
                 <button className="button secondary" type="button" onClick={closeModal}>Cancel</button>
-                <button className="button primary" type="submit">Add task</button>
+                <button className="button primary" type="submit" disabled={addMutation.isPending || updateMutation.isPending}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</button>
               </div>
             </form>
           </section>
@@ -234,7 +291,7 @@ export function TasksPage() {
   )
 }
 
-function TaskListRow({ task, onMove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void }) {
+function TaskListRow({ task, onMove, onEdit, onRemove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void; onEdit: (task: PlanningTask) => void; onRemove: (id: string) => void }) {
   return (
     <article className="task-list-row">
       <div className="task-title-cell">
@@ -244,6 +301,7 @@ function TaskListRow({ task, onMove }: { task: PlanningTask; onMove: (id: string
       <EventTag event={task.event} />
       <span className="assignee"><UserRound size={13} /> {task.assignee || 'Unassigned'}</span>
       <StatusControl task={task} onMove={onMove} />
+      <TaskActions task={task} onEdit={onEdit} onRemove={onRemove} />
     </article>
   )
 }
@@ -251,15 +309,19 @@ function TaskListRow({ task, onMove }: { task: PlanningTask; onMove: (id: string
 function lagosDateTime(value: string) { return value ? new Date(`${value}:00+01:00`).toISOString() : null }
 function localDateTime(value: string | null) { if (!value) return ''; const date = new Date(value); const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date); const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? ''; return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}` }
 
-function TaskCard({ task, onMove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void }) {
+function TaskCard({ task, onMove, onEdit, onRemove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void; onEdit: (task: PlanningTask) => void; onRemove: (id: string) => void }) {
   return (
     <article className="task-card">
-      <div className="task-card-top"><EventTag event={task.event} /><span className={`priority-label priority-${task.priority}`}>{task.priority}</span></div>
+      <div className="task-card-top"><EventTag event={task.event} /><div className="task-card-actions"><span className={`priority-label priority-${task.priority}`}>{task.priority}</span><TaskActions task={task} onEdit={onEdit} onRemove={onRemove} /></div></div>
       <h3>{task.title}</h3>
       {task.description && <p>{task.description}</p>}
       <div className="task-card-foot"><span className="assignee"><UserRound size={13} /> {task.assignee || 'Unassigned'}</span><StatusControl task={task} onMove={onMove} /></div>
     </article>
   )
+}
+
+function TaskActions({ task, onEdit, onRemove }: { task: PlanningTask; onEdit: (task: PlanningTask) => void; onRemove: (id: string) => void }) {
+  return <span className="task-actions"><button type="button" aria-label={`Edit ${task.title}`} onClick={() => onEdit(task)}><Pencil size={13} /></button><button type="button" aria-label={`Delete ${task.title}`} onClick={() => onRemove(task.id)}><Trash2 size={13} /></button></span>
 }
 
 function EventTag({ event }: { event: TaskEvent }) {
