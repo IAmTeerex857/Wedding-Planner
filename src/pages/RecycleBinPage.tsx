@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw, Trash2 } from 'lucide-react'
+import { RotateCcw, Trash2 } from '../components/KoboyoIcon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './recycle-bin.css'
@@ -8,7 +8,7 @@ type RecycledItem = { id: string; table: string; module: string; label: string; 
 const sources = [
   ['tasks', 'Tasks', 'title'], ['guests', 'Guests', 'full_name'], ['vendors', 'Vendors', 'name'], ['venues', 'Venues', 'name'],
   ['expenses', 'Budget', 'description'], ['contributions', 'Budget', 'contributor_name'], ['attire_orders', 'Attire', 'recipient_name'],
-  ['traditional_requirements', 'Traditional requirements', 'item_name'], ['packing_items', 'Packing', 'name'], ['gifts', 'Gifts', 'description'], ['files', 'Files', 'original_name'],
+  ['traditional_requirements', 'Traditional requirements', 'item_name'], ['gifts', 'Gifts', 'description'], ['files', 'Files', 'original_name'],
 ] as const
 
 export function RecycleBinPage() {

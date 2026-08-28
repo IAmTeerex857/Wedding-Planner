@@ -1,8 +1,9 @@
-import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from 'lucide-react'
+import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../components/KoboyoIcon'
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { pillTone } from '../lib/pills'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
 
@@ -251,19 +252,19 @@ export function TasksPage() {
               <div className="task-form-grid">
                 <label className="planning-field">
                   <span>Status</span>
-                  <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>
+                  <select className={pillTone(draft.status)} value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>
                     {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
                   </select>
                 </label>
                 <label className="planning-field">
                   <span>Priority</span>
-                  <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
+                  <select className={pillTone(draft.priority)} value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
                     <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
                   </select>
                 </label>
                 <label className="planning-field">
                   <span>Event</span>
-                  <select value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value as TaskEvent })}>
+                  <select className={pillTone(draft.event)} value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value as TaskEvent })}>
                     <option>General</option><option>Court</option><option>Traditional</option><option>White</option>
                   </select>
                 </label>
@@ -332,7 +333,7 @@ function EventTag({ event }: { event: TaskEvent }) {
 
 function StatusControl({ task, onMove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void }) {
   return (
-    <select className="task-status-control" aria-label={`Status for ${task.title}`} value={task.status} onChange={(event) => onMove(task.id, event.target.value as TaskStatus)}>
+    <select className={`task-status-control ${pillTone(task.status)}`} aria-label={`Status for ${task.title}`} value={task.status} onChange={(event) => onMove(task.id, event.target.value as TaskStatus)}>
       {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
     </select>
   )

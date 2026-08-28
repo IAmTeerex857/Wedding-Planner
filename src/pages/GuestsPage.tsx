@@ -13,9 +13,11 @@ import {
   Tag,
   Upload,
   UserPlus,
+  UserRound,
   Users,
   X,
-} from 'lucide-react'
+} from '../components/KoboyoIcon'
+import { pillTone } from '../lib/pills'
 import {
   GUEST_IMPORT_FIELDS,
   buildGuestImportReview,
@@ -369,12 +371,11 @@ function SelectFilter({ label, value, onChange, children }: {
 }
 
 function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
-  const initials = `${guest.firstName[0] ?? ''}${guest.lastName[0] ?? ''}`.toUpperCase()
   return (
     <article className="guest-row">
-      <div className="guest-identity"><span className="guest-avatar">{initials}</span><div><h2>{guest.firstName} {guest.lastName}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
+      <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
       <div className="guest-notes">
-        <div className="tag-list">{guest.tags.map((tag) => <span className="guest-tag" key={tag}><Tag size={10} />{tag}</span>)}</div>
+        <div className="tag-list">{guest.tags.map((tag) => <span className={`guest-tag ${pillTone(tag)}`} key={tag}><Tag size={10} />{tag}</span>)}</div>
         {guest.accommodation && <span className="guest-stay"><BedDouble size={13} />{guest.accommodation}</span>}
       </div>
       <div className="rsvp-list">
@@ -386,7 +387,7 @@ function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (
 }
 
 function RsvpBadge({ event, status, onChange }: { event: EventName; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
-  return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+  return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select className={pillTone(status)} aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
 }
 
 function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?: Guest; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
@@ -410,7 +411,7 @@ function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?
       </div>
       <div className="entry-rsvps">
         {(Object.keys(EVENT_LABELS) as EventName[]).map((event) => (
-          <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+          <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select className={pillTone(guest.rsvps[event])} value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
         ))}
       </div>
       <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" disabled={!canSubmit || isSaving} onClick={() => onSave({ ...guest, email: normalizeEmail(guest.email), phone: normalizePhone(guest.phone), tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) })}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>

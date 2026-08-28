@@ -2,7 +2,7 @@
 .logistics-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); }
 .logistics-summary > div { display: flex; min-height: 138px; flex-direction: column; justify-content: flex-end; padding: 18px; }
 .logistics-summary > div + div { border-left: 1px solid var(--ink); }
-.logistics-summary svg { margin-bottom: auto; color: var(--muted); }
+.logistics-summary svg, .logistics-summary .koboyo-icon { margin-bottom: auto; color: var(--muted); }
 .logistics-summary strong { font-family: Georgia, "Times New Roman", serif; font-size: 27px; font-weight: 400; letter-spacing: -.04em; }
 .logistics-summary span { margin-top: 5px; color: var(--muted); font-size: 9px; text-transform: uppercase; }
 .logistics-entry { margin-top: 24px; border: 1px solid var(--ink); background: #f8f8f5; }

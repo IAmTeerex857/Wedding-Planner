@@ -10,7 +10,6 @@ import {
   Gift,
   HeartHandshake,
   LayoutDashboard,
-  Luggage,
   MapPin,
   Menu,
   PackageCheck,
@@ -19,12 +18,12 @@ import {
   Shirt,
   Store,
   Trash2,
-  Users,
   UserRound,
+  Users,
   Utensils,
   Armchair,
   X,
-} from 'lucide-react'
+} from './KoboyoIcon'
 import { NavLink, Outlet } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { BrandMark } from './BrandMark'
@@ -44,11 +43,9 @@ const planningNavigation = [
   { to: '/vendors', label: 'Vendors', icon: Store },
   { to: '/venues', label: 'Venues', icon: MapPin },
   { to: '/food-drinks', label: 'Food & drinks', icon: Utensils },
-  { to: '/wedding-party', label: 'Wedding party', icon: UserRound },
   { to: '/attire', label: 'Attire & aso-ebi', icon: Shirt },
   { to: '/traditional-requirements', label: 'Trad requirements', icon: PackageCheck },
   { to: '/itineraries', label: 'Itineraries', icon: Clock3 },
-  { to: '/packing', label: 'Packing', icon: Luggage },
   { to: '/gifts', label: 'Gifts', icon: Gift },
   { to: '/files', label: 'Photos & files', icon: FolderLock },
   { to: '/honeymoon', label: 'Honeymoon', icon: Plane },
@@ -86,7 +83,7 @@ export function AppShell() {
           <NavItem to="/settings" label="Settings" icon={Settings} />
           <NavItem to="/recycle-bin" label="Recycle bin" icon={Trash2} />
           <button className="profile-button" type="button">
-            <span className="avatar">{initials || 'TB'}</span>
+            <span className="avatar"><UserRound size={20} /><span className="sr-only">{initials || 'TB'}</span></span>
             <span><strong>{displayName}</strong><small>Owner</small></span>
             <ChevronDown size={15} />
           </button>

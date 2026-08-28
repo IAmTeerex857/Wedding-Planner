@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Armchair, Lock, Plus, Unlock, Users } from 'lucide-react'
+import { Armchair, Lock, Plus, Unlock, Users } from '../components/KoboyoIcon'
 import { supabase } from '../lib/supabase'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
 import './seating.css'

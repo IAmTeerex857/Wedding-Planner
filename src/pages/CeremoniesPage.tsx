@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Plus, Trash2, Users } from 'lucide-react'
+import { CalendarDays, MapPin, Plus, Trash2, Users } from '../components/KoboyoIcon'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { LogOut, MailCheck, UserPlus } from 'lucide-react'
+import { LogOut, MailCheck, UserPlus } from '../components/KoboyoIcon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './settings.css'

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Download, File, FileImage, FileText, Trash2, Upload, X } from 'lucide-react'
+import { Download, File, FileImage, FileText, Trash2, Upload, X } from '../components/KoboyoIcon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './files.css'

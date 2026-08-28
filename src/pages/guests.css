@@ -22,7 +22,7 @@
 .guest-directory { margin-top: 28px; border: 1px solid var(--line); }
 .guest-tools { display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .guest-search { display: flex; width: min(430px, 100%); align-items: center; gap: 9px; }
-.guest-search svg { color: var(--faint); }
+.guest-search svg, .guest-search .koboyo-icon { color: var(--faint); }
 .guest-search input { width: 100%; height: 38px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; font-size: 12px; outline: none; }
 .guest-search input:focus { border-color: var(--ink); }
 .guest-filters { display: flex; gap: 8px; }
@@ -33,14 +33,15 @@
 .guest-row { display: grid; min-height: 112px; grid-template-columns: 1.3fr 1fr 1.4fr 60px; align-items: center; gap: 24px; padding: 18px; border-bottom: 1px solid var(--soft-line); }
 .guest-row:last-child { border-bottom: 0; }
 .guest-row:hover { background: #fdfdfb; }
+.guest-row:hover .guest-avatar .koboyo-icon { transform: rotate(-4deg) scale(1.08); }
 .guest-identity { display: flex; min-width: 0; align-items: center; gap: 12px; }
-.guest-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border: 1px solid var(--ink); border-radius: 50%; font-family: Georgia, "Times New Roman", serif; font-size: 11px; }
+.guest-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border-radius: 50%; color: #315f78; background: #e8f1f5; }
 .guest-identity h2 { font-family: Georgia, "Times New Roman", serif; font-size: 19px; font-weight: 400; letter-spacing: -.025em; }
 .guest-contact { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 5px; color: var(--muted); font-size: 9px; }
 .guest-contact span, .guest-stay { display: inline-flex; align-items: center; gap: 4px; }
 .guest-notes { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 7px; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
-.guest-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border: 1px solid var(--line); border-radius: 100px; color: #4e4e4a; background: #fafaf8; font-size: 9px; }
+.guest-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 7px; border: 0; border-radius: 100px; font-size: 9px; font-weight: 600; }
 .guest-stay { color: var(--muted); font-size: 9px; }
 .rsvp-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
 .rsvp-badge { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 7px; border: 1px solid var(--soft-line); color: var(--faint); font-size: 8px; text-transform: uppercase; }

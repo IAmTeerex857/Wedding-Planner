@@ -25,8 +25,6 @@ const modules = [
   ['vendors', 'Vendors'],
   ['venues', 'Venues'],
   ['food-drinks', 'Food & drinks'],
-  ['wedding-party', 'Wedding party'],
-  ['packing', 'Packing'],
   ['gifts', 'Gifts'],
   ['honeymoon', 'Honeymoon'],
 ] as const

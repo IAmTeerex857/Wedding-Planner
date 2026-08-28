@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CheckCircle2, CircleDollarSign, PackageCheck, Pencil, Plus, Truck, X } from 'lucide-react'
+import { CheckCircle2, CircleDollarSign, PackageCheck, Pencil, Plus, Truck, X } from '../components/KoboyoIcon'
 import { formatNaira } from '../lib/format'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'

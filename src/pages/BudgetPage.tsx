@@ -12,7 +12,7 @@ import {
   Trash2,
   WalletCards,
   X,
-} from 'lucide-react'
+} from '../components/KoboyoIcon'
 import './budget.css'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'

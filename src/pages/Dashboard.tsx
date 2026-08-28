@@ -9,7 +9,7 @@ import {
   Plus,
   Shirt,
   Users,
-} from 'lucide-react'
+} from '../components/KoboyoIcon'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { formatNaira } from '../lib/format'

@@ -13,8 +13,8 @@
 .ceremony-editor-heading .eyebrow { margin-bottom: 5px; }
 .ceremony-editor-heading h2 { font-family: Georgia, "Times New Roman", serif; font-size: 34px; font-weight: 400; letter-spacing: -.04em; }
 .status-select select { min-width: 120px; height: 34px; padding: 0 30px 0 12px; border: 1px solid var(--line); border-radius: 100px; color: var(--muted); background: var(--paper); font-size: 11px; }
-.status-select.status-confirmed select, .status-select.status-completed select { border-color: #b8c9be; color: var(--planning-green); background: #f4f8f5; }
-.status-select.status-tentative select { border-color: #d9c7ac; color: var(--planning-amber); background: #fbf8f1; }
+.status-select.status-confirmed select, .status-select.status-completed select { border-color: #b8c9be; color: var(--planning-green); background: #e9f3ec !important; }
+.status-select.status-tentative select { border-color: #d9c7ac; color: var(--planning-amber); background: #f7efd9 !important; }
 .ceremony-fields { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(260px, 1.5fr) minmax(120px, .5fr); gap: 14px; margin: 28px 0 0 54px; }
 .planning-field { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
 .planning-field > span { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
