@@ -104,9 +104,9 @@ export async function loadRegistry(title: RegistryTitle, workspaceId: string): P
     return data.map((row) => { const when = lagosParts(row.starts_at); return { id: row.id, values: { activity: row.title, date: when.date, time: when.time, location: row.location ?? '', owner: row.responsible_person ?? '', event: eventOf(row.ceremonies) }, status: displayStatus(title, row.status) } })
   }
   if (title === 'Vendors') {
-    const { data, error } = await db.from('vendors').select('id,name,category,package_details,selection_status,vendor_contacts(name,phone,is_primary,deleted_at),vendor_ceremonies(ceremonies(kind,name))').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false })
+    const { data, error } = await db.from('vendors').select('id,name,category,website,package_details,selection_status,vendor_contacts(name,phone,is_primary,deleted_at),vendor_ceremonies(ceremonies(kind,name))').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false })
     if (error) throw error
-    return data.map((row) => { const contacts = (row.vendor_contacts ?? []).filter((item) => !item.deleted_at) as Array<{ name: string; phone: string | null; is_primary: boolean }>; const contact = contacts.find((item) => item.is_primary) ?? contacts[0]; return { id: row.id, values: { name: row.name, category: row.category, contact: contact?.name ?? '', phone: contact?.phone ?? '', quote: row.package_details ?? '', event: ceremonyLabel(linkedCeremony(row.vendor_ceremonies, 'ceremonies')) }, status: displayStatus(title, row.selection_status) } })
+    return data.map((row) => { const contacts = (row.vendor_contacts ?? []).filter((item) => !item.deleted_at) as Array<{ name: string; phone: string | null; is_primary: boolean }>; const contact = contacts.find((item) => item.is_primary) ?? contacts[0]; return { id: row.id, values: { name: row.name, category: row.category, link: row.website ?? '', contact: contact?.name ?? '', phone: contact?.phone ?? '', quote: row.package_details ?? '', event: ceremonyLabel(linkedCeremony(row.vendor_ceremonies, 'ceremonies')) }, status: displayStatus(title, row.selection_status) } })
   }
   if (title === 'Venues') {
     const { data, error } = await db.from('venues').select('id,name,address,capacity,ceremony_fee_minor,availability_notes,selection_status,notes,venue_ceremonies(ceremonies(kind,name))').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false })
@@ -193,7 +193,7 @@ export async function addRegistryRecord(title: RegistryTitle, values: Record<str
     return
   }
   if (title === 'Vendors') {
-    const id = await insertRow('vendors', { ...base, name: values.name, category: values.category || 'General', package_details: values.quote || null, selection_status: 'researching' })
+    const id = await insertRow('vendors', { ...base, name: values.name, category: values.category || 'General', website: values.link || null, package_details: values.quote || null, selection_status: 'researching' })
     if (values.contact) await insertRow('vendor_contacts', { ...base, vendor_id: id, name: values.contact, phone: values.phone || null, is_primary: true })
     if (ceremonyId) await link('vendor_ceremonies', { workspace_id: context.workspaceId, vendor_id: id, ceremony_id: ceremonyId, created_by: context.userId })
     return
@@ -251,7 +251,7 @@ export async function updateRegistryRecord(title: RegistryTitle, record: Registr
     return
   }
   if (title === 'Vendors') {
-    await updateRow('vendors', record.id, context, { name: values.name, category: values.category || 'General', package_details: values.quote || null })
+    await updateRow('vendors', record.id, context, { name: values.name, category: values.category || 'General', website: values.link || null, package_details: values.quote || null })
     const db = requireSupabase()
     const { data: contacts, error } = await db.from('vendor_contacts').select('id').eq('workspace_id', context.workspaceId).eq('vendor_id', record.id).is('deleted_at', null).order('is_primary', { ascending: false }).limit(1)
     if (error) throw error
