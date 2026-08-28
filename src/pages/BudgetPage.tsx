@@ -21,7 +21,7 @@ import { pillTone } from '../lib/pills'
 
 type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR'
 type ExpenseStatus = 'planned' | 'due' | 'paid'
-type ContributionStatus = 'pledged' | 'received'
+type ContributionStatus = 'pledged' | 'partial' | 'received'
 type EntryStatus = ExpenseStatus | ContributionStatus
 type EntryKind = 'expense' | 'contribution'
 
@@ -62,6 +62,8 @@ interface Contribution extends MoneySource {
   contributor: string
   ceremonyId: string
   ceremony: string
+  receivedPercent: number
+  receivedNgn: number
   status: ContributionStatus
   date: string
 }
@@ -173,8 +175,8 @@ export function BudgetPage() {
           }
           if (entry.ceremonyId) { const { error: linkError } = await supabase!.from('expense_ceremonies').insert({ workspace_id: workspace.id, expense_id: created.id, ceremony_id: entry.ceremonyId, allocation_percent: 100, created_by: userId }); if (linkError) throw linkError }
         } else {
-          const received = entry.status === 'received'
-          const values = { contributor_name: entry.contributor, pledged_minor: Math.round(entry.originalAmount * 100), received_minor: received ? Math.round(entry.originalAmount * 100) : 0, currency: entry.currency, exchange_rate: entry.exchangeRate, rate_source: entry.rateSource, rate_retrieved_at: new Date().toISOString(), ngn_received_minor: received ? Math.round(entry.amountNgn * 100) : 0, received_on: received ? entry.date : null, updated_by: userId }
+          const hasReceived = entry.receivedPercent > 0
+          const values = { contributor_name: entry.contributor, pledged_minor: Math.round(entry.originalAmount * 100), received_minor: Math.round(entry.originalAmount * 100 * entry.receivedPercent / 100), currency: entry.currency, exchange_rate: entry.exchangeRate, rate_source: entry.rateSource, rate_retrieved_at: new Date().toISOString(), ngn_received_minor: Math.round(entry.receivedNgn * 100), received_on: hasReceived ? entry.date : null, updated_by: userId }
           const result = operation.editing
             ? await supabase!.from('contributions').update(values).eq('workspace_id', workspace.id).eq('id', entry.id).select('id').single()
             : await supabase!.from('contributions').insert({ workspace_id: workspace.id, ...values, created_by: userId }).select('id').single()
@@ -214,7 +216,7 @@ export function BudgetPage() {
     const mappedAllocations = financeQuery.data.allocations.map((item) => { const ceremony = relationCeremony(item.ceremonies); return { id: item.id, name: item.category === 'Ceremony allocation' ? `${ceremony?.name ?? 'General'} budget` : item.category, ceremonyId: item.ceremony_id ?? '', ceremony: ceremony?.name ?? GENERAL_EVENT, amountNgn: item.planned_minor / 100 } })
     setAllocations(mappedAllocations)
     const remoteExpenses: Expense[] = financeQuery.data.expenses.map((entry) => { const ceremony = relationCeremony(entry.expense_ceremonies?.[0]?.ceremonies); const allocation = mappedAllocations.find((item) => item.id === entry.budget_allocation_id); return { id: entry.id, kind: 'expense', description: entry.description, category: entry.category, allocationId: entry.budget_allocation_id ?? '', allocation: allocation?.name ?? 'Unallocated', ceremonyId: ceremony?.id ?? '', ceremony: ceremony?.name ?? GENERAL_EVENT, status: entry.status === 'paid' ? 'paid' : entry.status === 'planned' || entry.status === 'cancelled' ? 'planned' : 'due', date: entry.transaction_date, currency: entry.currency as Currency, originalAmount: entry.amount_minor / 100, exchangeRate: Number(entry.exchange_rate), amountNgn: entry.ngn_minor / 100, rateSource: entry.rate_source } })
-    const remoteContributions: Contribution[] = financeQuery.data.contributions.map((entry) => { const ceremony = relationCeremony(entry.contribution_allocations?.[0]?.ceremonies); const originalAmount = (entry.received_minor || entry.pledged_minor) / 100; const exchangeRate = Number(entry.exchange_rate); return { id: entry.id, kind: 'contribution', contributor: entry.contributor_name, ceremonyId: ceremony?.id ?? '', ceremony: ceremony?.name ?? GENERAL_EVENT, status: entry.received_minor > 0 ? 'received' : 'pledged', date: entry.received_on ?? '', currency: entry.currency as Currency, originalAmount, exchangeRate, amountNgn: entry.received_minor > 0 ? entry.ngn_received_minor / 100 : originalAmount * exchangeRate, rateSource: entry.rate_source } })
+    const remoteContributions: Contribution[] = financeQuery.data.contributions.map((entry) => { const ceremony = relationCeremony(entry.contribution_allocations?.[0]?.ceremonies); const originalAmount = entry.pledged_minor / 100; const receivedAmount = entry.received_minor / 100; const receivedPercent = originalAmount ? Math.min(receivedAmount / originalAmount * 100, 100) : 0; const exchangeRate = Number(entry.exchange_rate); return { id: entry.id, kind: 'contribution', contributor: entry.contributor_name, ceremonyId: ceremony?.id ?? '', ceremony: ceremony?.name ?? GENERAL_EVENT, receivedPercent, receivedNgn: entry.ngn_received_minor / 100, status: receivedPercent >= 100 ? 'received' : receivedPercent > 0 ? 'partial' : 'pledged', date: entry.received_on ?? '', currency: entry.currency as Currency, originalAmount, exchangeRate, amountNgn: originalAmount * exchangeRate, rateSource: entry.rate_source } })
     setEntries([...remoteExpenses, ...remoteContributions])
   }, [financeQuery.data])
   // oxlint-enable react/set-state-in-effect
@@ -230,7 +232,7 @@ export function BudgetPage() {
   const visibleContributions = contributions.filter((entry) => matchesCeremony(entry.ceremonyId))
   const committed = visibleExpenses.filter(({ status }) => status !== 'planned').reduce((total, entry) => total + entry.amountNgn, 0)
   const paid = visibleExpenses.filter(({ status }) => status === 'paid').reduce((total, entry) => total + entry.amountNgn, 0)
-  const received = visibleContributions.filter(({ status }) => status === 'received').reduce((total, entry) => total + entry.amountNgn, 0)
+  const received = visibleContributions.reduce((total, entry) => total + entry.receivedNgn, 0)
   const filteredEntries = visibleEntries.filter((entry) => {
     const label = entry.kind === 'expense' ? `${entry.description} ${entry.category}` : entry.contributor
     return (!deferredQuery || `${label} ${entry.kind === 'expense' ? entry.allocation : ''} ${entry.ceremony} ${entry.currency}`.toLocaleLowerCase().includes(deferredQuery))
@@ -355,7 +357,7 @@ export function BudgetPage() {
           <div className="budget-filters">
             <Filter value={kindFilter} label="Type" onChange={(value) => setKindFilter(value as typeof kindFilter)}><option value="all">All records</option><option value="expense">Expenses</option><option value="contribution">Contributions</option></Filter>
             <Filter value={allocationFilter} label="Allocation" onChange={setAllocationFilter}><option value="all">All allocations</option>{allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.name}</option>)}</Filter>
-            <Filter value={statusFilter} label="Status" onChange={(value) => setStatusFilter(value as typeof statusFilter)}><option value="all">All statuses</option><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option><option value="pledged">Pledged</option><option value="received">Received</option></Filter>
+            <Filter value={statusFilter} label="Status" onChange={(value) => setStatusFilter(value as typeof statusFilter)}><option value="all">All statuses</option><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option><option value="pledged">Pledged</option><option value="partial">Partially received</option><option value="received">Received</option></Filter>
           </div>
         </div>
 
@@ -444,20 +446,23 @@ function ContributionForm({ ceremonies, initial, onSave, onClose }: { ceremonies
   const { workspace, isPreview } = useWorkspace()
   const [contributor, setContributor] = useState(initial?.contributor ?? '')
   const [ceremonyId, setCeremonyId] = useState(initial?.ceremonyId ?? '')
-  const [status, setStatus] = useState<ContributionStatus>(initial?.status ?? 'pledged')
+  const [receivedPercent, setReceivedPercent] = useState(initial ? String(initial.receivedPercent) : '0')
   const [date, setDate] = useState(initial?.date ?? '')
   const [currency, setCurrency] = useState<Currency>(initial?.currency ?? 'NGN')
   const [amount, setAmount] = useState(initial ? String(initial.originalAmount) : '')
   const [rate, setRate] = useState(initial ? String(initial.exchangeRate) : '1')
   const [rateSource, setRateSource] = useState(initial?.rateSource ?? 'native')
   const amountNgn = toAmount(amount) * (currency === 'NGN' ? 1 : toAmount(rate))
-  const canSubmit = Boolean(contributor.trim() && toAmount(amount) > 0 && amountNgn > 0 && (status !== 'received' || date))
+  const rawPercent = toAmount(receivedPercent)
+  const percent = Math.min(rawPercent, 100)
+  const receivedNgn = amountNgn * percent / 100
+  const canSubmit = Boolean(contributor.trim() && toAmount(amount) > 0 && amountNgn > 0 && rawPercent <= 100 && (percent === 0 || date))
 
   function submit(submitEvent: FormEvent<HTMLFormElement>) {
     submitEvent.preventDefault()
     if (!canSubmit) return
     const ceremony = ceremonies.find((item) => item.id === ceremonyId)
-    onSave({ id: initial?.id ?? crypto.randomUUID(), kind: 'contribution', contributor: contributor.trim(), ceremonyId, ceremony: ceremony?.name ?? GENERAL_EVENT, status, date, currency, originalAmount: toAmount(amount), exchangeRate: currency === 'NGN' ? 1 : toAmount(rate), amountNgn, rateSource })
+    onSave({ id: initial?.id ?? crypto.randomUUID(), kind: 'contribution', contributor: contributor.trim(), ceremonyId, ceremony: ceremony?.name ?? GENERAL_EVENT, receivedPercent: percent, receivedNgn, status: percent >= 100 ? 'received' : percent > 0 ? 'partial' : 'pledged', date, currency, originalAmount: toAmount(amount), exchangeRate: currency === 'NGN' ? 1 : toAmount(rate), amountNgn, rateSource })
   }
 
   async function lookup(nextCurrency: Currency, nextDate = date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date())) { setCurrency(nextCurrency); if (nextCurrency === 'NGN') { setRate('1'); setRateSource('native'); return } if (isPreview) { setRateSource('manual'); return } try { const result = await fetchNgnRate(workspace.id, nextCurrency, nextDate); setRate(String(result.rate)); setRateSource(result.source) } catch { setRateSource('manual') } }
@@ -465,8 +470,9 @@ function ContributionForm({ ceremonies, initial, onSave, onClose }: { ceremonies
   return <MoneyForm title={initial ? 'Edit contribution' : 'Add a contribution'} eyebrow={initial ? 'Update incoming record' : 'New incoming record'} submitLabel={initial ? 'Save changes' : 'Add contribution'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
     <label className="budget-field field-span-2"><span>Contributor or source</span><input autoFocus value={contributor} onChange={(change) => setContributor(change.target.value)} placeholder="Name or funding source" /></label>
     <CeremonyField value={ceremonyId} ceremonies={ceremonies} onChange={setCeremonyId} />
-    <label className="budget-field"><span>Contribution status</span><select className={pillTone(status)} value={status} onChange={(change) => setStatus(change.target.value as ContributionStatus)}><option value="pledged">Pledged</option><option value="received">Received</option></select></label>
-    <label className="budget-field"><span>Received date <small>optional</small></span><input type="date" value={date} onChange={(change) => { setDate(change.target.value); void lookup(currency, change.target.value) }} /></label>
+    <label className="budget-field"><span>Percentage received</span><input type="number" min="0" max="100" step="1" value={receivedPercent} onChange={(change) => setReceivedPercent(change.target.value)} /></label>
+    <label className="budget-field"><span>Received date <small>{percent > 0 ? 'required' : 'optional'}</small></span><input type="date" required={percent > 0} value={date} onChange={(change) => { setDate(change.target.value); void lookup(currency, change.target.value) }} /></label>
+    <div className="contribution-progress field-span-2"><span>{percent}% received</span><strong>{formatNgn(receivedNgn)} received</strong><small>{formatNgn(Math.max(amountNgn - receivedNgn, 0))} balance</small><i><b style={{ width: `${percent}%` }} /></i></div>
   </MoneyForm>
 }
 
@@ -524,9 +530,9 @@ function LedgerRow({ entry, onEdit, onDelete, onStatusChange }: { entry: LedgerE
     <article className="ledger-row">
       <div className="ledger-record"><span className={`ledger-kind ${entry.kind}`}>{entry.kind === 'expense' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}</span><div><strong>{title}</strong><small>{subtitle}{entry.date ? ` · ${entry.date}` : ''}</small></div></div>
       <div className="ledger-scope">{entry.kind === 'expense' && <span className="ledger-allocation">{entry.allocation}</span>}<span className="ledger-event">{entry.ceremony}</span></div>
-      <div className="ledger-source"><strong>{formatOriginal(entry)}</strong><small>Rate: NGN {numberFormatter.format(entry.exchangeRate)}</small></div>
-      <strong className={`ledger-ngn ${entry.kind}`}>{entry.kind === 'expense' ? '−' : '+'}{formatNgn(entry.amountNgn)}</strong>
-      <label className={`payment-status status-${entry.status}`}><i /><span className="sr-only">Update status for {title}</span><select className={pillTone(entry.status)} value={entry.status} onChange={(event) => onStatusChange(entry.id, event.target.value as EntryStatus)}>{entry.kind === 'expense' ? <><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option></> : <><option value="pledged">Pledged</option><option value="received">Received</option></>}</select></label>
+      <div className="ledger-source"><strong>{formatOriginal(entry)}</strong><small>{entry.kind === 'contribution' ? `${entry.receivedPercent}% received · ${formatNgn(entry.amountNgn - entry.receivedNgn)} balance` : `Rate: NGN ${numberFormatter.format(entry.exchangeRate)}`}</small></div>
+      <strong className={`ledger-ngn ${entry.kind}`}>{entry.kind === 'expense' ? '−' : '+'}{formatNgn(entry.kind === 'contribution' ? entry.receivedNgn : entry.amountNgn)}</strong>
+      {entry.kind === 'expense' ? <label className={`payment-status status-${entry.status}`}><i /><span className="sr-only">Update status for {title}</span><select className={pillTone(entry.status)} value={entry.status} onChange={(event) => onStatusChange(entry.id, event.target.value as EntryStatus)}><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option></select></label> : <span className={`contribution-status ${pillTone(entry.status)}`}>{entry.status === 'partial' ? `${Math.round(entry.receivedPercent)}% received` : entry.status}</span>}
       <div className="ledger-actions"><button className="budget-icon-button ledger-edit" type="button" aria-label={`Edit ${title}`} onClick={() => onEdit(entry)}><Pencil size={13} /></button><button className="budget-icon-button ledger-delete" type="button" aria-label={`Delete ${title}`} onClick={() => onDelete(entry)}><Trash2 size={13} /></button></div>
     </article>
   )
