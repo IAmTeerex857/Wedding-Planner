@@ -334,8 +334,9 @@ h1, h2, p { margin: 0; }
   .icon-button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: white; }
   .mobile-drawer { position: fixed; inset: 0; z-index: 50; display: block; }
   .drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
-  .drawer-panel { position: absolute; inset: 0 0 0 auto; width: min(88vw, 340px); padding: 16px 12px; background: #f1f1ee; box-shadow: -12px 0 30px rgba(0,0,0,.1); }
-  .drawer-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; padding: 0 4px 16px; border-bottom: 1px solid var(--line); }
+  .drawer-panel { position: absolute; inset: 0 0 0 auto; display: flex; width: min(88vw, 340px); height: 100dvh; max-height: 100dvh; flex-direction: column; overflow: hidden; padding: 16px 12px 0; background: #f1f1ee; box-shadow: -12px 0 30px rgba(0,0,0,.1); }
+  .drawer-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px 16px; border-bottom: 1px solid var(--line); }
+  .drawer-navigation { min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; padding-bottom: max(24px, env(safe-area-inset-bottom)); scrollbar-gutter: stable; }
   .drawer-panel .nav-section + .nav-section { margin-top: 18px; }
   .setup-banner { min-height: 42px; padding: 6px 16px; text-align: center; }
   .page { padding: 34px 18px 48px; }

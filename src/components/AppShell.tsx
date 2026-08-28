@@ -107,7 +107,14 @@ export function AppShell() {
                 <X size={20} />
               </button>
             </div>
-            <nav aria-label="Mobile navigation">{navigation}</nav>
+            <nav className="drawer-navigation" aria-label="Mobile navigation">
+              {navigation}
+              <div className="nav-section">
+                <p className="nav-label">Account</p>
+                <NavItem to="/settings" label="Settings" icon={Settings} onClick={() => setMenuOpen(false)} />
+                <NavItem to="/recycle-bin" label="Recycle bin" icon={Trash2} onClick={() => setMenuOpen(false)} />
+              </div>
+            </nav>
           </div>
         </div>
       )}
