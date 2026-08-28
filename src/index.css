@@ -31,7 +31,8 @@ a { color: inherit; text-decoration: none; }
 
 button:focus-visible,
 a:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -42,6 +43,7 @@ input:focus-visible {
   background: currentColor;
   -webkit-mask: var(--koboyo-icon) center / contain no-repeat;
   mask: var(--koboyo-icon) center / contain no-repeat;
+  filter: drop-shadow(.45px 0 0 currentColor) drop-shadow(-.45px 0 0 currentColor) drop-shadow(0 .45px 0 currentColor) drop-shadow(0 -.45px 0 currentColor);
   transition: transform 180ms ease;
 }
 
@@ -49,10 +51,19 @@ button:hover .koboyo-icon,
 a:hover .koboyo-icon { transform: rotate(-3deg) scale(1.08); }
 
 select {
+  appearance: none !important;
+  padding-right: 32px !important;
+  padding-left: 32px !important;
   border-radius: 999px !important;
   color: #4f4a40;
   background-color: #f1f0ed !important;
+  background-image: url("/koboyo/chevron-down.svg") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 12px 12px !important;
   cursor: pointer;
+  text-align: center;
+  text-align-last: center;
 }
 
 .pill-tone-blue { color: #315f78 !important; background-color: #e8f1f5 !important; }

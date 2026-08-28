@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BedDouble,
   Check,
-  ChevronDown,
   FileSpreadsheet,
   Mail,
   Pencil,
@@ -366,7 +365,7 @@ function SelectFilter({ label, value, onChange, children }: {
   label: string; value: string; onChange: (value: string) => void; children: React.ReactNode
 }) {
   return (
-    <label className="compact-select"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select><ChevronDown size={13} /></label>
+    <label className="compact-select"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>
   )
 }
 

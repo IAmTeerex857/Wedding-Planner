@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  ChevronDown,
   CircleDollarSign,
   Pencil,
   Plus,
@@ -342,7 +341,7 @@ function SummaryCard({ label, value, detail, icon }: { label: string; value: num
 }
 
 function Filter({ value, label, onChange, children }: { value: string; label: string; onChange: (value: string) => void; children: React.ReactNode }) {
-  return <label className="budget-filter"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select><ChevronDown size={12} /></label>
+  return <label className="budget-filter"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>
 }
 
 function AllocationEntry({ onAdd, existingEvents }: { onAdd: (event: string, amount: number) => void; existingEvents: string[] }) {
