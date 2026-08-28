@@ -1,4 +1,5 @@
 import { CalendarDays, MapPin, Plus, Trash2, Users } from '../components/KoboyoIcon'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
@@ -42,6 +43,7 @@ export function CeremoniesPage() {
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [ceremonies, setCeremonies] = useState<Ceremony[]>(initialCeremonies)
+  const [pendingSegmentDelete, setPendingSegmentDelete] = useState<{ ceremonyId: CeremonyKind; segment: CeremonySegment } | null>(null)
   const ceremonyQuery = useQuery({
     queryKey: ['ceremonies', workspace.id],
     enabled: !isPreview,
@@ -217,7 +219,7 @@ export function CeremoniesPage() {
                           value={segment.time}
                           onChange={(event) => updateSegment(ceremony.id, segment.id, { time: event.target.value })}
                         />
-                        <button className="plain-icon-button" type="button" aria-label="Remove segment" onClick={() => removeSegment(ceremony.id, segment.id)}>
+                        <button className="plain-icon-button" type="button" aria-label="Remove segment" onClick={() => setPendingSegmentDelete({ ceremonyId: ceremony.id, segment })}>
                           <Trash2 size={15} />
                         </button>
                       </div>
@@ -233,6 +235,7 @@ export function CeremoniesPage() {
           </article>
         ))}
       </div>
+      {pendingSegmentDelete && <ConfirmDialog title={`Remove ${pendingSegmentDelete.segment.title || 'this segment'}?`} description="The segment will be removed when you save this ceremony." onCancel={() => setPendingSegmentDelete(null)} onConfirm={() => { removeSegment(pendingSegmentDelete.ceremonyId, pendingSegmentDelete.segment.id); setPendingSegmentDelete(null) }} />}
     </div>
   )
 }

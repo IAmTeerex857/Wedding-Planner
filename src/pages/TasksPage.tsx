@@ -2,6 +2,7 @@ import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../c
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 import { pillTone } from '../lib/pills'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
@@ -51,6 +52,7 @@ export function TasksPage() {
   const [view, setView] = useState<TaskView>('list')
   const [isAdding, setIsAdding] = useState(() => searchParams.get('new') === '1')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<PlanningTask | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft)
   const ceremonyQuery = useQuery({
     queryKey: ['ceremony-options', workspace.id],
@@ -181,6 +183,13 @@ export function TasksPage() {
     if (!isPreview) deleteMutation.mutate(id)
   }
 
+  function confirmDelete() {
+    if (!pendingDelete) return
+    removeTask(pendingDelete.id)
+    if (editingId === pendingDelete.id) closeModal()
+    setPendingDelete(null)
+  }
+
   return (
     <div className="page planning-page tasks-page">
       <header className="page-header tasks-header">
@@ -211,7 +220,7 @@ export function TasksPage() {
           {tasks.length === 0 ? (
             <TaskEmpty title="Your task list is clear" detail="Add a task when there is something to decide, book, buy, or follow up." onAdd={() => setIsAdding(true)} />
           ) : tasks.map((task) => (
-             <TaskListRow task={task} onMove={moveTask} onEdit={editTask} onRemove={removeTask} key={task.id} />
+             <TaskListRow task={task} onMove={moveTask} onEdit={editTask} onRemove={(id) => setPendingDelete(tasks.find((item) => item.id === id) ?? null)} key={task.id} />
           ))}
         </section>
       ) : (
@@ -224,7 +233,7 @@ export function TasksPage() {
                 <div className="kanban-stack">
                   {columnTasks.length === 0 ? (
                     <div className="column-empty"><span>Empty</span><p>{column.hint}</p></div>
-                  ) : columnTasks.map((task) => <TaskCard task={task} onMove={moveTask} onEdit={editTask} onRemove={removeTask} key={task.id} />)}
+                    ) : columnTasks.map((task) => <TaskCard task={task} onMove={moveTask} onEdit={editTask} onRemove={(id) => setPendingDelete(tasks.find((item) => item.id === id) ?? null)} key={task.id} />)}
                 </div>
                 {column.id === 'todo' && <button className="add-inline" type="button" onClick={() => setIsAdding(true)}><Plus size={14} /> Add task</button>}
               </div>
@@ -282,7 +291,7 @@ export function TasksPage() {
                 </label>
               </div>
               <div className="modal-actions">
-                {editingId && <button className="button danger" type="button" disabled={deleteMutation.isPending} onClick={() => { removeTask(editingId); closeModal() }}><Trash2 size={14} /> Delete</button>}
+                {editingId && <button className="button danger" type="button" disabled={deleteMutation.isPending} onClick={() => setPendingDelete(tasks.find((item) => item.id === editingId) ?? null)}><Trash2 size={14} /> Delete</button>}
                 <button className="button secondary" type="button" onClick={closeModal}>Cancel</button>
                 <button className="button primary" type="submit" disabled={addMutation.isPending || updateMutation.isPending}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</button>
               </div>
@@ -290,6 +299,7 @@ export function TasksPage() {
           </section>
         </div>
       )}
+      {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.title}?`} description="This task will move to the recycle bin and can be restored later." onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     </div>
   )
 }

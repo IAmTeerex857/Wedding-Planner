@@ -16,6 +16,7 @@ import {
   Users,
   X,
 } from '../components/KoboyoIcon'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { pillTone } from '../lib/pills'
 import {
   GUEST_IMPORT_FIELDS,
@@ -72,6 +73,7 @@ export function GuestsPage() {
   const [rsvpFilter, setRsvpFilter] = useState<'all' | RsvpStatus>('all')
   const [entryOpen, setEntryOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<Guest | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase())
   const ceremonyQuery = useQuery({
@@ -292,6 +294,12 @@ export function GuestsPage() {
     if (!isPreview) guestUpdateMutation.mutate({ type: 'delete', guestId })
   }
 
+  function confirmDelete() {
+    if (!pendingDelete) return
+    removeGuest(pendingDelete.id)
+    setPendingDelete(null)
+  }
+
   return (
     <div className="page guests-page">
       <header className="page-header guests-header">
@@ -345,7 +353,7 @@ export function GuestsPage() {
 
         {filteredGuests.length ? (
           <div className="guest-list">
-            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={removeGuest} />)}
+            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={(id) => setPendingDelete(guests.find((item) => item.id === id) ?? null)} />)}
           </div>
         ) : (
           <div className="guest-empty"><Users size={22} /><h2>No guests found</h2><p>Try clearing a filter or add someone new.</p></div>
@@ -353,6 +361,7 @@ export function GuestsPage() {
       </section>
 
       {importOpen && <GuestImport guests={guests} onClose={() => setImportOpen(false)} onImport={addImportedGuests} />}
+      {pendingDelete && <ConfirmDialog title={`Remove ${pendingDelete.firstName} ${pendingDelete.lastName}?`} description="This guest and their planning links will move to the recycle bin and can be restored later." onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     </div>
   )
 }

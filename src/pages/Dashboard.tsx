@@ -98,7 +98,7 @@ export function Dashboard() {
 
       <section className="metric-grid">
         <MetricCard icon={ListPlus} label="Open tasks" value={String(openTasks)} detail={openTasks ? 'Across all ceremonies' : 'Nothing due yet'} to="/tasks" />
-        <MetricCard icon={CircleDollarSign} label="Total budget" value={formatNaira(allocated)} detail={allocated ? 'Allocated across events' : 'Not allocated'} to="/budget" />
+        <MetricCard icon={CircleDollarSign} label="Total budget" value={formatNaira(allocated)} detail={allocated ? 'Across all allocations' : 'Not allocated'} to="/budget" />
         <MetricCard icon={Users} label="Guests" value={String(data?.guests?.length ?? 0)} detail="Across all events" to="/guests" />
         <MetricCard icon={Shirt} label="Attire orders" value={String(data?.attire?.length ?? 0)} detail="All outfit groups" to="/attire" />
       </section>

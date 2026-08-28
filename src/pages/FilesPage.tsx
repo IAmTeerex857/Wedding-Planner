@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Download, File, FileImage, FileText, Trash2, Upload, X } from '../components/KoboyoIcon'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './files.css'
@@ -11,6 +12,7 @@ export function FilesPage() {
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [uploading, setUploading] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
   const filesQuery = useQuery({
     queryKey: ['files', workspace.id],
     enabled: !isPreview,
@@ -51,7 +53,8 @@ export function FilesPage() {
   return <div className="page files-page"><header className="page-header"><div><p className="eyebrow">Private storage</p><h1>Photos & files</h1><p className="page-lead">Keep receipts, contracts, quotes, inspiration, invitation assets, and travel documents inside the shared workspace.</p></div><button className="button primary" type="button" onClick={() => setUploading(true)}><Upload size={15} /> Upload file</button></header>
     {uploading && <UploadForm saving={uploadMutation.isPending} onClose={() => setUploading(false)} onUpload={(payload) => uploadMutation.mutate(payload)} />}
     {(filesQuery.error || uploadMutation.error || deleteMutation.error) && <p className="data-error">{filesQuery.error?.message ?? uploadMutation.error?.message ?? deleteMutation.error?.message}</p>}
-    <section className="file-grid">{(filesQuery.data ?? []).length ? filesQuery.data!.map((item) => <article key={item.id}><div className="file-icon">{item.mime_type.startsWith('image/') ? <FileImage size={20} /> : item.mime_type === 'application/pdf' ? <FileText size={20} /> : <File size={20} />}</div><div><span>{item.category}</span><h2>{item.description || item.original_name}</h2><p>{item.original_name} / {formatBytes(item.size_bytes)}</p></div><footer><button type="button" onClick={() => void download(item.storage_path, item.original_name)}><Download size={14} /> Download</button><button type="button" onClick={() => deleteMutation.mutate(item.id)}><Trash2 size={14} /> Remove</button></footer></article>) : <div className="files-empty"><FileText size={24} /><h2>No files uploaded</h2><p>Files are private and downloads use short-lived signed links.</p></div>}</section>
+    <section className="file-grid">{(filesQuery.data ?? []).length ? filesQuery.data!.map((item) => <article key={item.id}><div className="file-icon">{item.mime_type.startsWith('image/') ? <FileImage size={20} /> : item.mime_type === 'application/pdf' ? <FileText size={20} /> : <File size={20} />}</div><div><span>{item.category}</span><h2>{item.description || item.original_name}</h2><p>{item.original_name} / {formatBytes(item.size_bytes)}</p></div><footer><button type="button" onClick={() => void download(item.storage_path, item.original_name)}><Download size={14} /> Download</button><button type="button" onClick={() => setPendingDelete({ id: item.id, name: item.description || item.original_name })}><Trash2 size={14} /> Remove</button></footer></article>) : <div className="files-empty"><FileText size={24} /><h2>No files uploaded</h2><p>Files are private and downloads use short-lived signed links.</p></div>}</section>
+    {pendingDelete && <ConfirmDialog title={`Remove ${pendingDelete.name}?`} description="This file will move to the recycle bin. Its private stored file will remain available for recovery." onCancel={() => setPendingDelete(null)} onConfirm={() => { deleteMutation.mutate(pendingDelete.id); setPendingDelete(null) }} />}
   </div>
 }
 

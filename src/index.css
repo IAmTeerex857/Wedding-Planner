@@ -74,6 +74,17 @@ select {
 .pill-tone-red { color: #85443f !important; background-color: #f8e9e7 !important; }
 .pill-tone-purple { color: #665081 !important; background-color: #f0eaf6 !important; }
 .pill-tone-pink { color: #8a4b68 !important; background-color: #f7e9ef !important; }
+.sr-only { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
+
+.confirm-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.42); backdrop-filter: blur(3px); }
+.confirm-dialog { width: min(430px, 100%); border: 1px solid var(--ink); padding: 22px; background: var(--paper); box-shadow: 0 24px 80px rgba(0,0,0,.2); }
+.confirm-dialog > header { display: flex; align-items: center; justify-content: space-between; }
+.confirm-dialog > header > span, .confirm-dialog > header button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: #85443f; background: #f8e9e7; }
+.confirm-dialog > header button { color: var(--muted); background: white; cursor: pointer; }
+.confirm-dialog h2 { margin-top: 24px; font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 400; letter-spacing: -.035em; }
+.confirm-dialog > p { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.confirm-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 26px; }
+.button.danger { border-color: #85443f; color: white; background: #85443f; }
 
 h1, h2, p { margin: 0; }
 
