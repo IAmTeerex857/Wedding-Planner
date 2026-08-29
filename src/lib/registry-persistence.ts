@@ -196,7 +196,7 @@ export async function addRegistryRecord(title: RegistryTitle, values: Record<str
     const id = await insertRow('vendors', { ...base, name: values.name, category: values.category || 'General', website: values.link || null, package_details: values.quote || null, selection_status: 'researching' })
     if (values.contact) await insertRow('vendor_contacts', { ...base, vendor_id: id, name: values.contact, phone: values.phone || null, is_primary: true })
     if (ceremonyId) await link('vendor_ceremonies', { workspace_id: context.workspaceId, vendor_id: id, ceremony_id: ceremonyId, created_by: context.userId })
-    return
+    return id
   }
   if (title === 'Venues') {
     const id = await insertRow('venues', { ...base, name: values.name, address: values.location || null, capacity: values.capacity ? Number(values.capacity) : null, ceremony_fee_minor: toMinor(values.cost), currency: context.currency, availability_notes: values.availability || null, selection_status: 'researching', notes: 'Registry status: Considering' })

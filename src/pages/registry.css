@@ -31,6 +31,34 @@
 .category-pill { padding: 5px 9px; }
 .vendor-link { display: inline-flex; align-items: center; gap: 4px; color: #315f78; font-size: 9px; font-weight: 650; }
 .vendor-link:hover { text-decoration: underline; }
+.rate-card-picker { position: relative; }
+.registry-form .rate-card-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rate-card-picker > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rate-card-picker > span small { color: var(--faint); font-size: 8px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.rate-card-picker > strong { display: flex; height: 40px; align-items: center; overflow: hidden; border: 1px dashed #aaa; border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font-size: 10px; font-weight: 500; letter-spacing: 0; text-overflow: ellipsis; text-transform: none; white-space: nowrap; cursor: pointer; }
+.vendor-rate-cards { display: flex !important; flex-flow: row wrap !important; gap: 5px !important; margin-top: 5px; }
+.vendor-rate-card { display: inline-flex; max-width: 230px; align-items: stretch; overflow: hidden; border: 1px solid var(--line); border-radius: 999px; color: #4f4a40; background: #f3eee4; }
+.vendor-rate-card button, .vendor-rate-card-upload { display: inline-flex; height: 27px; align-items: center; gap: 5px; border: 0; padding: 0 8px; color: inherit; background: transparent; font-size: 9px; font-weight: 650; cursor: pointer; }
+.vendor-rate-card button:first-child { min-width: 0; padding-right: 4px; }
+.vendor-rate-card button:first-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vendor-rate-card button:last-child { width: 25px; justify-content: center; padding: 0 6px 0 2px; opacity: .55; }
+.vendor-rate-card button:last-child:hover { color: #8d3535; opacity: 1; }
+.vendor-rate-card-upload { position: relative; border: 1px dashed #aaa; border-radius: 999px; color: var(--muted); }
+.vendor-rate-card-upload:hover { color: var(--ink); border-color: var(--ink); }
+.vendor-rate-card-upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rate-card-viewer-layer { position: fixed; inset: 0; z-index: 220; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.7); }
+.rate-card-viewer { display: flex; width: min(1100px, 100%); height: min(90dvh, 900px); flex-direction: column; overflow: hidden; border: 1px solid var(--ink); background: var(--paper); box-shadow: 0 26px 90px rgba(0,0,0,.35); }
+.rate-card-viewer > header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px 14px 20px; border-bottom: 1px solid var(--line); }
+.rate-card-viewer h2 { overflow: hidden; max-width: 700px; font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.rate-card-viewer .eyebrow { margin-bottom: 3px; }
+.rate-card-viewer-actions { display: flex; flex-direction: row; gap: 7px; }
+.rate-card-viewer-actions button { display: inline-flex; min-height: 34px; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 0 10px; color: var(--ink); background: white; font-size: 10px; cursor: pointer; }
+.rate-card-viewer-actions button:last-child { width: 34px; padding: 0; border-radius: 50%; }
+.rate-card-viewer-actions button:disabled { cursor: wait; opacity: .45; }
+.rate-card-viewer-body { display: grid; min-height: 0; flex: 1; place-items: center; overflow: auto; background: #292927; }
+.rate-card-viewer-body img { display: block; max-width: 100%; height: auto; margin: auto; object-fit: contain; }
+.rate-card-viewer-body iframe { width: 100%; height: 100%; border: 0; background: white; }
+.rate-card-viewer-message { display: grid; justify-items: center; gap: 10px; color: white; font-size: 11px; }
 .registry-list article { display: grid; min-height: 72px; grid-template-columns: 1fr 135px 68px; align-items: center; gap: 18px; padding: 12px 18px; border-bottom: 1px solid var(--soft-line); }
 .registry-list article:last-child { border-bottom: 0; }
 .registry-list article > div { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -51,5 +79,5 @@
 .report-grid strong { font-size: 11px; }.report-grid small { color: var(--faint); font-size: 9px; }
 .report-grid button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid var(--ink); padding: 4px 0; background: transparent; font-size: 9px; cursor: pointer; }
 .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; padding: 24px; border: 1px solid var(--ink); }.settings-grid .button { width: fit-content; }
-@media (max-width: 700px) { .registry-form form > div, .settings-grid, .report-grid { grid-template-columns: 1fr; } .report-grid article:nth-child(odd) { border-right: 0; } .registry-list article { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .registry-form form > div, .settings-grid, .report-grid { grid-template-columns: 1fr; } .report-grid article:nth-child(odd) { border-right: 0; } .registry-list article { grid-template-columns: 1fr; } .rate-card-viewer-layer { align-items: end; padding: 0; } .rate-card-viewer { width: 100%; height: 94dvh; border-width: 1px 0 0; } .rate-card-viewer > header { align-items: flex-start; padding: 13px 12px 13px 16px; } .rate-card-viewer h2 { max-width: 52vw; font-size: 17px; } .rate-card-viewer-actions button:first-child { width: 34px; padding: 0; font-size: 0; } }
 @media print { .sidebar, .mobile-header, .setup-banner, .page-header .button, .report-grid button { display: none !important; }.main-content { margin: 0; }.page { padding: 20px; } }

@@ -1,7 +1,8 @@
 import { useDeferredValue, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Download, FileText, Pencil, Plus, Search, Trash2, X } from '../components/KoboyoIcon'
+import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
 import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
@@ -11,6 +12,15 @@ import './registry.css'
 type Field = { key: string; label: string; type?: 'text' | 'url' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number; step?: number }
 type Definition = { eyebrow: string; description: string; noun: string; fields: Field[]; statuses: string[]; primaryKey?: string }
 type VendorCategory = { id: string; name: string; position: number }
+
+const rateCardTypes = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp'])
+const maxRateCardSize = 25 * 1024 * 1024
+
+function rateCardMimeType(file: File) {
+  if (rateCardTypes.has(file.type)) return file.type
+  const extension = file.name.split('.').pop()?.toLocaleLowerCase()
+  return ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' } as Record<string, string>)[extension ?? '']
+}
 
 const eventField: Field = { key: 'event', label: 'Ceremony', options: ['Court', 'Traditional', 'White', 'General / shared'] }
 const requiredEventField: Field = { ...eventField, required: true, options: ['Court', 'Traditional', 'White'] }
@@ -55,7 +65,8 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [newCategory, setNewCategory] = useState('')
   const [previewCategories, setPreviewCategories] = useState<VendorCategory[]>(() => defaultVendorCategories.map((name, position) => ({ id: crypto.randomUUID(), name, position })))
-  const [pendingDelete, setPendingDelete] = useState<{ kind: 'record'; record: RegistryRecord; label: string } | { kind: 'category'; category: VendorCategory } | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ kind: 'record'; record: RegistryRecord; label: string } | { kind: 'category'; category: VendorCategory } | { kind: 'rate-card'; file: VendorRateCard } | null>(null)
+  const [viewingRateCard, setViewingRateCard] = useState<VendorRateCard | null>(null)
   const categoryPersistent = title === 'Vendors' && !isPreview
   const ceremoniesQuery = useQuery({ queryKey: ['ceremony-options', workspace.id], enabled: persistent, queryFn: () => loadCeremonies(workspace.id) })
   const recordsQuery = useQuery({ queryKey: ['registry', title, workspace.id], enabled: persistent, queryFn: () => loadRegistry(title as RegistryTitle, workspace.id) })
@@ -68,9 +79,44 @@ function Registry({ title, definition }: { title: string; definition: Definition
       return data as VendorCategory[]
     },
   })
+  const rateCardsQuery = useQuery({
+    queryKey: ['vendor-rate-cards', workspace.id],
+    enabled: categoryPersistent,
+    queryFn: async () => {
+      const { data, error } = await supabase!.from('files').select('id,vendor_id,storage_path,original_name,mime_type,size_bytes').eq('workspace_id', workspace.id).eq('category', 'Rate card').is('deleted_at', null).order('created_at', { ascending: false })
+      if (error) throw error
+      return data as VendorRateCard[]
+    },
+  })
+  const uploadRateCardsMutation = useMutation({
+    mutationFn: async ({ vendorId, files }: { vendorId: string; files: File[] }) => {
+      for (const file of files) {
+        const mimeType = rateCardMimeType(file)
+        if (!mimeType) throw new Error(`${file.name} must be a PDF, JPEG, PNG, or WebP image.`)
+        if (file.size > maxRateCardSize) throw new Error(`${file.name} is larger than 25 MB.`)
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
+        const storagePath = `${workspace.id}/vendors/${vendorId}/rate-cards/${crypto.randomUUID()}-${safeName}`
+        const { error: storageError } = await supabase!.storage.from('wedding-files').upload(storagePath, file, { contentType: mimeType, upsert: false })
+        if (storageError) throw storageError
+        const { error } = await supabase!.from('files').insert({ workspace_id: workspace.id, vendor_id: vendorId, bucket_id: 'wedding-files', storage_path: storagePath, original_name: file.name, mime_type: mimeType, size_bytes: file.size, category: 'Rate card', uploaded_by: userId, created_by: userId, updated_by: userId })
+        if (error) {
+          await supabase!.storage.from('wedding-files').remove([storagePath])
+          throw error
+        }
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['vendor-rate-cards', workspace.id] }),
+  })
+  const deleteRateCardMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase!.from('files').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('workspace_id', workspace.id).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vendor-rate-cards', workspace.id] }),
+  })
   const addMutation = useMutation({
     mutationFn: (values: Record<string, string>) => addRegistryRecord(title as RegistryTitle, values, { workspaceId: workspace.id, userId, currency: workspace.reporting_currency, ceremonies: ceremoniesQuery.data ?? [] }),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }); setAdding(false) },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }) },
   })
   const statusMutation = useMutation({
     mutationFn: ({ record, status }: { record: RegistryRecord; status: string }) => updateRegistryStatus(title as RegistryTitle, record, status, workspace.id, userId),
@@ -105,18 +151,24 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const categories = title === 'Vendors' ? Array.from(new Set([...categoryRecords.map((category) => category.name), ...records.map((record) => record.values.category).filter(Boolean)])) : []
   const formDefinition: Definition = title === 'Vendors' ? { ...definition, fields: definition.fields.map((field) => field.key === 'category' ? { ...field, options: categories.length ? categories : ['Other'] } : field) } : definition
   const filtered = records.filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery) && (categoryFilter === 'All' || record.values.category === categoryFilter))
-  const error = recordsQuery.error ?? ceremoniesQuery.error ?? categoryQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error ?? addCategoryMutation.error ?? removeCategoryMutation.error
+  const error = recordsQuery.error ?? ceremoniesQuery.error ?? categoryQuery.error ?? rateCardsQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error ?? addCategoryMutation.error ?? removeCategoryMutation.error ?? uploadRateCardsMutation.error ?? deleteRateCardMutation.error
 
-  async function addRecord(values: Record<string, string>) {
+  async function addRecord(values: Record<string, string>, rateCards: File[]) {
     if (!persistent) {
       setPreviewRecords((current) => [{ id: crypto.randomUUID(), values, status: definition.statuses[0] }, ...current])
       setAdding(false)
       return
     }
-    await addMutation.mutateAsync(values)
+    const recordId = await addMutation.mutateAsync(values)
+    try {
+      if (title === 'Vendors' && recordId && rateCards.length) await uploadRateCardsMutation.mutateAsync({ vendorId: recordId, files: rateCards })
+    } finally {
+      // The vendor already exists even if an attachment fails; close to prevent duplicate retries.
+      setAdding(false)
+    }
   }
 
-  async function updateRecord(values: Record<string, string>) {
+  async function updateRecord(values: Record<string, string>, rateCards: File[]) {
     if (!editing) return
     if (!persistent) {
       setPreviewRecords((current) => current.map((record) => record.id === editing.id ? { ...record, values } : record))
@@ -124,6 +176,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
       return
     }
     await updateMutation.mutateAsync({ record: editing, values })
+    if (title === 'Vendors' && rateCards.length) await uploadRateCardsMutation.mutateAsync({ vendorId: editing.id, files: rateCards })
   }
 
   function changeStatus(record: RegistryRecord, status: string) {
@@ -153,28 +206,31 @@ function Registry({ title, definition }: { title: string; definition: Definition
   function confirmDelete() {
     if (!pendingDelete) return
     if (pendingDelete.kind === 'record') removeRecord(pendingDelete.record)
-    else removeCategory(pendingDelete.category)
+    else if (pendingDelete.kind === 'category') removeCategory(pendingDelete.category)
+    else deleteRateCardMutation.mutate(pendingDelete.file.id)
     setPendingDelete(null)
   }
 
   return <div className="page registry-page">
     <header className="page-header"><div><p className="eyebrow">{definition.eyebrow}</p><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><button className="button primary" type="button" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</button></header>
-    {adding && <RegistryForm definition={formDefinition} saving={addMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
-    {editing && <RegistryForm key={editing.id} definition={formDefinition} initialValues={editing.values} saving={updateMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
+    {adding && <RegistryForm definition={formDefinition} allowRateCards={title === 'Vendors'} saving={addMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
+    {editing && <RegistryForm key={editing.id} definition={formDefinition} initialValues={editing.values} allowRateCards={title === 'Vendors'} saving={updateMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
     {error && <p className="data-error">{error.message}</p>}
     <section className="registry-panel">
       <header><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
       {title === 'Vendors' && <div className="category-tools"><form onSubmit={addCategory}><input value={newCategory} maxLength={100} placeholder="New category" aria-label="New vendor category" onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" disabled={!newCategory.trim() || addCategoryMutation.isPending}><Plus size={12} /> Add</button></form><div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => { const categoryRecord = categoryRecords.find((item) => item.name === category); const inUse = records.some((record) => record.values.category.toLocaleLowerCase() === category.toLocaleLowerCase()); const canRemove = Boolean(categoryRecord && (!categoryPersistent || categoryQuery.data)); const isLast = categoryRecords.length === 1; return <span className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} key={category}><button type="button" onClick={() => setCategoryFilter(category)}>{category}</button>{canRemove && <button className="category-remove" type="button" disabled={inUse || isLast || removeCategoryMutation.isPending} title={inUse ? 'Reassign vendors before removing this category' : isLast ? 'Keep at least one vendor category' : `Remove ${category}`} aria-label={`Remove ${category}`} onClick={() => categoryRecord && setPendingDelete({ kind: 'category', category: categoryRecord })}><X size={9} /></button>}</span> })}</div></div>}
-      {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small></div><select className={pillTone(record.status)} value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
+      {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; const rateCards = title === 'Vendors' ? (rateCardsQuery.data ?? []).filter((file) => file.vendor_id === record.id) : []; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small>{title === 'Vendors' && <div className="vendor-rate-cards">{rateCards.map((file) => <span className="vendor-rate-card" key={file.id}><button type="button" title={`View ${file.original_name}`} onClick={() => setViewingRateCard(file)}>{file.mime_type.startsWith('image/') ? <FileImage size={12} /> : <FileText size={12} />}<span>{file.original_name}</span></button><button type="button" aria-label={`Remove ${file.original_name}`} onClick={() => setPendingDelete({ kind: 'rate-card', file })}><X size={10} /></button></span>)}<label className="vendor-rate-card-upload"><Upload size={12} /><span>{rateCards.length ? 'Add another' : 'Add rate card'}</span><input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) uploadRateCardsMutation.mutate({ vendorId: record.id, files }); event.currentTarget.value = '' }} /></label></div>}</div><select className={pillTone(record.status)} value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
     </section>
-    {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : `Remove ${pendingDelete.category.name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : 'This category will be removed from the vendor list. It can only be removed while no vendors use it.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
+    {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : pendingDelete.kind === 'category' ? `Remove ${pendingDelete.category.name}?` : `Remove ${pendingDelete.file.original_name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : pendingDelete.kind === 'category' ? 'This category will be removed from the vendor list. It can only be removed while no vendors use it.' : 'This rate card will move to the recycle bin. Its private file will remain available for recovery.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
+    {viewingRateCard && <VendorRateCardViewer file={viewingRateCard} onClose={() => setViewingRateCard(null)} />}
   </div>
 }
 
-function RegistryForm({ definition, initialValues, saving, onClose, onSave }: { definition: Definition; initialValues?: Record<string, string>; saving: boolean; onClose: () => void; onSave: (values: Record<string, string>) => Promise<void> }) {
+function RegistryForm({ definition, initialValues, allowRateCards = false, saving, onClose, onSave }: { definition: Definition; initialValues?: Record<string, string>; allowRateCards?: boolean; saving: boolean; onClose: () => void; onSave: (values: Record<string, string>, rateCards: File[]) => Promise<void> }) {
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...Object.fromEntries(definition.fields.filter((field) => field.options).map((field) => [field.key, field.options![0]])), ...initialValues }))
-  async function submit(event: FormEvent) { event.preventDefault(); const cleanValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])); try { await onSave(cleanValues) } catch { /* Mutation errors are displayed above the registry. */ } }
-  return <section className="registry-form"><header><div><p className="eyebrow">{initialValues ? 'Edit record' : 'New record'}</p><h2>{initialValues ? 'Edit' : 'Add'} {definition.noun}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.options ? <select className={pillTone(values[field.key] ?? field.options[0])} required={field.required} value={values[field.key] ?? field.options[0]} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>{initialValues?.[field.key] && !field.options.includes(initialValues[field.key]) && <option>{initialValues[field.key]}</option>}{field.options.map((value) => <option key={value}>{value}</option>)}</select> : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} step={field.step} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}</div><footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></footer></form></section>
+  const [rateCards, setRateCards] = useState<File[]>([])
+  async function submit(event: FormEvent) { event.preventDefault(); const cleanValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])); try { await onSave(cleanValues, rateCards) } catch { /* Mutation errors are displayed above the registry. */ } }
+  return <section className="registry-form"><header><div><p className="eyebrow">{initialValues ? 'Edit record' : 'New record'}</p><h2>{initialValues ? 'Edit' : 'Add'} {definition.noun}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.options ? <select className={pillTone(values[field.key] ?? field.options[0])} required={field.required} value={values[field.key] ?? field.options[0]} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>{initialValues?.[field.key] && !field.options.includes(initialValues[field.key]) && <option>{initialValues[field.key]}</option>}{field.options.map((value) => <option key={value}>{value}</option>)}</select> : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} step={field.step} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}{allowRateCards && <label className="rate-card-picker"><span>Rate cards <small>PDF or image, up to 25 MB each</small></span><input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setRateCards(Array.from(event.target.files ?? []))} /><strong>{rateCards.length ? rateCards.map((file) => file.name).join(', ') : initialValues ? 'Add more rate cards' : 'Choose rate cards'}</strong></label>}</div><footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></footer></form></section>
 }
 
 function ReportsPage() {
