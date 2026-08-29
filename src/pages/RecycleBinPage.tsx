@@ -9,6 +9,7 @@ const sources = [
   ['tasks', 'Tasks', 'title'], ['guests', 'Guests', 'full_name'], ['vendors', 'Vendors', 'name'], ['venues', 'Venues', 'name'],
   ['expenses', 'Budget', 'description'], ['contributions', 'Budget', 'contributor_name'], ['attire_orders', 'Attire', 'recipient_name'],
   ['traditional_requirements', 'Traditional requirements', 'item_name'], ['gifts', 'Gifts', 'description'], ['files', 'Files', 'original_name'],
+  ['seating_tables', 'Seating', 'name'],
 ] as const
 
 export function RecycleBinPage() {
@@ -38,5 +39,5 @@ export function RecycleBinPage() {
   })
   const items = itemsQuery.data ?? []
 
-  return <div className="page recycle-page"><header className="page-header"><div><p className="eyebrow">30-day recovery</p><h1>Recycle bin</h1><p className="page-lead">Restore accidentally removed records. Permanent cleanup only processes records that have remained here for more than 30 days.</p></div></header>{(itemsQuery.error || restoreMutation.error) && <p className="data-error">{itemsQuery.error?.message ?? restoreMutation.error?.message}</p>}<section className="recycle-list"><header><span>Record</span><span>Module</span><span>Deleted</span><span /></header>{items.length ? items.map((item) => <article key={`${item.table}-${item.id}`}><div><Trash2 size={15} /><strong>{item.label}</strong></div><span>{item.module}</span><time>{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(item.deletedAt))}</time><button type="button" onClick={() => restoreMutation.mutate(item)}><RotateCcw size={14} /> Restore</button></article>) : <div className="recycle-empty"><Trash2 size={22} /><h2>Nothing to restore</h2><p>Deleted records will appear here for 30 days.</p></div>}</section></div>
+  return <div className="page recycle-page ui-page"><header className="page-header"><div><p className="eyebrow">30-day recovery</p><h1>Recycle bin</h1><p className="page-lead">Restore accidentally removed records. Permanent cleanup only processes records that have remained here for more than 30 days.</p></div></header>{(itemsQuery.error || restoreMutation.error) && <p className="data-error">{itemsQuery.error?.message ?? restoreMutation.error?.message}</p>}<section className="recycle-list"><header><span>Record</span><span>Module</span><span>Deleted</span><span /></header>{items.length ? items.map((item) => <article key={`${item.table}-${item.id}`}><div><Trash2 size={15} /><strong>{item.label}</strong></div><span>{item.module}</span><time>{new Intl.DateTimeFormat('en-NG', { dateStyle: 'medium' }).format(new Date(item.deletedAt))}</time><button type="button" onClick={() => restoreMutation.mutate(item)}><RotateCcw size={14} /> Restore</button></article>) : <div className="recycle-empty"><Trash2 size={22} /><h2>Nothing to restore</h2><p>Deleted records will appear here for 30 days.</p></div>}</section></div>
 }

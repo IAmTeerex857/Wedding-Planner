@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Armchair, Lock, Plus, Unlock, Users } from '../components/KoboyoIcon'
+import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/KoboyoIcon'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
 import './seating.css'
@@ -11,6 +12,7 @@ type Table = { id: string; name: string; capacity: number; locked: boolean }
 type PersistOperation =
   | { type: 'add-table'; name: string; capacity: number }
   | { type: 'set-lock'; tableId: string; locked: boolean }
+  | { type: 'delete-table'; tableId: string; guestIds: string[] }
   | { type: 'assign'; guestIds: string[]; tableId: string | null }
 
 const emptyTables: Record<EventName, Table[]> = { Traditional: [], White: [] }
@@ -26,6 +28,7 @@ export function SeatingPage() {
   const [tableName, setTableName] = useState('')
   const [capacity, setCapacity] = useState('10')
   const [operationError, setOperationError] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Table | null>(null)
 
   const ceremoniesQuery = useQuery({
     queryKey: ['seating-ceremonies', workspace.id],
@@ -85,6 +88,15 @@ export function SeatingPage() {
         if (error) throw error
         return
       }
+      if (operation.type === 'delete-table') {
+        if (operation.guestIds.length) {
+          const { error: unseatError } = await supabase!.rpc('unseat_guests', { target_ceremony_id: ceremony.id, target_guest_ids: operation.guestIds })
+          if (unseatError) throw unseatError
+        }
+        const { error } = await supabase!.from('seating_tables').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('workspace_id', workspace.id).eq('id', operation.tableId).is('deleted_at', null)
+        if (error) throw error
+        return
+      }
 
       if (operation.tableId === null) {
         const { error } = await supabase!.rpc('unseat_guests', { target_ceremony_id: ceremony.id, target_guest_ids: operation.guestIds })
@@ -94,9 +106,10 @@ export function SeatingPage() {
       const { error } = await supabase!.rpc('assign_guests_to_table', { target_table_id: operation.tableId, target_guest_ids: operation.guestIds })
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_data, operation) => {
       setSelected([])
       void queryClient.invalidateQueries({ queryKey: ['seating', workspace.id, ceremony?.id] })
+      if (operation.type === 'delete-table') void queryClient.invalidateQueries({ queryKey: ['recycle-bin', workspace.id] })
     },
   })
 
@@ -172,6 +185,19 @@ export function SeatingPage() {
     setSelected(waiting.filter((guest) => guest.tags.includes(tag)).map((guest) => guest.id))
   }
 
+  function deleteTable() {
+    if (!pendingDelete) return
+    const guestIds = guests.filter((guest) => guest.tableId === pendingDelete.id).map((guest) => guest.id)
+    setSelected((current) => current.filter((id) => !guestIds.includes(id)))
+    if (isPreview) {
+      setPreviewGuests((current) => ({ ...current, [event]: current[event].map((guest) => guest.tableId === pendingDelete.id ? { ...guest, tableId: null } : guest) }))
+      setPreviewTables((current) => ({ ...current, [event]: current[event].filter((table) => table.id !== pendingDelete.id) }))
+    } else {
+      persistMutation.mutate({ type: 'delete-table', tableId: pendingDelete.id, guestIds })
+    }
+    setPendingDelete(null)
+  }
+
   function switchEvent(nextEvent: EventName) {
     setEvent(nextEvent)
     setSelected([])
@@ -181,14 +207,14 @@ export function SeatingPage() {
 
   const waitingTags = [...new Set(waiting.flatMap((guest) => guest.tags))]
 
-  return <div className="page seating-page">
+  return <div className="page seating-page ui-page">
     <header className="page-header">
       <div><p className="eyebrow">Guest placement</p><h1>Seating</h1><p className="page-lead">Assign Traditional and White guests in bulk, then refine individual placements table by table.</p></div>
       <div className="event-switch"><button className={event === 'Traditional' ? 'active' : ''} type="button" onClick={() => switchEvent('Traditional')}>Traditional</button><button className={event === 'White' ? 'active' : ''} type="button" onClick={() => switchEvent('White')}>White</button></div>
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}
     <section className="seating-summary"><div><strong>{guests.length}</strong><span>Confirmed guests</span></div><div><strong>{guests.length - waiting.length}</strong><span>Seated</span></div><div><strong>{waiting.length}</strong><span>Waiting</span></div><div><strong>{tables.length}</strong><span>Tables</span></div></section>
-    <div className="seating-tools"><form onSubmit={addTable}><Armchair size={15} /><input value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="Table name" /><input type="number" min="1" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} aria-label="Capacity" /><button type="submit" disabled={busy || (!isPreview && !ceremony)}>{busy ? 'Saving...' : 'Add table'}</button></form></div>
+    <div className="seating-tools"><form onSubmit={addTable}><Armchair size={15} /><input required minLength={2} maxLength={100} value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="Table name" /><input type="number" required min="1" max="1000" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} aria-label="Capacity" /><button type="submit" disabled={busy || (!isPreview && !ceremony)}>{busy ? 'Saving...' : 'Add table'}</button></form></div>
     <div className="seating-workspace">
       <aside className="waiting-list">
         <header><div><p className="eyebrow">Waiting list</p><h2>Unseated guests</h2></div><span>{selected.length} selected</span></header>
@@ -199,12 +225,13 @@ export function SeatingPage() {
         const seated = guests.filter((guest) => guest.tableId === table.id)
         const full = seated.length >= table.capacity
         return <article className={`seating-table${table.locked ? ' locked' : ''}`} key={table.id}>
-          <header><div><h2>{table.name}</h2><span className={full ? 'capacity-full' : ''}>{seated.length} / {table.capacity}</span></div><button type="button" disabled={busy} aria-label={table.locked ? 'Unlock table' : 'Lock table'} onClick={() => setLock(table)}>{table.locked ? <Lock size={14} /> : <Unlock size={14} />}</button></header>
+          <header><div><h2>{table.name}</h2><span className={full ? 'capacity-full' : ''}>{seated.length} / {table.capacity}</span></div><div className="seating-table-actions"><button type="button" disabled={busy} aria-label={table.locked ? 'Unlock table' : 'Lock table'} onClick={() => setLock(table)}>{table.locked ? <Lock size={14} /> : <Unlock size={14} />}</button><button type="button" disabled={busy} aria-label={`Delete ${table.name}`} onClick={() => setPendingDelete(table)}><Trash2 size={14} /></button></div></header>
           <div className="seated-list">{seated.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" disabled={table.locked} checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>)}{!seated.length && <p>No guests assigned.</p>}</div>
           <button className="assign-button" type="button" disabled={!selected.length || busy || full || table.locked} onClick={() => assign(table.id)}><Plus size={13} /> Assign selected</button>
         </article>
       }) : <div className="tables-empty"><Armchair size={24} /><h2>No {event.toLocaleLowerCase()} tables</h2><p>{!isPreview && !ceremony ? `Set up the ${event} ceremony first.` : 'Create the first table above, then select waiting guests to assign them.'}</p></div>}</section>
     </div>
     {selected.some((id) => guests.find((guest) => guest.id === id)?.tableId) && <button className="button secondary unseat-button" type="button" disabled={busy} onClick={() => assign(null)}>Move selected to waiting list</button>}
+    {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.name}?`} description="Guests assigned to this table will return to the waiting list. The table will move to the recycle bin." pending={busy} onCancel={() => setPendingDelete(null)} onConfirm={deleteTable} />}
   </div>
 }

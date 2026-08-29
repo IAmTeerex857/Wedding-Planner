@@ -47,4 +47,13 @@ describe('guest matching', () => {
     const review = buildGuestImportReview(rows, { firstName: 'Name', phone: 'Phone' }, [])
     expect(review.map((row) => row.status)).toEqual(['ready', 'duplicate'])
   })
+
+  it('rejects malformed contact details', () => {
+    const rows = [
+      { Name: 'Bad Email', Email: 'not-an-email', Phone: '' },
+      { Name: 'Bad Phone', Email: '', Phone: '123' },
+    ]
+    const review = buildGuestImportReview(rows, { firstName: 'Name', email: 'Email', phone: 'Phone' }, [])
+    expect(review.map((row) => row.status)).toEqual(['invalid', 'invalid'])
+  })
 })

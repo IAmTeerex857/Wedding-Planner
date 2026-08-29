@@ -71,6 +71,14 @@ export function normalizePhone(value: string): string {
   return digits
 }
 
+export function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value))
+}
+
+export function isValidPhone(value: string): boolean {
+  return /^\+?\d{7,15}$/.test(normalizePhone(value))
+}
+
 export function parseGuestData(input: string): ParsedGuestData {
   const normalized = input.replace(/^\uFEFF/, '').trim()
   if (!normalized) return { headers: [], rows: [] }
@@ -139,6 +147,12 @@ export function buildGuestImportReview(
     } else if (!email && !phone) {
       status = 'invalid'
       reason = 'An email or phone number is required'
+    } else if (email && !isValidEmail(email)) {
+      status = 'invalid'
+      reason = 'Email address is not valid'
+    } else if (phone && !isValidPhone(phone)) {
+      status = 'invalid'
+      reason = 'Phone number must contain 7 to 15 digits'
     } else if (email && knownEmails.has(email)) {
       status = 'duplicate'
       reason = 'Email already appears in the guest list or this import'

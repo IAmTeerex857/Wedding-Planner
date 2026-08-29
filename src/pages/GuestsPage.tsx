@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useId, useState } from 'react'
+import { useDeferredValue, useEffect, useId, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   BedDouble,
@@ -301,7 +301,7 @@ export function GuestsPage() {
   }
 
   return (
-    <div className="page guests-page">
+    <div className="page guests-page ui-page">
       <header className="page-header guests-header">
         <div>
           <p className="eyebrow">People & invitations</p>
@@ -395,35 +395,39 @@ function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (
 }
 
 function RsvpBadge({ event, status, onChange }: { event: EventName; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
-  return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select className={pillTone(status)} aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+  return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
 }
 
 function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?: Guest; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
   const [guest, setGuest] = useState<Omit<Guest, 'id'>>(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation, rsvps: { ...initialGuest.rsvps } } : emptyGuest)
   const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
-  const canSubmit = Boolean((guest.firstName || guest.lastName) && (guest.email || guest.phone))
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    onSave({ ...guest, email: normalizeEmail(guest.email), phone: normalizePhone(guest.phone), tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) })
+  }
+
   return (
-    <section className="guest-entry" aria-labelledby="guest-entry-title">
+    <form className="guest-entry" aria-labelledby="guest-entry-title" onSubmit={submit}>
       <div className="entry-intro"><p className="eyebrow">{initialGuest ? 'Update record' : 'New record'}</p><h2 id="guest-entry-title">{initialGuest ? 'Edit guest' : 'Add a guest'}</h2><p>Name and one contact method are required.</p></div>
       <div className="entry-fields">
-        <label><span>First name</span><input value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
-        <label><span>Last name</span><input value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
-        <label><span>Email</span><input type="email" value={guest.email} onChange={(event) => setField('email', event.target.value)} /></label>
-        <label><span>Phone</span><input type="tel" value={guest.phone} onChange={(event) => setField('phone', event.target.value)} /></label>
+        <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
+        <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
+        <label><span>Email</span><input type="email" required={!guest.phone.trim()} maxLength={254} value={guest.email} onChange={(event) => setField('email', event.target.value)} placeholder="name@example.com" /></label>
+        <label><span>Phone</span><input type="tel" required={!guest.email.trim()} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter a valid phone number with 7 to 20 digits and common separators." value={guest.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
         <label className="plus-one-toggle"><span>Plus-one allowed</span><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /></label>
-        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
-        <label><span>Tags <small>comma separated</small></span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
-        <label><span>Accommodation</span><input value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
+        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
+        <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
+        <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
       </div>
       <div className="entry-rsvps">
         {(Object.keys(EVENT_LABELS) as EventName[]).map((event) => (
-          <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select className={pillTone(guest.rsvps[event])} value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+          <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select className={`rsvp-select ${guest.rsvps[event]}`} value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
         ))}
       </div>
-      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="button" disabled={!canSubmit || isSaving} onClick={() => onSave({ ...guest, email: normalizeEmail(guest.email), phone: normalizePhone(guest.phone), tags: tags.split(',').map((tag) => tag.trim()).filter(Boolean) })}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>
-    </section>
+      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>
+    </form>
   )
 }
 

@@ -120,7 +120,7 @@ export function CeremoniesPage() {
   }
 
   return (
-    <div className="page planning-page ceremonies-page">
+    <div className="page planning-page ceremonies-page ui-page">
       <header className="page-header">
         <div>
           <p className="eyebrow">Celebration plan / 03 ceremonies</p>

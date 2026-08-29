@@ -43,29 +43,29 @@ select:focus-visible {
   background: currentColor;
   -webkit-mask: var(--koboyo-icon) center / contain no-repeat;
   mask: var(--koboyo-icon) center / contain no-repeat;
-  filter: drop-shadow(.8px 0 0 currentColor) drop-shadow(-.8px 0 0 currentColor) drop-shadow(0 .8px 0 currentColor) drop-shadow(0 -.8px 0 currentColor);
-  transition: transform 180ms ease;
+  filter: drop-shadow(1px 0 0 currentColor) drop-shadow(-1px 0 0 currentColor) drop-shadow(0 1px 0 currentColor) drop-shadow(0 -1px 0 currentColor);
+  transition: opacity 100ms ease;
 }
 
 .koboyo-icon-pencil { scale: 1.3; }
 
 button:hover .koboyo-icon,
-a:hover .koboyo-icon { transform: rotate(-3deg) scale(1.08); }
+a:hover .koboyo-icon { opacity: .82; }
 
 select {
   appearance: none !important;
-  padding-right: 22px !important;
-  padding-left: 22px !important;
-  border-radius: 999px !important;
-  color: #4f4a40;
-  background-color: #f1f0ed !important;
+  padding-right: 34px !important;
+  padding-left: 12px !important;
+  border-radius: 8px !important;
+  color: #101828;
+  background-color: #fff !important;
   background-image: url("/koboyo/chevron-down.svg") !important;
   background-repeat: no-repeat !important;
-  background-position: right 8px center !important;
-  background-size: 7px 7px !important;
+  background-position: right 12px center !important;
+  background-size: 9px 9px !important;
   cursor: pointer;
-  text-align: center;
-  text-align-last: center;
+  text-align: left;
+  text-align-last: left;
 }
 
 .pill-tone-blue { color: #315f78 !important; background-color: #e8f1f5 !important; }

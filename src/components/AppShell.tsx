@@ -75,7 +75,7 @@ export function AppShell() {
   )
 
   return (
-    <div className="app-frame">
+    <div className="app-frame ui-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><BrandMark /></div>
         <nav className="sidebar-nav" aria-label="Main navigation">{navigation}</nav>

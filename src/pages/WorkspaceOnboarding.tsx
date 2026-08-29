@@ -15,7 +15,7 @@ export function WorkspaceOnboarding({ loading, error, onCreate }: {
   }
 
   return (
-    <main className="onboarding-page">
+    <main className="onboarding-page ui-auth-page">
       <header><BrandMark /><span>Private workspace setup</span></header>
       <form onSubmit={submit}>
         <p className="eyebrow">One final step</p>
@@ -23,7 +23,7 @@ export function WorkspaceOnboarding({ loading, error, onCreate }: {
         <p>This creates the shared space and adds Court, Traditional, and White as the three ceremonies.</p>
         <label>
           Workspace name
-          <input autoFocus value={name} maxLength={120} onChange={(event) => setName(event.target.value)} required />
+          <input autoFocus value={name} minLength={2} maxLength={120} onChange={(event) => setName(event.target.value)} required />
         </label>
         {error && <p className="form-error">{error}</p>}
         <button className="button primary" type="submit" disabled={loading || !name.trim()}>

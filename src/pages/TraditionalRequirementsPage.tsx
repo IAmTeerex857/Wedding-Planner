@@ -77,7 +77,7 @@ export function TraditionalRequirementsPage() {
   const actual = items.reduce((sum, item) => sum + item.actual, 0)
   const paid = items.reduce((sum, item) => sum + item.paid, 0)
 
-  return <div className="page logistics-page">
+  return <div className="page logistics-page ui-page">
     <header className="page-header"><div><p className="eyebrow">Traditional ceremony</p><h1>Requirements</h1><p className="page-lead">Itemise what is required, who is sourcing it, what it costs, and whether it has been delivered and accepted.</p></div><button className="button primary" type="button" onClick={() => { requirementMutation.reset(); setEditing(null); setAdding(true) }}><Plus size={15} /> Add requirement</button></header>
     <section className="logistics-summary"><Summary icon={PackageCheck} value={String(items.length)} label="Required items" /><Summary icon={CircleDollarSign} value={formatNaira(estimated)} label="Estimated" /><Summary icon={CircleDollarSign} value={formatNaira(actual - paid)} label="Outstanding" /><Summary icon={CheckCircle2} value={String(items.filter((item) => item.status === 'approved').length)} label="Approved" /></section>
     {adding && <RequirementForm key={editing?.id ?? 'new-requirement'} initial={editing ?? undefined} saving={requirementMutation.isPending} onClose={() => { setAdding(false); setEditing(null) }} onSave={(item) => { const isEditing = Boolean(editing); if (isPreview) { setItems((current) => isEditing ? current.map((record) => record.id === item.id ? item : record) : [item, ...current]); setAdding(false); setEditing(null) } else requirementMutation.mutate({ type: 'save', item, editing: isEditing }) }} />}

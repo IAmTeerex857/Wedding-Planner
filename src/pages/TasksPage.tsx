@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
-import { pillTone } from '../lib/pills'
 import { relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
 
@@ -191,7 +190,7 @@ export function TasksPage() {
   }
 
   return (
-    <div className="page planning-page tasks-page">
+    <div className="page planning-page tasks-page ui-page">
       <header className="page-header tasks-header">
         <div>
           <p className="eyebrow">Planning desk / {tasks.filter(({ status }) => status !== 'done').length} open</p>
@@ -261,19 +260,19 @@ export function TasksPage() {
               <div className="task-form-grid">
                 <label className="planning-field">
                   <span>Status</span>
-                  <select className={pillTone(draft.status)} value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>
+                  <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>
                     {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
                   </select>
                 </label>
                 <label className="planning-field">
                   <span>Priority</span>
-                  <select className={pillTone(draft.priority)} value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
+                  <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
                     <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
                   </select>
                 </label>
                 <label className="planning-field">
                   <span>Event</span>
-                  <select className={pillTone(draft.event)} value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value as TaskEvent })}>
+                  <select value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value as TaskEvent })}>
                     <option>General</option><option>Court</option><option>Traditional</option><option>White</option>
                   </select>
                 </label>
@@ -343,7 +342,7 @@ function EventTag({ event }: { event: TaskEvent }) {
 
 function StatusControl({ task, onMove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void }) {
   return (
-    <select className={`task-status-control ${pillTone(task.status)}`} aria-label={`Status for ${task.title}`} value={task.status} onChange={(event) => onMove(task.id, event.target.value as TaskStatus)}>
+    <select className="task-status-control" aria-label={`Status for ${task.title}`} value={task.status} onChange={(event) => onMove(task.id, event.target.value as TaskStatus)}>
       {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
     </select>
   )

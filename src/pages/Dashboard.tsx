@@ -64,11 +64,11 @@ export function Dashboard() {
   }).format(new Date())
 
   return (
-    <div className="page dashboard-page">
+    <div className="page dashboard-page ui-page">
       <header className="page-header dashboard-header">
         <div>
           <p className="eyebrow">{today}</p>
-          <h1>The wedding office</h1>
+          <h1>Overview</h1>
           <p className="page-lead">Three celebrations. One clear view of what comes next.</p>
         </div>
         <div className="header-actions">

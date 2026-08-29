@@ -229,7 +229,7 @@ export function AttirePage() {
   }
 
   return (
-    <div className="page logistics-page">
+    <div className="page logistics-page ui-page">
       <header className="page-header">
         <div><p className="eyebrow">Looks, fabric & fulfilment</p><h1>Attire & aso-ebi</h1><p className="page-lead">Control every fabric order, outfit, payment, fitting, collection, and distribution without storing body measurements.</p></div>
         <div className="header-actions"><button className="button secondary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('stock') }}><Boxes size={15} /> Add stock</button><button className="button primary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('order') }}><Plus size={15} /> New order</button></div>

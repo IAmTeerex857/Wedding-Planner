@@ -27,7 +27,7 @@ export function LoginPage() {
   }
 
   return (
-    <main className="login-page">
+    <main className="login-page ui-auth-page">
       <section className="login-intro">
         <BrandMark />
         <div>
@@ -45,11 +45,11 @@ export function LoginPage() {
           </div>
           <label>
             Email address
-            <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <input type="email" autoComplete="email" maxLength={254} value={email} onChange={(event) => setEmail(event.target.value)} required />
           </label>
           <label>
             Password
-            <input type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <input type="password" autoComplete="current-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
           {error && <p className="form-error">{error}</p>}
           <button className="button primary full" type="submit" disabled={loading}>
