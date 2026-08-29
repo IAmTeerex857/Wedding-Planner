@@ -333,6 +333,10 @@
 .vendors-page .registry-list strong { font-size: 14px; }
 .vendors-page .registry-list small { color: var(--ui-gray-500); font-size: 12px; }
 .vendors-page .registry-list select { height: 32px; font-size: 11px; }
+.vendors-page .registry-list select.pill-tone-yellow { border-color: #f9dbaf; color: #b93815 !important; background-color: #fff4ed !important; }
+.vendors-page .registry-list select.pill-tone-blue { border-color: #b2ddff; color: #175cd3 !important; background-color: #eff8ff !important; }
+.vendors-page .registry-list select.pill-tone-green { border-color: #a6f4c5; color: #067647 !important; background-color: #ecfdf3 !important; }
+.vendors-page .registry-list select.pill-tone-red { border-color: #fcceee; color: #c11574 !important; background-color: #fdf2fa !important; }
 .vendors-page .category-pill { padding: 4px 9px; }
 .vendors-page .vendor-link { color: var(--ui-gray-700); font-size: 12px; }
 .vendors-page .vendor-rate-card { border-color: var(--ui-gray-200); color: var(--ui-gray-700); background: var(--ui-gray-50); }
