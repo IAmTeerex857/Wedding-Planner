@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download, FileText, X } from './KoboyoIcon'
 import { supabase } from '../lib/supabase'
@@ -13,15 +13,24 @@ export type VendorRateCard = {
 }
 
 export function VendorRateCardViewer({ file, onClose }: { file: VendorRateCard; onClose: () => void }) {
-  const signedUrlQuery = useQuery({
-    queryKey: ['vendor-rate-card-url', file.id, file.storage_path],
+  const [previewUrl, setPreviewUrl] = useState('')
+  const fileQuery = useQuery({
+    queryKey: ['vendor-rate-card-blob', file.id, file.storage_path],
     queryFn: async () => {
-      const { data, error } = await supabase!.storage.from('wedding-files').createSignedUrl(file.storage_path, 600)
+      const { data, error } = await supabase!.storage.from('wedding-files').download(file.storage_path)
       if (error) throw error
-      return data.signedUrl
+      return data
     },
-    staleTime: 9 * 60 * 1000,
+    staleTime: Infinity,
+    gcTime: 60 * 1000,
   })
+
+  useEffect(() => {
+    if (!fileQuery.data) return
+    const url = URL.createObjectURL(fileQuery.data)
+    const updateUrl = window.setTimeout(() => setPreviewUrl(url), 0)
+    return () => { window.clearTimeout(updateUrl); URL.revokeObjectURL(url) }
+  }, [fileQuery.data])
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
@@ -32,9 +41,9 @@ export function VendorRateCardViewer({ file, onClose }: { file: VendorRateCard; 
   }, [onClose])
 
   function download() {
-    if (!signedUrlQuery.data) return
+    if (!previewUrl) return
     const anchor = document.createElement('a')
-    anchor.href = signedUrlQuery.data
+    anchor.href = previewUrl
     anchor.download = file.original_name
     anchor.rel = 'noopener'
     anchor.click()
@@ -44,13 +53,13 @@ export function VendorRateCardViewer({ file, onClose }: { file: VendorRateCard; 
     <section className="rate-card-viewer" role="dialog" aria-modal="true" aria-labelledby="rate-card-viewer-title">
       <header>
         <div><p className="eyebrow">Private rate card</p><h2 id="rate-card-viewer-title">{file.original_name}</h2></div>
-        <div className="rate-card-viewer-actions"><button type="button" disabled={!signedUrlQuery.data} onClick={download}><Download size={14} /> Download</button><button type="button" aria-label="Close rate card" onClick={onClose}><X size={17} /></button></div>
+        <div className="rate-card-viewer-actions"><button type="button" disabled={!previewUrl} onClick={download}><Download size={14} /> Download</button><button type="button" aria-label="Close rate card" onClick={onClose}><X size={17} /></button></div>
       </header>
       <div className="rate-card-viewer-body">
-        {signedUrlQuery.isPending && <div className="rate-card-viewer-message"><FileText size={24} /><p>Preparing secure preview...</p></div>}
-        {signedUrlQuery.error && <div className="rate-card-viewer-message"><FileText size={24} /><p>{signedUrlQuery.error.message}</p></div>}
-        {signedUrlQuery.data && file.mime_type.startsWith('image/') && <img src={signedUrlQuery.data} alt={file.original_name} />}
-        {signedUrlQuery.data && file.mime_type === 'application/pdf' && <iframe src={`${signedUrlQuery.data}#view=FitH`} title={file.original_name} />}
+        {fileQuery.isPending && <div className="rate-card-viewer-message"><FileText size={24} /><p>Preparing secure preview...</p></div>}
+        {fileQuery.error && <div className="rate-card-viewer-message"><FileText size={24} /><p>{fileQuery.error.message}</p></div>}
+        {previewUrl && file.mime_type.startsWith('image/') && <img src={previewUrl} alt={file.original_name} />}
+        {previewUrl && file.mime_type === 'application/pdf' && <iframe src={`${previewUrl}#view=FitH`} title={file.original_name} />}
       </div>
     </section>
   </div>
