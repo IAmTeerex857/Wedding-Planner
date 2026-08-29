@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Download, FileText, X } from './KoboyoIcon'
 import { supabase } from '../lib/supabase'
+
+const PdfRateCard = lazy(() => import('./PdfRateCard'))
 
 export type VendorRateCard = {
   id: string
@@ -59,7 +61,7 @@ export function VendorRateCardViewer({ file, onClose }: { file: VendorRateCard; 
         {fileQuery.isPending && <div className="rate-card-viewer-message"><FileText size={24} /><p>Preparing secure preview...</p></div>}
         {fileQuery.error && <div className="rate-card-viewer-message"><FileText size={24} /><p>{fileQuery.error.message}</p></div>}
         {previewUrl && file.mime_type.startsWith('image/') && <img src={previewUrl} alt={file.original_name} />}
-        {previewUrl && file.mime_type === 'application/pdf' && <iframe src={`${previewUrl}#view=FitH`} title={file.original_name} />}
+        {fileQuery.data && file.mime_type === 'application/pdf' && <Suspense fallback={<div className="rate-card-viewer-message"><FileText size={24} /><p>Loading PDF viewer...</p></div>}><PdfRateCard file={fileQuery.data} /></Suspense>}
       </div>
     </section>
   </div>

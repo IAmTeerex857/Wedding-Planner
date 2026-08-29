@@ -1,5 +1,6 @@
 import { useDeferredValue, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Upload as TusUpload } from 'tus-js-client'
 import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
@@ -20,6 +21,30 @@ function rateCardMimeType(file: File) {
   if (rateCardTypes.has(file.type)) return file.type
   const extension = file.name.split('.').pop()?.toLocaleLowerCase()
   return ({ pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' } as Record<string, string>)[extension ?? '']
+}
+
+async function uploadRateCard(storagePath: string, file: File, mimeType: string, onProgress: (percentage: number) => void) {
+  const { data, error } = await supabase!.auth.getSession()
+  if (error) throw error
+  if (!data.session) throw new Error('Your session expired. Sign in again before uploading.')
+  const projectUrl = import.meta.env.VITE_SUPABASE_URL as string
+  const projectId = new URL(projectUrl).hostname.split('.')[0]
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new TusUpload(file, {
+      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000],
+      headers: { authorization: `Bearer ${data.session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      chunkSize: 6 * 1024 * 1024,
+      metadata: { bucketName: 'wedding-files', objectName: storagePath, contentType: mimeType, cacheControl: '3600' },
+      onProgress: (uploaded, total) => onProgress(total ? Math.round((uploaded / total) * 100) : 0),
+      onError: reject,
+      onSuccess: () => { onProgress(100); resolve() },
+    })
+    upload.start()
+  })
 }
 
 const eventField: Field = { key: 'event', label: 'Ceremony', options: ['Court', 'Traditional', 'White', 'General / shared'] }
@@ -67,7 +92,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const [previewCategories, setPreviewCategories] = useState<VendorCategory[]>(() => defaultVendorCategories.map((name, position) => ({ id: crypto.randomUUID(), name, position })))
   const [pendingDelete, setPendingDelete] = useState<{ kind: 'record'; record: RegistryRecord; label: string } | { kind: 'category'; category: VendorCategory } | { kind: 'rate-card'; file: VendorRateCard } | null>(null)
   const [viewingRateCard, setViewingRateCard] = useState<VendorRateCard | null>(null)
-  const [uploadProgress, setUploadProgress] = useState<{ fileName: string; current: number; total: number } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{ fileName: string; current: number; total: number; percentage: number } | null>(null)
   const categoryPersistent = title === 'Vendors' && !isPreview
   const ceremoniesQuery = useQuery({ queryKey: ['ceremony-options', workspace.id], enabled: persistent, queryFn: () => loadCeremonies(workspace.id) })
   const recordsQuery = useQuery({ queryKey: ['registry', title, workspace.id], enabled: persistent, queryFn: () => loadRegistry(title as RegistryTitle, workspace.id) })
@@ -92,14 +117,14 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const uploadRateCardsMutation = useMutation({
     mutationFn: async ({ vendorId, files }: { vendorId: string; files: File[] }) => {
       for (const [index, file] of files.entries()) {
-        setUploadProgress({ fileName: file.name, current: index + 1, total: files.length })
+        const progress = (percentage: number) => setUploadProgress({ fileName: file.name, current: index + 1, total: files.length, percentage })
+        progress(0)
         const mimeType = rateCardMimeType(file)
         if (!mimeType) throw new Error(`${file.name} must be a PDF, JPEG, PNG, or WebP image.`)
         if (file.size > maxRateCardSize) throw new Error(`${file.name} is larger than 25 MB.`)
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-')
         const storagePath = `${workspace.id}/vendors/${vendorId}/rate-cards/${crypto.randomUUID()}-${safeName}`
-        const { error: storageError } = await supabase!.storage.from('wedding-files').upload(storagePath, file, { contentType: mimeType, upsert: false })
-        if (storageError) throw storageError
+        await uploadRateCard(storagePath, file, mimeType, progress)
         const { error } = await supabase!.from('files').insert({ workspace_id: workspace.id, vendor_id: vendorId, bucket_id: 'wedding-files', storage_path: storagePath, original_name: file.name, mime_type: mimeType, size_bytes: file.size, category: 'Rate card', uploaded_by: userId, created_by: userId, updated_by: userId })
         if (error) {
           await supabase!.storage.from('wedding-files').remove([storagePath])
@@ -225,7 +250,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
     </section>
     {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : pendingDelete.kind === 'category' ? `Remove ${pendingDelete.category.name}?` : `Remove ${pendingDelete.file.original_name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : pendingDelete.kind === 'category' ? 'This category will be removed from the vendor list. It can only be removed while no vendors use it.' : 'This rate card will move to the recycle bin. Its private file will remain available for recovery.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     {viewingRateCard && <VendorRateCardViewer file={viewingRateCard} onClose={() => setViewingRateCard(null)} />}
-    {uploadProgress && <aside className="rate-card-upload-status" role="status" aria-live="polite"><span className="rate-card-upload-spinner" /><div><strong>Uploading rate card {uploadProgress.current} of {uploadProgress.total}</strong><p>{uploadProgress.fileName}</p><span className="rate-card-upload-track"><span /></span></div></aside>}
+    {uploadProgress && <aside className="rate-card-upload-status" role="status" aria-live="polite"><span className="rate-card-upload-percentage">{uploadProgress.percentage}%</span><div><strong>Uploading rate card {uploadProgress.current} of {uploadProgress.total}</strong><p>{uploadProgress.fileName}</p><span className="rate-card-upload-track"><span style={{ width: `${uploadProgress.percentage}%` }} /></span></div></aside>}
   </div>
 }
 
