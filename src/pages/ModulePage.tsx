@@ -50,6 +50,7 @@ async function uploadRateCard(storagePath: string, file: File, mimeType: string,
 const eventField: Field = { key: 'event', label: 'Ceremony', options: ['Court', 'Traditional', 'White', 'General / shared'] }
 const requiredEventField: Field = { ...eventField, required: true, options: ['Court', 'Traditional', 'White'] }
 const defaultVendorCategories = ['Hall', 'Cars', 'Hotels', 'Tailor', 'Food', 'Drinks', 'Photography', 'Videography', 'Decor', 'Entertainment', 'Beauty', 'Cake', 'Invitations', 'Security', 'Rentals', 'Gifts', 'Other']
+const vendorStatusPriority: Record<string, number> = { selected: 0, shortlisted: 1, considering: 2, declined: 3 }
 
 const definitions: Record<string, Definition> = {
   Calendar: { eyebrow: 'Schedule', description: 'See ceremonies, appointments, payments, and planning deadlines together.', noun: 'calendar entry', fields: [{ key: 'title', label: 'Entry title', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'type', label: 'Type', options: ['Task', 'Appointment', 'Payment', 'Personal'] }, eventField], statuses: ['Scheduled', 'Complete', 'Cancelled'] },
@@ -147,7 +148,17 @@ function Registry({ title, definition }: { title: string; definition: Definition
   })
   const statusMutation = useMutation({
     mutationFn: ({ record, status }: { record: RegistryRecord; status: string }) => updateRegistryStatus(title as RegistryTitle, record, status, workspace.id, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }),
+    onMutate: async ({ record, status }) => {
+      const queryKey = ['registry', title, workspace.id]
+      await queryClient.cancelQueries({ queryKey })
+      const previous = queryClient.getQueryData<RegistryRecord[]>(queryKey)
+      queryClient.setQueryData<RegistryRecord[]>(queryKey, (current) => current?.map((item) => item.id === record.id ? { ...item, status } : item))
+      return { previous }
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(['registry', title, workspace.id], context.previous)
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] }),
   })
   const updateMutation = useMutation({
     mutationFn: ({ record, values }: { record: RegistryRecord; values: Record<string, string> }) => updateRegistryRecord(title as RegistryTitle, record, values, { workspaceId: workspace.id, userId, currency: workspace.reporting_currency, ceremonies: ceremoniesQuery.data ?? [] }),
@@ -177,7 +188,11 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const categoryRecords = categoryPersistent ? categoryQuery.data ?? (categoryQuery.isLoading ? defaultVendorCategories.map((name, position) => ({ id: name, name, position })) : []) : previewCategories
   const categories = title === 'Vendors' ? Array.from(new Set([...categoryRecords.map((category) => category.name), ...records.map((record) => record.values.category).filter(Boolean)])) : []
   const formDefinition: Definition = title === 'Vendors' ? { ...definition, fields: definition.fields.map((field) => field.key === 'category' ? { ...field, options: categories.length ? categories : ['Other'] } : field) } : definition
-  const filtered = records.filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery) && (categoryFilter === 'All' || record.values.category === categoryFilter))
+  const filtered = records
+    .filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery) && (categoryFilter === 'All' || record.values.category === categoryFilter))
+    .map((record, index) => ({ record, index }))
+    .sort((a, b) => title === 'Vendors' ? (vendorStatusPriority[a.record.status.toLocaleLowerCase()] ?? 4) - (vendorStatusPriority[b.record.status.toLocaleLowerCase()] ?? 4) || a.index - b.index : a.index - b.index)
+    .map(({ record }) => record)
   const error = recordsQuery.error ?? ceremoniesQuery.error ?? categoryQuery.error ?? rateCardsQuery.error ?? addMutation.error ?? updateMutation.error ?? statusMutation.error ?? deleteMutation.error ?? addCategoryMutation.error ?? removeCategoryMutation.error ?? uploadRateCardsMutation.error ?? deleteRateCardMutation.error
 
   async function addRecord(values: Record<string, string>, rateCards: File[]) {
