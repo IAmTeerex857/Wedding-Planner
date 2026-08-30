@@ -87,6 +87,24 @@
 .registry-empty { display: grid; min-height: 340px; place-content: center; justify-items: center; color: var(--muted); text-align: center; }
 .registry-empty h2 { margin-top: 12px; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }
 .registry-empty p { margin-top: 6px; color: var(--faint); font-size: 10px; }
+.honeymoon-checklist { margin-top: 24px; border: 1px solid var(--line); background: #fafaf8; }
+.honeymoon-checklist > header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 20px; border-bottom: 1px solid var(--line); }
+.honeymoon-checklist h2 { font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }
+.honeymoon-checklist header p:last-child { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.honeymoon-checklist header > span { flex: 0 0 auto; border-radius: 999px; padding: 6px 9px; color: #765d21; background: #f5ebce; font-size: 9px; font-weight: 650; text-transform: uppercase; }
+.honeymoon-checklist > form { display: grid; grid-template-columns: 1fr 155px auto; gap: 8px; padding: 14px 20px; border-bottom: 1px solid var(--soft-line); }
+.honeymoon-checklist > form input { width: 100%; height: 38px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; background: white; font-size: 11px; }
+.honeymoon-checklist > form .button { min-height: 38px; }
+.honeymoon-checklist-list article { display: grid; min-height: 58px; grid-template-columns: 32px 1fr 32px; align-items: center; gap: 10px; padding: 9px 20px; border-bottom: 1px solid var(--soft-line); }
+.honeymoon-checklist-list article:last-child { border-bottom: 0; }
+.honeymoon-checklist-list article > div { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.honeymoon-checklist-list strong { overflow: hidden; font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.honeymoon-checklist-list small { color: var(--faint); font-size: 9px; }
+.honeymoon-checklist-list article.completed strong { color: var(--faint); text-decoration: line-through; }
+.honeymoon-check-toggle, .honeymoon-check-delete { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; color: var(--muted); background: transparent; cursor: pointer; }
+.honeymoon-check-toggle:hover { color: #527052; background: #edf4eb; }
+.honeymoon-check-delete:hover { color: #8d3535; background: #fff5f4; }
+.honeymoon-checklist-empty { padding: 38px 20px; color: var(--faint); font-size: 10px; text-align: center; }
 .report-grid { display: grid; grid-template-columns: repeat(2, 1fr); border: 1px solid var(--line); }
 .report-grid article { display: grid; min-height: 92px; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--line); }
 .report-grid article:nth-child(odd) { border-right: 1px solid var(--line); }
@@ -94,5 +112,5 @@
 .report-grid strong { font-size: 11px; }.report-grid small { color: var(--faint); font-size: 9px; }
 .report-grid button { display: inline-flex; align-items: center; gap: 6px; border: 0; border-bottom: 1px solid var(--ink); padding: 4px 0; background: transparent; font-size: 9px; cursor: pointer; }
 .settings-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; padding: 24px; border: 1px solid var(--ink); }.settings-grid .button { width: fit-content; }
-@media (max-width: 700px) { .registry-form form > div, .settings-grid, .report-grid { grid-template-columns: 1fr; } .report-grid article:nth-child(odd) { border-right: 0; } .registry-list article { grid-template-columns: 1fr; } .rate-card-viewer-layer { align-items: end; padding: 0; } .rate-card-viewer { width: 100%; height: 94dvh; border-width: 1px 0 0; } .rate-card-viewer > header { align-items: flex-start; padding: 13px 12px 13px 16px; } .rate-card-viewer h2 { max-width: 52vw; font-size: 17px; } .rate-card-viewer-actions button:first-child { width: 34px; padding: 0; font-size: 0; } .rate-card-upload-status { right: 18px; bottom: 18px; } }
+@media (max-width: 700px) { .registry-form form > div, .settings-grid, .report-grid { grid-template-columns: 1fr; } .report-grid article:nth-child(odd) { border-right: 0; } .registry-list article { grid-template-columns: 1fr; } .honeymoon-checklist > header { align-items: flex-start; } .honeymoon-checklist > form { grid-template-columns: 1fr; } .honeymoon-checklist > form .button { justify-content: center; } .rate-card-viewer-layer { align-items: end; padding: 0; } .rate-card-viewer { width: 100%; height: 94dvh; border-width: 1px 0 0; } .rate-card-viewer > header { align-items: flex-start; padding: 13px 12px 13px 16px; } .rate-card-viewer h2 { max-width: 52vw; font-size: 17px; } .rate-card-viewer-actions button:first-child { width: 34px; padding: 0; font-size: 0; } .rate-card-upload-status { right: 18px; bottom: 18px; } }
 @media print { .sidebar, .mobile-header, .setup-banner, .page-header .button, .report-grid button { display: none !important; }.main-content { margin: 0; }.page { padding: 20px; } }

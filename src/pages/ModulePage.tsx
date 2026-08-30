@@ -1,10 +1,10 @@
 import { useDeferredValue, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload as TusUpload } from 'tus-js-client'
-import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/KoboyoIcon'
+import { ArrowUpRight, Check, Circle, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
-import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
+import { addHoneymoonChecklistItem, addRegistryRecord, deleteHoneymoonChecklistItem, loadCeremonies, loadHoneymoonChecklist, loadRegistry, setHoneymoonChecklistItemCompleted, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type HoneymoonChecklistItem, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import { pillTone } from '../lib/pills'
@@ -63,7 +63,7 @@ const definitions: Record<string, Definition> = {
   Packing: { eyebrow: 'Packing lists', description: 'Prepare ceremony, wedding-weekend, and honeymoon packing lists.', noun: 'packing item', fields: [{ key: 'item', label: 'Item', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'quantity', label: 'Quantity', type: 'number', min: 1 }, { key: 'owner', label: 'Person responsible' }, eventField], statuses: ['Not packed', 'Packed'] },
   Gifts: { eyebrow: 'Gifts & thanks', description: 'Record gifts, cash amounts, ceremony links, and thank-you progress.', noun: 'gift', primaryKey: 'description', fields: [{ key: 'guest', label: 'Guest' }, { key: 'description', label: 'Gift description', required: true }, { key: 'type', label: 'Type', options: ['Gift', 'Cash'] }, { key: 'amount', label: 'Cash amount', type: 'number', step: 0.01 }, { key: 'currency', label: 'Currency', options: ['NGN', 'GBP', 'USD', 'EUR'] }, eventField], statuses: ['Received', 'Thank-you due', 'Thank-you sent'] },
   'Photos & files': { eyebrow: 'Private library', description: 'Keep inspiration, receipts, contracts, images, and wedding documents private.', noun: 'file', fields: [{ key: 'name', label: 'Title' }, { key: 'category', label: 'Category', options: ['Photo', 'Inspiration', 'Receipt', 'Contract', 'Quote', 'Invitation', 'Travel'] }, { key: 'file', label: 'Choose file', type: 'file' }, eventField], statuses: ['Active', 'Archived'] },
-  Honeymoon: { eyebrow: 'Travel planning', description: 'Plan destinations, bookings, itinerary, expenses, and documents.', noun: 'honeymoon record', fields: [{ key: 'name', label: 'Booking or activity', required: true }, { key: 'type', label: 'Type', options: ['Flight', 'Accommodation', 'Transport', 'Activity', 'Expense'] }, { key: 'date', label: 'Date', type: 'date' }, { key: 'provider', label: 'Provider' }, { key: 'reference', label: 'Booking reference' }, { key: 'cost', label: 'Cost', type: 'number', step: 0.01 }], statuses: ['Researching', 'Reserved', 'Paid', 'Complete'] },
+  Honeymoon: { eyebrow: 'Travel planning', description: 'Plan destinations, bookings, itinerary, expenses, and documents.', noun: 'honeymoon record', fields: [{ key: 'name', label: 'Booking or activity', required: true }, { key: 'type', label: 'Type', options: ['Flight', 'Accommodation', 'Transport', 'Activity', 'Expense'] }, { key: 'date', label: 'Date', type: 'date' }, { key: 'location', label: 'Location' }, { key: 'provider', label: 'Provider' }, { key: 'reference', label: 'Booking reference' }, { key: 'cost', label: 'Cost', type: 'number', step: 0.01 }], statuses: ['Researching', 'Reserved', 'Paid', 'Complete'] },
 }
 
 const persistedTitles = new Set<RegistryTitle>(['Calendar', 'Itineraries', 'Vendors', 'Venues', 'Food & drinks', 'Wedding party', 'Packing', 'Gifts', 'Honeymoon'])
@@ -263,10 +263,68 @@ function Registry({ title, definition }: { title: string; definition: Definition
       {title === 'Vendors' && <div className="category-tools"><form onSubmit={addCategory}><input value={newCategory} maxLength={100} placeholder="New category" aria-label="New vendor category" onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" disabled={!newCategory.trim() || addCategoryMutation.isPending}><Plus size={12} /> Add</button></form><div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => { const categoryRecord = categoryRecords.find((item) => item.name === category); const inUse = records.some((record) => record.values.category.toLocaleLowerCase() === category.toLocaleLowerCase()); const canRemove = Boolean(categoryRecord && (!categoryPersistent || categoryQuery.data)); const isLast = categoryRecords.length === 1; return <span className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} key={category}><button type="button" onClick={() => setCategoryFilter(category)}>{category}</button>{canRemove && <button className="category-remove" type="button" disabled={inUse || isLast || removeCategoryMutation.isPending} title={inUse ? 'Reassign vendors before removing this category' : isLast ? 'Keep at least one vendor category' : `Remove ${category}`} aria-label={`Remove ${category}`} onClick={() => categoryRecord && setPendingDelete({ kind: 'category', category: categoryRecord })}><X size={9} /></button>}</span> })}</div></div>}
       {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; const rateCards = title === 'Vendors' ? (rateCardsQuery.data ?? []).filter((file) => file.vendor_id === record.id) : []; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small>{title === 'Vendors' && <div className="vendor-rate-cards">{rateCards.map((file) => <span className="vendor-rate-card" key={file.id}><button type="button" title={`View ${file.original_name}`} onClick={() => setViewingRateCard(file)}>{file.mime_type.startsWith('image/') ? <FileImage size={12} /> : <FileText size={12} />}<span>{file.original_name}</span></button><button type="button" aria-label={`Remove ${file.original_name}`} onClick={() => setPendingDelete({ kind: 'rate-card', file })}><X size={10} /></button></span>)}<label className={`vendor-rate-card-upload${uploadRateCardsMutation.isPending ? ' disabled' : ''}`}><Upload size={12} /><span>{rateCards.length ? 'Add another' : 'Add rate card'}</span><input type="file" multiple disabled={uploadRateCardsMutation.isPending} accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) uploadRateCardsMutation.mutate({ vendorId: record.id, files }); event.currentTarget.value = '' }} /></label></div>}</div><select className={pillTone(record.status)} value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
     </section>
+    {title === 'Honeymoon' && <HoneymoonChecklist />}
     {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : pendingDelete.kind === 'category' ? `Remove ${pendingDelete.category.name}?` : `Remove ${pendingDelete.file.original_name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : pendingDelete.kind === 'category' ? 'This category will be removed from the vendor list. It can only be removed while no vendors use it.' : 'This rate card will move to the recycle bin. Its private file will remain available for recovery.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     {viewingRateCard && <VendorRateCardViewer file={viewingRateCard} onClose={() => setViewingRateCard(null)} />}
     {uploadProgress && <aside className="rate-card-upload-status" role="status" aria-live="polite"><span className="rate-card-upload-percentage">{uploadProgress.percentage}%</span><div><strong>Uploading rate card {uploadProgress.current} of {uploadProgress.total}</strong><p>{uploadProgress.fileName}</p><span className="rate-card-upload-track"><span style={{ width: `${uploadProgress.percentage}%` }} /></span></div></aside>}
   </div>
+}
+
+function HoneymoonChecklist() {
+  const { workspace, userId, isPreview } = useWorkspace()
+  const queryClient = useQueryClient()
+  const [previewItems, setPreviewItems] = useState<HoneymoonChecklistItem[]>([])
+  const [title, setTitle] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<HoneymoonChecklistItem | null>(null)
+  const context = { workspaceId: workspace.id, userId, currency: workspace.reporting_currency, ceremonies: [] }
+  const queryKey = ['honeymoon-checklist', workspace.id]
+  const checklistQuery = useQuery({ queryKey, enabled: !isPreview, queryFn: () => loadHoneymoonChecklist(workspace.id) })
+  const addMutation = useMutation({
+    mutationFn: ({ itemTitle, itemDueDate }: { itemTitle: string; itemDueDate: string }) => addHoneymoonChecklistItem(itemTitle, itemDueDate, context),
+    onSuccess: async () => { setTitle(''); setDueDate(''); await queryClient.invalidateQueries({ queryKey }) },
+  })
+  const completeMutation = useMutation({
+    mutationFn: ({ item, completed }: { item: HoneymoonChecklistItem; completed: boolean }) => setHoneymoonChecklistItemCompleted(item.id, completed, context),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+  })
+  const deleteMutation = useMutation({
+    mutationFn: (item: HoneymoonChecklistItem) => deleteHoneymoonChecklistItem(item.id, context),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+  })
+  const items = isPreview ? previewItems : checklistQuery.data ?? []
+  const incompleteCount = items.filter((item) => !item.completed).length
+  const error = checklistQuery.error ?? addMutation.error ?? completeMutation.error ?? deleteMutation.error
+
+  function addItem(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const itemTitle = title.trim()
+    if (!itemTitle) return
+    if (isPreview) {
+      setPreviewItems((current) => [...current, { id: crypto.randomUUID(), title: itemTitle, dueDate, completed: false }])
+      setTitle('')
+      setDueDate('')
+    } else addMutation.mutate({ itemTitle, itemDueDate: dueDate })
+  }
+
+  function toggleItem(item: HoneymoonChecklistItem) {
+    if (isPreview) setPreviewItems((current) => current.map((currentItem) => currentItem.id === item.id ? { ...currentItem, completed: !currentItem.completed } : currentItem))
+    else completeMutation.mutate({ item, completed: !item.completed })
+  }
+
+  function removeItem(item: HoneymoonChecklistItem) {
+    if (isPreview) setPreviewItems((current) => current.filter((currentItem) => currentItem.id !== item.id))
+    else deleteMutation.mutate(item)
+    setPendingDelete(null)
+  }
+
+  return <section className="honeymoon-checklist">
+    <header><div><p className="eyebrow">Before you travel</p><h2>Honeymoon checklist</h2><p>Keep track of the practical things you still need to sort out.</p></div><span>{incompleteCount} to do</span></header>
+    <form onSubmit={addItem}><label><span className="sr-only">Checklist item</span><input required maxLength={160} value={title} placeholder="e.g. Apply for visas" onChange={(event) => setTitle(event.target.value)} /></label><label><span className="sr-only">Due date</span><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} /></label><button className="button primary" type="submit" disabled={!title.trim() || addMutation.isPending}><Plus size={14} /> Add item</button></form>
+    {error && <p className="data-error">{error.message}</p>}
+    {checklistQuery.isLoading && !isPreview ? <p className="honeymoon-checklist-empty">Loading checklist...</p> : items.length ? <div className="honeymoon-checklist-list">{items.map((item) => <article className={item.completed ? 'completed' : ''} key={item.id}><button className="honeymoon-check-toggle" type="button" aria-label={`${item.completed ? 'Mark incomplete' : 'Mark complete'}: ${item.title}`} disabled={completeMutation.isPending} onClick={() => toggleItem(item)}>{item.completed ? <Check size={14} /> : <Circle size={14} />}</button><div><strong>{item.title}</strong>{item.dueDate && <small>Due {item.dueDate}</small>}</div><button className="honeymoon-check-delete" type="button" aria-label={`Remove ${item.title}`} onClick={() => setPendingDelete(item)}><Trash2 size={14} /></button></article>)}</div> : <p className="honeymoon-checklist-empty">No checklist items yet. Add the first thing you need to arrange.</p>}
+    {pendingDelete && <ConfirmDialog title={`Remove ${pendingDelete.title}?`} description="This item will be removed from your honeymoon checklist." onCancel={() => setPendingDelete(null)} onConfirm={() => removeItem(pendingDelete)} />}
+  </section>
 }
 
 function RegistryForm({ definition, initialValues, allowRateCards = false, saving, onClose, onSave }: { definition: Definition; initialValues?: Record<string, string>; allowRateCards?: boolean; saving: boolean; onClose: () => void; onSave: (values: Record<string, string>, rateCards: File[]) => Promise<void> }) {
