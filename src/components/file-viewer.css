@@ -1,0 +1,36 @@
+.rate-card-viewer-layer { position: fixed; inset: 0; z-index: 220; display: grid; place-items: center; padding: 20px; background: rgba(16,24,40,.68); backdrop-filter: blur(4px); }
+.rate-card-viewer { display: flex; width: min(1100px, 100%); height: min(90dvh, 900px); flex-direction: column; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 12px; background: white; box-shadow: 0 24px 48px -12px rgba(16,24,40,.32); }
+.rate-card-viewer > header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 18px; padding: 14px 16px 14px 20px; border-bottom: 1px solid #e4e7ec; }
+.rate-card-viewer h2 { overflow: hidden; max-width: 700px; color: #101828; font: 600 18px/28px Inter, ui-sans-serif, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.rate-card-viewer .eyebrow { margin-bottom: 2px; color: #667085; font: 600 12px/18px Inter, ui-sans-serif, sans-serif; }
+.rate-card-viewer-actions { display: flex; gap: 8px; }
+.rate-card-viewer-actions button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 0 11px; color: #344054; background: white; font-size: 12px; font-weight: 600; box-shadow: 0 1px 2px rgba(16,24,40,.05); cursor: pointer; }
+.rate-card-viewer-actions button:last-child { width: 36px; padding: 0; }
+.rate-card-viewer-actions button:disabled { cursor: wait; opacity: .45; }
+.rate-card-viewer-body { display: grid; min-height: 0; flex: 1; place-items: center; overflow: auto; background: #292927; }
+.rate-card-viewer-body > img { display: block; max-width: 100%; height: auto; margin: auto; object-fit: contain; }
+.rate-card-viewer-message { display: grid; justify-items: center; gap: 10px; padding: 24px; color: white; font-size: 13px; text-align: center; }
+.private-file-object { width: 100%; height: 100%; border: 0; background: white; }
+.spreadsheet-preview { width: 100%; height: 100%; overflow: auto; padding: 20px; background: #f9fafb; }
+.spreadsheet-preview table { width: max-content; min-width: 100%; border-spacing: 0; border-collapse: separate; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 8px; color: #344054; background: white; font: 12px/18px Inter, ui-sans-serif, sans-serif; }
+.spreadsheet-preview th, .spreadsheet-preview td { max-width: 360px; padding: 9px 12px; overflow: hidden; border-right: 1px solid #e4e7ec; border-bottom: 1px solid #e4e7ec; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.spreadsheet-preview th { color: #475467; background: #f9fafb; font-weight: 600; }
+.spreadsheet-preview tr:last-child > * { border-bottom: 0; }
+.spreadsheet-preview tr > *:last-child { border-right: 0; }
+.spreadsheet-preview-error { max-width: 420px; padding: 24px; color: white; font: 13px/20px Inter, ui-sans-serif, sans-serif; text-align: center; }
+.rate-card-pdf { display: flex; width: 100%; min-height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 16px 16px 64px; }
+.rate-card-pdf .react-pdf__Document { max-width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,.28); }
+.rate-card-pdf .react-pdf__Page { max-width: 100%; }
+.rate-card-pdf canvas { display: block; max-width: 100%; height: auto !important; }
+.rate-card-pdf nav { position: sticky; bottom: 12px; display: flex; align-items: center; gap: 12px; margin-top: 14px; border: 1px solid #e4e7ec; border-radius: 999px; padding: 5px; color: #101828; background: rgba(255,255,255,.96); box-shadow: 0 6px 22px rgba(0,0,0,.2); }
+.rate-card-pdf nav button { height: 30px; border: 0; border-radius: 999px; padding: 0 12px; color: white; background: #101828; font-size: 11px; font-weight: 650; cursor: pointer; }
+.rate-card-pdf nav button:disabled { color: #98a2b3; background: #f9fafb; cursor: not-allowed; }
+.rate-card-pdf nav span { font-size: 11px; font-weight: 650; }
+
+@media (max-width: 700px) {
+  .rate-card-viewer-layer { align-items: end; padding: 0; }
+  .rate-card-viewer { width: 100%; height: 94dvh; border-width: 1px 0 0; border-radius: 12px 12px 0 0; }
+  .rate-card-viewer > header { align-items: flex-start; padding: 13px 12px 13px 16px; }
+  .rate-card-viewer h2 { max-width: 52vw; font-size: 16px; }
+  .rate-card-viewer-actions button:first-child { width: 36px; padding: 0; font-size: 0; }
+}

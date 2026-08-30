@@ -774,7 +774,11 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .file-grid h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 15px; font-weight: 600; }
 .ui-page .file-grid article span { color: var(--ui-gray-500); font-size: 11px; text-transform: none; }
 .ui-page .file-grid footer { border-color: var(--ui-gray-100); }
-.ui-page .file-grid footer button { border: 0; border-radius: 8px; padding: 7px 9px; color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; font-weight: 600; }
+.ui-page .file-grid footer { flex-wrap: wrap; gap: 6px; }
+.ui-page .file-grid footer button,
+.ui-page .file-grid footer a { display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 8px; padding: 7px 9px; color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; font-weight: 600; }
+.ui-page .file-grid footer button:hover,
+.ui-page .file-grid footer a:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
 .ui-page .files-empty { grid-column: 1 / -1; min-height: 350px; border: 1px solid var(--ui-gray-200); border-radius: 12px; color: var(--ui-gray-500); background: white; }
 .ui-page .files-empty h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 18px; font-weight: 600; }
 .ui-page .files-empty p { color: var(--ui-gray-500); font-size: 13px; }
