@@ -1,9 +1,8 @@
 import { requireSupabase } from './supabase'
 import { ceremonyIdForEvent, ceremonyLabel, type CeremonyOption } from './workspace-context'
 
-export type RegistryTitle = 'Calendar' | 'Itineraries' | 'Vendors' | 'Venues' | 'Food & drinks' | 'Wedding party' | 'Packing' | 'Gifts' | 'Honeymoon'
+export type RegistryTitle = 'Calendar' | 'Itineraries' | 'Vendors' | 'Venues' | 'Food & drinks' | 'Wedding party' | 'Packing' | 'Gifts'
 export type RegistryRecord = { id: string; values: Record<string, string>; status: string }
-export type HoneymoonChecklistItem = { id: string; title: string; dueDate: string; completed: boolean }
 
 type Context = { workspaceId: string; userId: string; currency: string; ceremonies: CeremonyOption[] }
 type RelatedCeremony = { kind: string; name: string }
@@ -19,7 +18,6 @@ const statusMaps: Record<RegistryTitle, Record<string, string>> = {
   'Wedding party': { Invited: 'invited', Confirmed: 'confirmed', Ready: 'ready' },
   Packing: { 'Not packed': 'false', Packed: 'true' },
   Gifts: { Received: 'pending', 'Thank-you due': 'written', 'Thank-you sent': 'sent' },
-  Honeymoon: { Researching: 'planned', Reserved: 'reserved', Paid: 'confirmed', Complete: 'completed' },
 }
 
 function displayStatus(title: RegistryTitle, value: string | boolean | null | undefined) {
@@ -134,9 +132,7 @@ export async function loadRegistry(title: RegistryTitle, workspaceId: string): P
     if (error) throw error
     return data.map((row) => ({ id: row.id, values: { guest: row.giver_name ?? '', description: row.description, type: row.gift_type === 'cash' ? 'Cash' : 'Gift', amount: row.cash_amount_minor == null ? '' : String(row.cash_amount_minor / 100), currency: row.currency ?? 'NGN', event: eventOf(row.ceremonies) }, status: statusFromNotes(title, row.notes, row.thank_you_status) }))
   }
-  const { data, error } = await db.from('honeymoon_bookings').select('id,title,booking_type,starts_at,location,provider,booking_reference,amount_minor,status').eq('workspace_id', workspaceId).is('deleted_at', null).order('created_at', { ascending: false })
-  if (error) throw error
-  return data.map((row) => ({ id: row.id, values: { name: row.title, type: ({ flight: 'Flight', accommodation: 'Accommodation', transport: 'Transport', activity: 'Activity', other: 'Expense' } as Record<string, string>)[row.booking_type] ?? 'Expense', date: lagosParts(row.starts_at).date, location: row.location ?? '', provider: row.provider ?? '', reference: row.booking_reference ?? '', cost: row.amount_minor == null ? '' : String(row.amount_minor / 100) }, status: displayStatus(title, row.status) }))
+  throw new Error(`Unsupported registry: ${title}`)
 }
 
 async function insertRow(table: string, payload: Record<string, unknown>) {
@@ -176,31 +172,6 @@ async function packingListId(context: Context, ceremonyId: string | null, event?
   const { data, error } = await listQuery.limit(1).maybeSingle()
   if (error) throw error
   return data?.id as string | undefined ?? await insertRow('packing_lists', { ...audit(context), ceremony_id: ceremonyId, name: ceremonyId ? `${event} packing` : 'General packing', list_type: ceremonyId ? 'ceremony' : 'custom' })
-}
-
-async function honeymoonTripId(context: Context) {
-  const { data, error } = await requireSupabase().from('honeymoon_trips').select('id').eq('workspace_id', context.workspaceId).is('deleted_at', null).order('created_at').limit(1).maybeSingle()
-  if (error) throw error
-  return data?.id as string | undefined ?? await insertRow('honeymoon_trips', { ...audit(context), name: 'Honeymoon', currency: context.currency, status: 'planning' })
-}
-
-export async function loadHoneymoonChecklist(workspaceId: string): Promise<HoneymoonChecklistItem[]> {
-  const { data, error } = await requireSupabase().from('honeymoon_checklist_items').select('id,title,due_date,completed').eq('workspace_id', workspaceId).is('deleted_at', null).order('completed').order('position').order('created_at')
-  if (error) throw error
-  return data.map((item) => ({ id: item.id, title: item.title, dueDate: item.due_date ?? '', completed: item.completed }))
-}
-
-export async function addHoneymoonChecklistItem(title: string, dueDate: string, context: Context) {
-  const tripId = await honeymoonTripId(context)
-  await insertRow('honeymoon_checklist_items', { ...audit(context), trip_id: tripId, title, due_date: dueDate || null })
-}
-
-export async function setHoneymoonChecklistItemCompleted(id: string, completed: boolean, context: Context) {
-  await updateRow('honeymoon_checklist_items', id, context, { completed, completed_at: completed ? new Date().toISOString() : null })
-}
-
-export async function deleteHoneymoonChecklistItem(id: string, context: Context) {
-  await updateRow('honeymoon_checklist_items', id, context, { deleted_at: new Date().toISOString() })
 }
 
 export async function addRegistryRecord(title: RegistryTitle, values: Record<string, string>, context: Context) {
@@ -251,10 +222,7 @@ export async function addRegistryRecord(title: RegistryTitle, values: Record<str
     await insertRow('gifts', { ...base, ceremony_id: ceremonyId, giver_name: values.guest || null, description: values.description, gift_type: isCash ? 'cash' : 'physical', cash_amount_minor: amount, currency: amount === null ? null : currency, ...money, received_on: new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date()), thank_you_status: 'pending', notes: 'Registry status: Received' })
     return
   }
-  const tripId = await honeymoonTripId(context)
-  const amount = toMinor(values.cost)
-  const money = await moneyDetails(context, amount, context.currency)
-  await insertRow('honeymoon_bookings', { ...base, trip_id: tripId, booking_type: ({ Flight: 'flight', Accommodation: 'accommodation', Transport: 'transport', Activity: 'activity', Expense: 'other' } as Record<string, string>)[values.type || 'Flight'], provider: values.provider || null, title: values.name, starts_at: lagosIso(values.date), location: values.location || null, booking_reference: values.reference || null, status: 'planned', amount_minor: amount, currency: amount === null ? null : context.currency, ...money })
+  throw new Error(`Unsupported registry: ${title}`)
 }
 
 export async function updateRegistryRecord(title: RegistryTitle, record: RegistryRecord, values: Record<string, string>, context: Context) {
@@ -318,11 +286,7 @@ export async function updateRegistryRecord(title: RegistryTitle, record: Registr
     await updateRow('gifts', record.id, context, { ceremony_id: ceremonyId, giver_name: values.guest || null, description: values.description, gift_type: isCash ? 'cash' : 'physical', cash_amount_minor: amount, currency: amount === null ? null : currency, exchange_rate: null, rate_source: null, rate_retrieved_at: null, ngn_minor: null, ...money })
     return
   }
-  const bookingType = ({ Flight: 'flight', Accommodation: 'accommodation', Transport: 'transport', Activity: 'activity', Expense: 'other' } as Record<string, string>)[values.type]
-  if (!bookingType) throw new Error('Choose a valid honeymoon booking type.')
-  const amount = toMinor(values.cost)
-  const money = await moneyDetails(context, amount, context.currency)
-  await updateRow('honeymoon_bookings', record.id, context, { booking_type: bookingType, provider: values.provider || null, title: values.name, starts_at: lagosIso(values.date), location: values.location || null, booking_reference: values.reference || null, amount_minor: amount, currency: amount === null ? null : context.currency, exchange_rate: null, rate_source: null, rate_retrieved_at: null, ngn_minor: null, ...money })
+  throw new Error(`Unsupported registry: ${title}`)
 }
 
 export async function updateRegistryStatus(title: RegistryTitle, record: RegistryRecord, status: string, workspaceId: string, userId: string) {
@@ -345,7 +309,7 @@ export async function updateRegistryStatus(title: RegistryTitle, record: Registr
   else if (title === 'Vendors') { table = 'vendors'; update.selection_status = mapped }
   else if (title === 'Wedding party') { table = 'wedding_party_members'; update.outfit_status = mapped }
   else if (title === 'Packing') { table = 'packing_items'; update = { ...update, packed: mapped === 'true', packed_at: mapped === 'true' ? new Date().toISOString() : null } }
-  else { table = 'honeymoon_bookings'; update.status = mapped }
+  if (!table) throw new Error(`Unsupported registry: ${title}`)
   const { error } = await db.from(table).update(update).eq('workspace_id', workspaceId).eq('id', record.id)
   if (error) throw error
 }
@@ -354,7 +318,7 @@ export async function softDeleteRegistry(title: RegistryTitle, id: string, works
   const table: Record<RegistryTitle, string> = {
     Calendar: 'calendar_entries', Itineraries: 'itinerary_items', Vendors: 'vendors', Venues: 'venues',
     'Food & drinks': 'food_drink_plans', 'Wedding party': 'wedding_party_members', Packing: 'packing_items',
-    Gifts: 'gifts', Honeymoon: 'honeymoon_bookings',
+    Gifts: 'gifts',
   }
   const { error } = await requireSupabase().from(table[title]).update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('workspace_id', workspaceId).eq('id', id)
   if (error) throw error
