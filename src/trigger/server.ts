@@ -81,12 +81,13 @@ export async function structuredResponse(userContent: unknown, extraSystem = "")
   const directKey = optionalEnv("OPENAI_API_KEY");
   const azureKey = optionalEnv("AZURE_OPENAI_API_KEY");
   const azureEndpoint = optionalEnv("AZURE_OPENAI_ENDPOINT")?.replace(/\/+$/, "");
-  const model = directKey ? MODEL : requiredEnv("AZURE_OPENAI_DEPLOYMENT");
-  if (!directKey && (!azureKey || !azureEndpoint)) throw new Error("OpenAI is not configured");
-  const response = await fetch(directKey ? "https://api.openai.com/v1/responses" : `${azureEndpoint}/openai/v1/responses`, {
+  const useAzure = Boolean(azureKey && azureEndpoint && optionalEnv("AZURE_OPENAI_DEPLOYMENT"));
+  const model = useAzure ? requiredEnv("AZURE_OPENAI_DEPLOYMENT") : MODEL;
+  if (!useAzure && !directKey) throw new Error("OpenAI is not configured");
+  const response = await fetch(useAzure ? `${azureEndpoint}/openai/v1/responses` : "https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
-      ...(directKey ? { Authorization: `Bearer ${directKey}` } : { "api-key": azureKey! }),
+      ...(useAzure ? { "api-key": azureKey! } : { Authorization: `Bearer ${directKey}` }),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
