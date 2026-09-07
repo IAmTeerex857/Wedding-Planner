@@ -24,4 +24,5 @@ supabase/.temp/
 *.sln
 *.sw?
 .vercel
+.trigger/
 .env*

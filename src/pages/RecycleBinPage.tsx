@@ -6,9 +6,9 @@ import './recycle-bin.css'
 
 type RecycledItem = { id: string; table: string; module: string; label: string; deletedAt: string }
 const sources = [
-  ['tasks', 'Tasks', 'title'], ['guests', 'Guests', 'full_name'], ['vendors', 'Vendors', 'name'], ['venues', 'Venues', 'name'],
+  ['ceremonies', 'Ceremonies', 'name'], ['tasks', 'Tasks', 'title'], ['guests', 'Guests', 'full_name'], ['vendors', 'Vendors', 'name'], ['venues', 'Venues', 'name'],
   ['expenses', 'Budget', 'description'], ['contributions', 'Budget', 'contributor_name'], ['attire_orders', 'Attire', 'recipient_name'],
-  ['traditional_requirements', 'Traditional requirements', 'item_name'], ['gifts', 'Gifts', 'description'], ['files', 'Files', 'original_name'],
+  ['traditional_requirements', 'Requirements', 'item_name'], ['gifts', 'Gifts', 'description'], ['files', 'Files', 'original_name'],
   ['seating_tables', 'Seating', 'name'],
 ] as const
 
@@ -35,7 +35,10 @@ export function RecycleBinPage() {
       const { error } = await supabase!.from(item.table).update({ deleted_at: null, updated_by: userId }).eq('id', item.id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recycle-bin', workspace.id] }),
+    onSuccess: (_data, item) => {
+      void queryClient.invalidateQueries({ queryKey: ['recycle-bin', workspace.id] })
+      if (item.table === 'ceremonies') void queryClient.invalidateQueries({ queryKey: ['ceremonies', workspace.id] })
+    },
   })
   const items = itemsQuery.data ?? []
 

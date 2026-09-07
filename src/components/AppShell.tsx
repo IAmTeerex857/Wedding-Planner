@@ -28,6 +28,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { BrandMark } from './BrandMark'
 import { useWorkspace } from '../lib/workspace-context'
+import { IdoAiWorkspace } from './ido-ai/IdoAiAssistant'
 
 const primaryNavigation = [
   { to: '/', label: 'Overview', icon: LayoutDashboard },
@@ -44,7 +45,7 @@ const planningNavigation = [
   { to: '/venues', label: 'Venues', icon: MapPin },
   { to: '/food-drinks', label: 'Food & drinks', icon: Utensils },
   { to: '/attire', label: 'Attire & aso-ebi', icon: Shirt },
-  { to: '/traditional-requirements', label: 'Trad requirements', icon: PackageCheck },
+  { to: '/traditional-requirements', label: 'Requirements', icon: PackageCheck },
   { to: '/itineraries', label: 'Itineraries', icon: Clock3 },
   { to: '/gifts', label: 'Gifts', icon: Gift },
   { to: '/files', label: 'Photos & files', icon: FolderLock },
@@ -54,7 +55,7 @@ const planningNavigation = [
 
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { displayName } = useWorkspace()
+  const { displayName, role } = useWorkspace()
   const initials = displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 
   const navigation = (
@@ -84,7 +85,7 @@ export function AppShell() {
           <NavItem to="/recycle-bin" label="Recycle bin" icon={Trash2} />
           <button className="profile-button" type="button">
             <span className="avatar"><UserRound size={20} /><span className="sr-only">{initials || 'TB'}</span></span>
-            <span><strong>{displayName}</strong><small>Owner</small></span>
+            <span><strong>{displayName}</strong><small>{role === 'owner' ? 'Owner' : 'Planner'}</small></span>
             <ChevronDown size={15} />
           </button>
         </div>
@@ -119,15 +120,17 @@ export function AppShell() {
         </div>
       )}
 
-      <main className="main-content">
-        {!isSupabaseConfigured && (
-          <div className="setup-banner">
-            <span className="status-dot" />
-            Preview mode. Add Supabase environment variables to enable accounts and storage.
-          </div>
-        )}
-        <Outlet />
-      </main>
+      <IdoAiWorkspace>
+        <main className="main-content">
+          {!isSupabaseConfigured && (
+            <div className="setup-banner">
+              <span className="status-dot" />
+              Preview mode. Add Supabase environment variables to enable accounts and storage.
+            </div>
+          )}
+          <Outlet />
+        </main>
+      </IdoAiWorkspace>
     </div>
   )
 }

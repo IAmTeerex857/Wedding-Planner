@@ -1,15 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { ArrowRight } from '../components/KoboyoIcon'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/BrandMark'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
+  const [creatingAccount, setCreatingAccount] = useState(false)
 
   if (!isSupabaseConfigured) return <Navigate to="/" replace />
 
@@ -17,13 +20,28 @@ export function LoginPage() {
     event.preventDefault()
     setLoading(true)
     setError('')
+    setNotice('')
+    const from = (location.state as { from?: { pathname?: string; search?: string } } | null)?.from
+    const returnPath = from?.pathname ? `${from.pathname}${from.search ?? ''}` : '/'
+    if (creatingAccount) {
+      const { data, error: signUpError } = await supabase!.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}${returnPath}`, data: { display_name: email.split('@')[0] } },
+      })
+      setLoading(false)
+      if (signUpError) { setError(signUpError.message); return }
+      if (!data.session) { setNotice('Check your email to confirm your account, then return to the invitation link.'); return }
+      navigate(returnPath, { replace: true })
+      return
+    }
     const { error: signInError } = await supabase!.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (signInError) {
       setError(signInError.message)
       return
     }
-    navigate('/')
+    navigate(returnPath, { replace: true })
   }
 
   return (
@@ -33,15 +51,15 @@ export function LoginPage() {
         <div>
           <p className="eyebrow">Private planning space</p>
           <h1>One place for every part of the celebration.</h1>
-          <p>Court. Traditional. White. Planned together, without the spreadsheet.</p>
+          <p>Every ceremony planned together, without the spreadsheet.</p>
         </div>
       </section>
       <section className="login-panel">
         <form className="login-form" onSubmit={handleSubmit}>
           <div>
-            <p className="eyebrow">Welcome back</p>
-            <h2>Sign in</h2>
-            <p>Use your private wedding planner account.</p>
+            <p className="eyebrow">{creatingAccount ? 'Planner invitation' : 'Welcome back'}</p>
+            <h2>{creatingAccount ? 'Create an account' : 'Sign in'}</h2>
+            <p>{creatingAccount ? 'Create your private account, then accept the planner invitation.' : 'Use your private wedding planner account.'}</p>
           </div>
           <label>
             Email address
@@ -52,9 +70,11 @@ export function LoginPage() {
             <input type="password" autoComplete="current-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
           </label>
           {error && <p className="form-error">{error}</p>}
+          {notice && <p className="form-success">{notice}</p>}
           <button className="button primary full" type="submit" disabled={loading}>
-            {loading ? 'Signing in...' : 'Continue'} <ArrowRight size={16} />
+            {loading ? creatingAccount ? 'Creating account...' : 'Signing in...' : creatingAccount ? 'Create account' : 'Continue'} <ArrowRight size={16} />
           </button>
+          <button className="button secondary full" type="button" disabled={loading} onClick={() => { setCreatingAccount((current) => !current); setError(''); setNotice('') }}>{creatingAccount ? 'I already have an account' : 'Create a planner account'}</button>
         </form>
       </section>
     </main>

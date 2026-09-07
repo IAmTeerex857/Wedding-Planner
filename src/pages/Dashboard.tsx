@@ -52,7 +52,7 @@ export function Dashboard() {
     },
   })
   const data = dashboardQuery.data
-  const ceremonies = data ? (data.ceremonies ?? []).map((ceremony, index) => ({ name: ceremony.name.replace(/ Wedding$/i, ''), code: `0${index + 1}`, state: ceremony.starts_at ? new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ceremony.starts_at)) : 'Date not set', progress: ceremony.status === 'completed' ? 100 : ceremony.status === 'confirmed' ? 50 : 0 })) : emptyCeremonies
+  const ceremonies = data ? (data.ceremonies ?? []).map((ceremony, index) => ({ id: ceremony.id, name: ceremony.name.replace(/ Wedding$/i, ''), code: String(index + 1).padStart(2, '0'), state: ceremony.starts_at ? new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ceremony.starts_at)) : 'Date not set', progress: ceremony.status === 'completed' ? 100 : ceremony.status === 'confirmed' ? 50 : 0 })) : emptyCeremonies
   const openTasks = (data?.tasks ?? []).filter((task) => task.status !== 'done').length
   const completedTasks = (data?.tasks ?? []).filter((task) => task.status === 'done').length
   const allocated = (data?.allocations ?? []).reduce((sum, item) => sum + item.planned_minor, 0) / 100
@@ -69,7 +69,7 @@ export function Dashboard() {
         <div>
           <p className="eyebrow">{today}</p>
           <h1>Overview</h1>
-          <p className="page-lead">Three celebrations. One clear view of what comes next.</p>
+          <p className="page-lead">Every celebration. One clear view of what comes next.</p>
         </div>
         <div className="header-actions">
           <Link className="button secondary" to="/ceremonies"><CalendarPlus size={16} /> Add date</Link>
@@ -79,7 +79,7 @@ export function Dashboard() {
 
       <section className="ceremony-strip" aria-label="Ceremonies">
         {ceremonies.map((ceremony) => (
-          <Link className="ceremony-card" to="/ceremonies" key={ceremony.name}>
+          <Link className="ceremony-card" to="/ceremonies" key={'id' in ceremony ? ceremony.id : ceremony.name}>
             <div className="ceremony-topline">
               <span className="ceremony-number">{ceremony.code}</span>
               <ArrowUpRight size={17} />

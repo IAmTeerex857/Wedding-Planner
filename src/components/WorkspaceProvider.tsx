@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import { WorkspaceContext, type Workspace, type WorkspaceContextValue } from '../lib/workspace-context'
+import { WorkspaceContext, type Workspace, type WorkspaceContextValue, type WorkspaceRole } from '../lib/workspace-context'
 import { WorkspaceOnboarding } from '../pages/WorkspaceOnboarding'
 import { BrandMark } from './BrandMark'
+
+export const ACTIVE_WORKSPACE_KEY = 'wedding-planner:active-workspace'
 
 const previewWorkspace: WorkspaceContextValue = {
   workspace: {
@@ -14,6 +16,7 @@ const previewWorkspace: WorkspaceContextValue = {
   },
   userId: 'preview',
   displayName: 'Timmy & Bisola',
+  role: 'owner',
   isPreview: true,
 }
 
@@ -60,18 +63,20 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   return <WorkspaceContext.Provider value={{ ...workspaceData, workspace: workspaceData.workspace, isPreview: false }}>{children}</WorkspaceContext.Provider>
 }
 
-async function loadWorkspace(): Promise<{ workspace: Workspace | null; userId: string; displayName: string }> {
+async function loadWorkspace(): Promise<{ workspace: Workspace | null; userId: string; displayName: string; role: WorkspaceRole }> {
   const { data: userData, error: userError } = await supabase!.auth.getUser()
   if (userError || !userData.user) throw userError ?? new Error('No authenticated user')
 
-  const [{ data: profile }, { data: membership, error: membershipError }] = await Promise.all([
+  const [{ data: profile }, { data: memberships, error: membershipError }] = await Promise.all([
     supabase!.from('profiles').select('display_name').eq('id', userData.user.id).maybeSingle(),
-    supabase!.from('workspace_members').select('workspace_id').eq('profile_id', userData.user.id).limit(1).maybeSingle(),
+    supabase!.from('workspace_members').select('workspace_id,role').eq('profile_id', userData.user.id).order('created_at'),
   ])
 
   if (membershipError) throw membershipError
+  const preferredWorkspaceId = window.localStorage.getItem(ACTIVE_WORKSPACE_KEY)
+  const membership = memberships?.find((item) => item.workspace_id === preferredWorkspaceId) ?? memberships?.[0]
   if (!membership) {
-    return { workspace: null, userId: userData.user.id, displayName: profile?.display_name ?? userData.user.email ?? 'Owner' }
+    return { workspace: null, userId: userData.user.id, displayName: profile?.display_name ?? userData.user.email ?? 'Owner', role: 'owner' }
   }
 
   const { data: workspace, error: workspaceError } = await supabase!
@@ -81,10 +86,12 @@ async function loadWorkspace(): Promise<{ workspace: Workspace | null; userId: s
     .is('deleted_at', null)
     .single()
   if (workspaceError) throw workspaceError
+  window.localStorage.setItem(ACTIVE_WORKSPACE_KEY, membership.workspace_id)
 
   return {
     workspace,
     userId: userData.user.id,
     displayName: profile?.display_name ?? userData.user.email ?? 'Owner',
+    role: membership.role === 'planner' ? 'planner' : 'owner',
   }
 }

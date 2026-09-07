@@ -20,7 +20,7 @@ export function WorkspaceOnboarding({ loading, error, onCreate }: {
       <form onSubmit={submit}>
         <p className="eyebrow">One final step</p>
         <h1>Create your wedding office.</h1>
-        <p>This creates the shared space and adds Court, Traditional, and White as the three ceremonies.</p>
+        <p>This creates the shared space with three starter ceremonies. You can rename, add, or remove ceremonies at any time.</p>
         <label>
           Workspace name
           <input autoFocus value={name} minLength={2} maxLength={120} onChange={(event) => setName(event.target.value)} required />

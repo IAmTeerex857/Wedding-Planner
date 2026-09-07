@@ -297,6 +297,7 @@ h1, h2, p { margin: 0; }
 .login-form input { width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; color: var(--ink); background: white; font-size: 13px; }
 .login-form input:focus { border-color: var(--ink); outline: 0; }
 .form-error { padding: 9px 11px; border: 1px solid #c7a6a6; color: #7d2424; background: #fff7f7; font-size: 11px; }
+.form-success { padding: 9px 11px; border: 1px solid #a6d8bd; color: #176b43; background: #f3fbf6; font-size: 11px; }
 
 .loading-screen { display: grid; min-height: 100vh; place-content: center; gap: 28px; background: var(--paper); }
 .route-loading { display: grid; min-height: 100vh; place-items: center; background: var(--paper); }

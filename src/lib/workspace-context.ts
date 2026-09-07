@@ -7,10 +7,13 @@ export type Workspace = {
   timezone: string
 }
 
+export type WorkspaceRole = 'owner' | 'planner'
+
 export type WorkspaceContextValue = {
   workspace: Workspace
   userId: string
   displayName: string
+  role: WorkspaceRole
   isPreview: boolean
 }
 
@@ -22,13 +25,13 @@ export type CeremonyOption = {
 
 export function ceremonyLabel(ceremony?: Pick<CeremonyOption, 'kind' | 'name'> | null) {
   if (!ceremony) return 'General / shared'
-  return ceremony.kind ? `${ceremony.kind[0].toUpperCase()}${ceremony.kind.slice(1)}` : ceremony.name.replace(/ Wedding$/i, '')
+  return ceremony.name.replace(/ Wedding$/i, '') || ceremony.kind
 }
 
 export function ceremonyIdForEvent(ceremonies: CeremonyOption[], event?: string) {
   if (!event || event === 'General / shared') return null
-  const normalizedEvent = event.replace(/ Wedding$/i, '').toLocaleLowerCase()
-  return ceremonies.find(({ kind, name }) => kind === normalizedEvent || name.replace(/ Wedding$/i, '').toLocaleLowerCase() === normalizedEvent)?.id ?? null
+  const normalizedEvent = event.trim().replace(/ Wedding$/i, '').toLocaleLowerCase()
+  return ceremonies.find(({ id, kind, name }) => id === event || kind.trim().toLocaleLowerCase() === normalizedEvent || name.trim().replace(/ Wedding$/i, '').toLocaleLowerCase() === normalizedEvent)?.id ?? null
 }
 
 export function relationOne<T>(value: T | T[] | null | undefined): T | null {

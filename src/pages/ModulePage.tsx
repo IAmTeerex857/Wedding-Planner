@@ -6,7 +6,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
 import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
 import { supabase } from '../lib/supabase'
-import { useWorkspace } from '../lib/workspace-context'
+import { ceremonyLabel, useWorkspace } from '../lib/workspace-context'
 import { pillTone } from '../lib/pills'
 import { HoneymoonPage } from './HoneymoonPage'
 import './registry.css'
@@ -56,7 +56,7 @@ const vendorStatusPriority: Record<string, number> = { selected: 0, shortlisted:
 const definitions: Record<string, Definition> = {
   Calendar: { eyebrow: 'Schedule', description: 'See ceremonies, appointments, payments, and planning deadlines together.', noun: 'calendar entry', fields: [{ key: 'title', label: 'Entry title', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'type', label: 'Type', options: ['Task', 'Appointment', 'Payment', 'Personal'] }, eventField], statuses: ['Scheduled', 'Complete', 'Cancelled'] },
   Itineraries: { eyebrow: 'Run of show', description: 'Build ordered schedules for every part of each celebration.', noun: 'itinerary item', fields: [{ key: 'activity', label: 'Activity', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'location', label: 'Location' }, { key: 'owner', label: 'Person responsible' }, requiredEventField], statuses: ['Planned', 'Confirmed', 'Complete'] },
-  Seating: { eyebrow: 'Traditional & White', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section' }, { ...eventField, options: ['Traditional', 'White'] }], statuses: ['Open', 'Locked'] },
+  Seating: { eyebrow: 'Guest placement', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section' }, eventField], statuses: ['Open', 'Locked'] },
   Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true }, { key: 'category', label: 'Category', required: true, options: defaultVendorCategories }, { key: 'link', label: 'Portfolio / social link', type: 'url', placeholder: 'https://...' }, { key: 'contact', label: 'Contact person' }, { key: 'phone', label: 'Phone', type: 'tel' }, { key: 'quote', label: 'Quote / package' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
   Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true }, { key: 'location', label: 'Location' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
   'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
@@ -188,7 +188,8 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const deferredQuery = useDeferredValue(query.toLocaleLowerCase())
   const categoryRecords = categoryPersistent ? categoryQuery.data ?? (categoryQuery.isLoading ? defaultVendorCategories.map((name, position) => ({ id: name, name, position })) : []) : previewCategories
   const categories = title === 'Vendors' ? Array.from(new Set([...categoryRecords.map((category) => category.name), ...records.map((record) => record.values.category).filter(Boolean)])) : []
-  const formDefinition: Definition = title === 'Vendors' ? { ...definition, fields: definition.fields.map((field) => field.key === 'category' ? { ...field, options: categories.length ? categories : ['Other'] } : field) } : definition
+  const ceremonyOptions = isPreview ? eventField.options! : [...(definition.fields.some((field) => field.key === 'event' && !field.required) ? ['General / shared'] : []), ...(ceremoniesQuery.data ?? []).map(ceremonyLabel)]
+  const formDefinition: Definition = { ...definition, fields: definition.fields.map((field) => field.key === 'category' && title === 'Vendors' ? { ...field, options: categories.length ? categories : ['Other'] } : field.key === 'event' ? { ...field, options: ceremonyOptions } : field) }
   const filtered = records
     .filter((record) => Object.values(record.values).join(' ').toLocaleLowerCase().includes(deferredQuery) && (categoryFilter === 'All' || record.values.category === categoryFilter))
     .map((record, index) => ({ record, index }))
@@ -278,7 +279,7 @@ function RegistryForm({ definition, initialValues, allowRateCards = false, savin
 }
 
 function ReportsPage() {
-  const reports = ['Wedding overview', 'Ceremony summary', 'Budget summary', 'Guest & RSVP report', 'Seating chart', 'Itineraries', 'Packing lists', 'Attire & aso-ebi', 'Traditional requirements', 'Honeymoon itinerary']
+  const reports = ['Wedding overview', 'Ceremony summary', 'Budget summary', 'Guest & RSVP report', 'Seating chart', 'Itineraries', 'Packing lists', 'Attire & aso-ebi', 'Ceremony requirements', 'Honeymoon itinerary']
   return <div className="page registry-page ui-page"><header className="page-header"><div><p className="eyebrow">Exports</p><h1>Reports</h1><p className="page-lead">Create printable planning packs and clean CSV exports from the information in your workspace.</p></div></header><section className="report-grid">{reports.map((report) => <article key={report}><FileText size={18} /><div><strong>{report}</strong><small>PDF report</small></div><button type="button" onClick={() => window.print()}><Download size={15} /> Generate</button></article>)}</section></div>
 }
 

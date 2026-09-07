@@ -34,17 +34,12 @@ import {
   type RsvpStatus,
 } from '../lib/guest-import'
 import { supabase } from '../lib/supabase'
-import { relationOne, useWorkspace } from '../lib/workspace-context'
+import { ceremonyLabel, relationOne, useWorkspace, type CeremonyOption } from '../lib/workspace-context'
 import './guests.css'
 
-type Guest = ImportableGuest & { id: string }
-type EventName = keyof Guest['rsvps']
-
-const EVENT_LABELS: Record<EventName, string> = {
-  court: 'Court',
-  traditional: 'Traditional',
-  white: 'White',
-}
+type Guest = Omit<ImportableGuest, 'rsvps'> & { id: string; rsvps: Record<string, RsvpStatus> }
+type EventName = string
+const previewCeremonies: CeremonyOption[] = [{ id: 'court', kind: 'court', name: 'Court Wedding' }, { id: 'traditional', kind: 'traditional', name: 'Traditional Wedding' }, { id: 'white', kind: 'white', name: 'White Wedding' }]
 
 const FIELD_LABELS: Record<GuestImportField, string> = {
   firstName: 'First name',
@@ -61,7 +56,7 @@ const FIELD_LABELS: Record<GuestImportField, string> = {
 
 const emptyGuest: Omit<Guest, 'id'> = {
   firstName: '', lastName: '', email: '', phone: '', plusOneAllowed: false, plusOneName: '', tags: [], accommodation: '',
-  rsvps: { court: 'pending', traditional: 'pending', white: 'pending' },
+  rsvps: {},
 }
 
 export function GuestsPage() {
@@ -80,7 +75,7 @@ export function GuestsPage() {
     queryKey: ['ceremony-options', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('ceremonies').select('id,kind').eq('workspace_id', workspace.id).is('deleted_at', null)
+      const { data, error } = await supabase!.from('ceremonies').select('id,kind,name').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
       if (error) throw error
       return data
     },
@@ -89,7 +84,7 @@ export function GuestsPage() {
     queryKey: ['guests', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('guests').select('id,full_name,email,phone,plus_one_allowed,plus_one_name,guest_accommodations(name,deleted_at),guest_tag_assignments(guest_tags(name)),guest_invitations(rsvp_status,deleted_at,ceremonies(kind))').eq('workspace_id', workspace.id).is('deleted_at', null).order('full_name')
+      const { data, error } = await supabase!.from('guests').select('id,full_name,email,phone,plus_one_allowed,plus_one_name,guest_accommodations(name,deleted_at),guest_tag_assignments(guest_tags(name)),guest_invitations(rsvp_status,deleted_at,ceremonies(id,kind,name))').eq('workspace_id', workspace.id).is('deleted_at', null).order('full_name')
       if (error) throw error
       return data
     },
@@ -117,7 +112,7 @@ export function GuestsPage() {
         if (error) throw error
         return
       }
-      const ceremony = ceremonyQuery.data?.find((item) => item.kind === operation.event)
+      const ceremony = ceremonyQuery.data?.find((item) => item.id === operation.event)
       if (!ceremony) throw new Error('Ceremony is unavailable')
       const values = { rsvp_status: operation.status === 'attending' ? 'accepted' : operation.status, responded_at: operation.status === 'pending' ? null : new Date().toISOString(), updated_by: userId }
       const { data, error } = await supabase!.from('guest_invitations').update(values).eq('workspace_id', workspace.id).eq('guest_id', operation.guestId).eq('ceremony_id', ceremony.id).is('deleted_at', null).select('id')
@@ -140,22 +135,24 @@ export function GuestsPage() {
 
   // oxlint-disable react/set-state-in-effect
   useEffect(() => {
-    if (!guestsQuery.data) return
+    if (!guestsQuery.data || !ceremonyQuery.data) return
     // Remote records initialize the directory after each successful fetch or import.
     // oxlint-disable-next-line react(set-state-in-effect)
     setGuests(guestsQuery.data.map((row) => {
       const nameParts = row.full_name.trim().split(/\s+/)
       const invitationRows = Array.isArray(row.guest_invitations) ? row.guest_invitations.filter((invitation) => !invitation.deleted_at) : []
-      const rsvps: ImportableGuest['rsvps'] = { court: 'pending', traditional: 'pending', white: 'pending' }
+      const rsvps: Record<string, RsvpStatus> = Object.fromEntries(ceremonyQuery.data.map((ceremony) => [ceremony.id, 'pending']))
       invitationRows.forEach((invitation) => {
-        const kind = relationOne(invitation.ceremonies)?.kind as keyof typeof rsvps | undefined
-        if (kind) rsvps[kind] = invitation.rsvp_status === 'accepted' ? 'attending' : invitation.rsvp_status === 'declined' ? 'declined' : 'pending'
+        const ceremonyId = relationOne(invitation.ceremonies)?.id
+        if (ceremonyId) rsvps[ceremonyId] = invitation.rsvp_status === 'accepted' ? 'attending' : invitation.rsvp_status === 'declined' ? 'declined' : 'pending'
       })
       const accommodations = Array.isArray(row.guest_accommodations) ? row.guest_accommodations : []
       return { id: row.id, firstName: nameParts.shift() ?? '', lastName: nameParts.join(' '), email: row.email ?? '', phone: row.phone ?? '', plusOneAllowed: row.plus_one_allowed, plusOneName: row.plus_one_name ?? '', tags: (row.guest_tag_assignments ?? []).map((assignment) => relationOne(assignment.guest_tags)?.name).filter(Boolean) as string[], accommodation: accommodations.find((item) => !item.deleted_at)?.name ?? '', rsvps }
     }))
-  }, [guestsQuery.data])
+  }, [guestsQuery.data, ceremonyQuery.data])
   // oxlint-enable react/set-state-in-effect
+
+  const ceremonyOptions = isPreview ? previewCeremonies : ceremonyQuery.data ?? []
 
   async function persistGuest(guest: Omit<Guest, 'id'>, source: 'manual' | 'csv' | 'xlsx' | 'clipboard') {
     if (!ceremonyQuery.data) throw new Error('Ceremony details are still loading. Please try again.')
@@ -167,7 +164,7 @@ export function GuestsPage() {
         if (accommodationError) throw accommodationError
       }
       for (const ceremony of ceremonyQuery.data ?? []) {
-        const status = guest.rsvps[ceremony.kind as keyof typeof guest.rsvps]
+        const status = guest.rsvps[ceremony.id] ?? guest.rsvps[ceremony.kind] ?? 'pending'
         const { error: invitationError } = await supabase!.from('guest_invitations').insert({ workspace_id: workspace.id, guest_id: created.id, ceremony_id: ceremony.id, rsvp_status: status === 'attending' ? 'accepted' : status, invited_plus_one: guest.plusOneAllowed, responded_at: status === 'pending' ? null : new Date().toISOString(), created_by: userId, updated_by: userId })
         if (invitationError) throw invitationError
       }
@@ -222,7 +219,7 @@ export function GuestsPage() {
     const invitations = await supabase!.from('guest_invitations').select('id,ceremony_id').eq('workspace_id', workspace.id).eq('guest_id', guest.id).is('deleted_at', null)
     if (invitations.error) throw invitations.error
     for (const ceremony of ceremonyQuery.data ?? []) {
-      const status = guest.rsvps[ceremony.kind as EventName] ?? 'pending'
+      const status = guest.rsvps[ceremony.id] ?? guest.rsvps[ceremony.kind] ?? 'pending'
       const values = { rsvp_status: status === 'attending' ? 'accepted' : status, invited_plus_one: guest.plusOneAllowed, responded_at: status === 'pending' ? null : new Date().toISOString(), updated_by: userId }
       const invitation = invitations.data.find((item) => item.ceremony_id === ceremony.id)
       const result = invitation
@@ -278,7 +275,7 @@ export function GuestsPage() {
   function addImportedGuests(rows: GuestImportReviewRow[], source: 'csv' | 'xlsx' | 'clipboard') {
     const imported = rows
       .filter((row) => row.status === 'ready')
-      .map((row) => ({ ...row.guest, id: crypto.randomUUID() }))
+      .map((row) => ({ ...row.guest, id: crypto.randomUUID(), rsvps: Object.fromEntries(ceremonyOptions.map((ceremony) => [ceremony.id, row.guest.rsvps[ceremony.kind as keyof typeof row.guest.rsvps] ?? 'pending'])) }))
     if (isPreview) setGuests((current) => [...current, ...imported])
     else importMutation.mutate({ rows, source })
     setImportOpen(false)
@@ -321,8 +318,8 @@ export function GuestsPage() {
         <Summary value={guests.filter((guest) => guest.accommodation).length} label="Stays noted" detail="Accommodation tracked" />
       </section>
 
-      {entryOpen && <GuestEntry onSave={addGuest} onClose={() => setEntryOpen(false)} isSaving={saveMutation.isPending} />}
-      {editingGuest && <GuestEntry initialGuest={editingGuest} onSave={editGuest} onClose={() => setEditingGuest(null)} isSaving={guestEditMutation.isPending} />}
+      {entryOpen && <GuestEntry ceremonies={ceremonyOptions} onSave={addGuest} onClose={() => setEntryOpen(false)} isSaving={saveMutation.isPending} />}
+      {editingGuest && <GuestEntry ceremonies={ceremonyOptions} initialGuest={editingGuest} onSave={editGuest} onClose={() => setEditingGuest(null)} isSaving={guestEditMutation.isPending} />}
       {(guestsQuery.error || saveMutation.error || importMutation.error || guestUpdateMutation.error || guestEditMutation.error) && <p className="guest-data-error">{guestsQuery.error?.message ?? saveMutation.error?.message ?? importMutation.error?.message ?? guestUpdateMutation.error?.message ?? guestEditMutation.error?.message}</p>}
 
       <section className="guest-directory">
@@ -335,7 +332,7 @@ export function GuestsPage() {
           <div className="guest-filters">
             <SelectFilter label="Event" value={eventFilter} onChange={(value) => setEventFilter(value as typeof eventFilter)}>
               <option value="all">All events</option>
-              {Object.entries(EVENT_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              {ceremonyOptions.map((ceremony) => <option key={ceremony.id} value={ceremony.id}>{ceremonyLabel(ceremony)}</option>)}
             </SelectFilter>
             <SelectFilter label="Response" value={rsvpFilter} onChange={(value) => setRsvpFilter(value as typeof rsvpFilter)}>
               <option value="all">All responses</option>
@@ -353,7 +350,7 @@ export function GuestsPage() {
 
         {filteredGuests.length ? (
           <div className="guest-list">
-            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={(id) => setPendingDelete(guests.find((item) => item.id === id) ?? null)} />)}
+            {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} ceremonies={ceremonyOptions} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={(id) => setPendingDelete(guests.find((item) => item.id === id) ?? null)} />)}
           </div>
         ) : (
           <div className="guest-empty"><Users size={22} /><h2>No guests found</h2><p>Try clearing a filter or add someone new.</p></div>
@@ -378,7 +375,7 @@ function SelectFilter({ label, value, onChange, children }: {
   )
 }
 
-function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
+function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Guest; ceremonies: CeremonyOption[]; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
   return (
     <article className="guest-row">
       <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
@@ -387,19 +384,19 @@ function GuestRow({ guest, onRsvp, onEdit, onRemove }: { guest: Guest; onRsvp: (
         {guest.accommodation && <span className="guest-stay"><BedDouble size={13} />{guest.accommodation}</span>}
       </div>
       <div className="rsvp-list">
-        {(Object.keys(EVENT_LABELS) as EventName[]).map((event) => <RsvpBadge key={event} event={event} status={guest.rsvps[event]} onChange={(status) => onRsvp(guest.id, event, status)} />)}
+        {ceremonies.map((ceremony) => <RsvpBadge key={ceremony.id} label={ceremonyLabel(ceremony)} status={guest.rsvps[ceremony.id] ?? 'pending'} onChange={(status) => onRsvp(guest.id, ceremony.id, status)} />)}
       </div>
       <div className="guest-row-actions"><button className="guest-edit" type="button" aria-label={`Edit ${guest.firstName} ${guest.lastName}`} onClick={() => onEdit(guest)}><Pencil size={14} /></button><button className="guest-remove" type="button" aria-label={`Remove ${guest.firstName} ${guest.lastName}`} onClick={() => onRemove(guest.id)}><X size={14} /></button></div>
     </article>
   )
 }
 
-function RsvpBadge({ event, status, onChange }: { event: EventName; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
-  return <label className={`rsvp-badge ${status}`}><i />{EVENT_LABELS[event]}<select aria-label={`${EVENT_LABELS[event]} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+function RsvpBadge({ label, status, onChange }: { label: string; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
+  return <label className={`rsvp-badge ${status}`}><i />{label}<select aria-label={`${label} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
 }
 
-function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?: Guest; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
-  const [guest, setGuest] = useState<Omit<Guest, 'id'>>(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation, rsvps: { ...initialGuest.rsvps } } : emptyGuest)
+function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { initialGuest?: Guest; ceremonies: CeremonyOption[]; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
+  const [guest, setGuest] = useState<Omit<Guest, 'id'>>(() => ({ ...(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation } : emptyGuest), rsvps: Object.fromEntries(ceremonies.map((ceremony) => [ceremony.id, initialGuest?.rsvps[ceremony.id] ?? 'pending'])) }))
   const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
@@ -422,8 +419,8 @@ function GuestEntry({ initialGuest, onSave, onClose, isSaving }: { initialGuest?
         <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
       </div>
       <div className="entry-rsvps">
-        {(Object.keys(EVENT_LABELS) as EventName[]).map((event) => (
-          <label key={event}><span>{EVENT_LABELS[event]} RSVP</span><select className={`rsvp-select ${guest.rsvps[event]}`} value={guest.rsvps[event]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [event]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+        {ceremonies.map((ceremony) => (
+          <label key={ceremony.id}><span>{ceremonyLabel(ceremony)} RSVP</span><select className={`rsvp-select ${guest.rsvps[ceremony.id]}`} value={guest.rsvps[ceremony.id]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
         ))}
       </div>
       <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>

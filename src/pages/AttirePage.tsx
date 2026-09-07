@@ -85,7 +85,7 @@ export function AttirePage() {
         supabase!.from('ceremonies').select('id,kind').eq('workspace_id', workspace.id).is('deleted_at', null).order('kind'),
         supabase!.from('attire_groups').select('id,name').eq('workspace_id', workspace.id).is('deleted_at', null).order('name'),
         supabase!.from('attire_items').select('id,attire_group_id,name,unit,quantity_ordered,quantity_received,unit_cost_minor,selling_price_minor,attire_inventory_movements(movement_type,quantity_delta)').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at', { ascending: false }),
-        supabase!.from('attire_orders').select('id,recipient_name,status,agreed_total_minor,notes,ceremonies(kind),attire_groups(name),attire_order_items(id,quantity,unit,unit_price_minor,attire_items(id,name)),attire_payments(id,amount_minor)').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at', { ascending: false }),
+        supabase!.from('attire_orders').select('id,recipient_name,status,agreed_total_minor,notes,ceremonies(id,kind),attire_groups(name),attire_order_items(id,quantity,unit,unit_price_minor,attire_items(id,name)),attire_payments(id,amount_minor)').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at', { ascending: false }),
       ])
       const error = ceremoniesResult.error ?? groupsResult.error ?? itemsResult.error ?? ordersResult.error
       if (error) throw error
@@ -138,7 +138,7 @@ export function AttirePage() {
       }
 
       const order = operation.order
-      const ceremony = attireQuery.data?.ceremonies.find((record) => record.kind === order.event)
+      const ceremony = attireQuery.data?.ceremonies.find((record) => record.id === order.event)
       if (!ceremony) throw new Error(`No ${order.event} ceremony exists in this workspace.`)
       const unitPrice = order.quantity ? order.total / order.quantity : 0
       const item = await findOrCreateItem({ name: order.item, group: order.group, unit: 'pieces', unitPrice }, groupId)
@@ -204,7 +204,7 @@ export function AttirePage() {
       const group = firstRelation(order.attire_groups)
       const ceremony = firstRelation(order.ceremonies)
       const item = firstRelation(orderItem?.attire_items)
-      return { id: order.id, orderItemId: orderItem?.id, paymentIds: (order.attire_payments ?? []).map((payment) => payment.id), recipient: order.recipient_name, group: group?.name ?? 'Ungrouped', event: ceremony?.kind ?? '', look: noteValue(order.notes, 'Look'), item: item?.name ?? 'Unspecified item', quantity: Number(orderItem?.quantity ?? 0), total: order.agreed_total_minor / 100, paid: (order.attire_payments ?? []).reduce((sum, payment) => sum + payment.amount_minor, 0) / 100, tailor: noteValue(order.notes, 'Tailor'), status: uiStatus(order.status) }
+      return { id: order.id, orderItemId: orderItem?.id, paymentIds: (order.attire_payments ?? []).map((payment) => payment.id), recipient: order.recipient_name, group: group?.name ?? 'Ungrouped', event: ceremony?.id ?? '', look: noteValue(order.notes, 'Look'), item: item?.name ?? 'Unspecified item', quantity: Number(orderItem?.quantity ?? 0), total: order.agreed_total_minor / 100, paid: (order.attire_payments ?? []).reduce((sum, payment) => sum + payment.amount_minor, 0) / 100, tailor: noteValue(order.notes, 'Tailor'), status: uiStatus(order.status) }
     }))
   }, [attireQuery.data])
   // oxlint-enable react/set-state-in-effect
@@ -254,7 +254,7 @@ export function AttirePage() {
           {orders.length ? orders.map((order) => (
             <article className="attire-order-row" key={order.id}>
               <div><strong>{order.recipient}</strong><small>{order.look || 'Primary look'}{order.tailor ? ` / ${order.tailor}` : ''}</small></div>
-              <div><strong>{order.group}</strong><small>{order.event ? `${order.event[0].toUpperCase()}${order.event.slice(1)}` : 'No ceremony'}</small></div>
+              <div><strong>{order.group}</strong><small>{ceremonyOptions.find((ceremony) => ceremony.id === order.event)?.kind ?? 'No ceremony'}</small></div>
               <div><strong>{order.item}</strong><small>{order.quantity} unit{order.quantity === 1 ? '' : 's'}</small></div>
               <div><strong>{formatNaira(order.total)}</strong><small>{formatNaira(Math.max(order.total - order.paid, 0))} due</small></div>
               <select disabled={attireMutation.isPending} value={order.status} onChange={(event) => { const status = event.target.value as OrderStatus; setOrders((current) => current.map((item) => item.id === order.id ? { ...item, status } : item)); if (!isPreview) attireMutation.mutate({ type: 'status', id: order.id, status }) }}><option value="ordered">Ordered</option><option value="fitting">Fitting</option><option value="ready">Ready</option><option value="collected">Collected</option></select>
@@ -282,7 +282,7 @@ function Summary({ icon: Icon, value, label }: { icon: typeof Shirt; value: stri
 function OrderForm({ initial, items, groups, ceremonies, saving, onClose, onAdd }: { initial?: AttireOrder; items: StockItem[]; groups: string[]; ceremonies: Ceremony[]; saving: boolean; onClose: () => void; onAdd: (order: AttireOrder) => void }) {
   const [recipient, setRecipient] = useState(initial?.recipient ?? '')
   const [group, setGroup] = useState(initial?.group ?? groups[0] ?? defaultGroups[0])
-  const [event, setEvent] = useState(initial?.event ?? ceremonies[0]?.kind ?? '')
+  const [event, setEvent] = useState(initial?.event ?? ceremonies[0]?.id ?? '')
   const [look, setLook] = useState(initial?.look ?? '')
   const [item, setItem] = useState(initial?.item ?? '')
   const [quantity, setQuantity] = useState(initial ? String(initial.quantity) : '1')
@@ -297,7 +297,7 @@ function OrderForm({ initial, items, groups, ceremonies, saving, onClose, onAdd 
     onAdd({ id: initial?.id ?? crypto.randomUUID(), orderItemId: initial?.orderItemId, paymentIds: initial?.paymentIds, recipient: recipient.trim(), group, event, look: group === 'Couple' ? look.trim() : '', item: item.trim(), quantity: Number(quantity) || 1, total: Number(total) || 0, paid: Number(paid) || 0, tailor: tailor.trim(), status })
   }
 
-  return <EntryPanel title={initial ? 'Edit attire order' : 'New attire order'} editing={Boolean(initial)} saving={saving} onClose={onClose} onSubmit={submit}><Field label="Recipient"><input value={recipient} onChange={(e) => setRecipient(e.target.value)} required /></Field><Field label="Group"><select value={group} onChange={(e) => setGroup(e.target.value)}>{groups.map((value) => <option key={value}>{value}</option>)}</select></Field><Field label="Ceremony"><select value={event} onChange={(e) => setEvent(e.target.value)} required><option value="" disabled>Select ceremony</option>{ceremonies.map((ceremony) => <option value={ceremony.kind} key={ceremony.id}>{ceremony.kind[0].toUpperCase()}{ceremony.kind.slice(1)}</option>)}</select></Field>{group === 'Couple' && <Field label="Look name"><input value={look} onChange={(e) => setLook(e.target.value)} placeholder="Ceremony, reception..." /></Field>}<Field label="Item"><input value={item} onChange={(e) => setItem(e.target.value)} list="stock-items" required /><datalist id="stock-items">{items.filter((value) => value.group === group).map((value) => <option value={value.name} key={value.id} />)}</datalist></Field><Field label="Quantity"><input type="number" min="0.001" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></Field><Field label="Total NGN"><input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} /></Field><Field label="Paid NGN"><input type="number" min="0" step="0.01" value={paid} onChange={(e) => setPaid(e.target.value)} /></Field><Field label="Tailor / designer"><input value={tailor} onChange={(e) => setTailor(e.target.value)} /></Field><Field label="Status"><select value={status} onChange={(e) => setStatus(e.target.value as OrderStatus)}><option value="ordered">Ordered</option><option value="fitting">Fitting</option><option value="ready">Ready</option><option value="collected">Collected</option></select></Field></EntryPanel>
+  return <EntryPanel title={initial ? 'Edit attire order' : 'New attire order'} editing={Boolean(initial)} saving={saving} onClose={onClose} onSubmit={submit}><Field label="Recipient"><input value={recipient} onChange={(e) => setRecipient(e.target.value)} required /></Field><Field label="Group"><select value={group} onChange={(e) => setGroup(e.target.value)}>{groups.map((value) => <option key={value}>{value}</option>)}</select></Field><Field label="Ceremony"><select value={event} onChange={(e) => setEvent(e.target.value)} required><option value="" disabled>Select ceremony</option>{ceremonies.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremony.kind}</option>)}</select></Field>{group === 'Couple' && <Field label="Look name"><input value={look} onChange={(e) => setLook(e.target.value)} placeholder="Ceremony, reception..." /></Field>}<Field label="Item"><input value={item} onChange={(e) => setItem(e.target.value)} list="stock-items" required /><datalist id="stock-items">{items.filter((value) => value.group === group).map((value) => <option value={value.name} key={value.id} />)}</datalist></Field><Field label="Quantity"><input type="number" min="0.001" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></Field><Field label="Total NGN"><input type="number" min="0" step="0.01" value={total} onChange={(e) => setTotal(e.target.value)} /></Field><Field label="Paid NGN"><input type="number" min="0" step="0.01" value={paid} onChange={(e) => setPaid(e.target.value)} /></Field><Field label="Tailor / designer"><input value={tailor} onChange={(e) => setTailor(e.target.value)} /></Field><Field label="Status"><select value={status} onChange={(e) => setStatus(e.target.value as OrderStatus)}><option value="ordered">Ordered</option><option value="fitting">Fitting</option><option value="ready">Ready</option><option value="collected">Collected</option></select></Field></EntryPanel>
 }
 
 function StockForm({ initial, groups, saving, onClose, onAdd }: { initial?: StockItem; groups: string[]; saving: boolean; onClose: () => void; onAdd: (item: StockItem) => void }) {

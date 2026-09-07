@@ -15,6 +15,7 @@ const TasksPage = lazy(() => import('./pages/TasksPage').then((module) => ({ def
 const TraditionalRequirementsPage = lazy(() => import('./pages/TraditionalRequirementsPage').then((module) => ({ default: module.TraditionalRequirementsPage })))
 const SeatingPage = lazy(() => import('./pages/SeatingPage').then((module) => ({ default: module.SeatingPage })))
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then((module) => ({ default: module.SettingsPage })))
+const PlannerInvitationPage = lazy(() => import('./pages/SettingsPage').then((module) => ({ default: module.PlannerInvitationPage })))
 const FilesPage = lazy(() => import('./pages/FilesPage').then((module) => ({ default: module.FilesPage })))
 const RecycleBinPage = lazy(() => import('./pages/RecycleBinPage').then((module) => ({ default: module.RecycleBinPage })))
 const ReportsPage = lazy(() => import('./pages/ReportsPage').then((module) => ({ default: module.ReportsPage })))
@@ -34,6 +35,7 @@ function App() {
     <Suspense fallback={<main className="route-loading"><span /></main>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/planner-invite" element={<AuthGate><PlannerInvitationPage /></AuthGate>} />
         <Route element={<AuthGate><WorkspaceProvider><AppShell /></WorkspaceProvider></AuthGate>}>
           <Route index element={<Dashboard />} />
           <Route path="ceremonies" element={<CeremoniesPage />} />

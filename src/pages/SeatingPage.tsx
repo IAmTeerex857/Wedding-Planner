@@ -3,10 +3,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
-import { relationOne, useWorkspace } from '../lib/workspace-context'
+import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './seating.css'
 
-type EventName = 'Traditional' | 'White'
 type SeatGuest = { id: string; name: string; tags: string[]; tableId: string | null }
 type Table = { id: string; name: string; capacity: number; locked: boolean }
 type PersistOperation =
@@ -15,13 +14,14 @@ type PersistOperation =
   | { type: 'delete-table'; tableId: string; guestIds: string[] }
   | { type: 'assign'; guestIds: string[]; tableId: string | null }
 
-const emptyTables: Record<EventName, Table[]> = { Traditional: [], White: [] }
-const emptyGuests: Record<EventName, SeatGuest[]> = { Traditional: [], White: [] }
+const emptyTables: Record<string, Table[]> = { traditional: [], white: [] }
+const emptyGuests: Record<string, SeatGuest[]> = { traditional: [], white: [] }
+const previewCeremonies = [{ id: 'traditional', kind: 'traditional', name: 'Traditional Wedding' }, { id: 'white', kind: 'white', name: 'White Wedding' }]
 
 export function SeatingPage() {
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
-  const [event, setEvent] = useState<EventName>('Traditional')
+  const [event, setEvent] = useState('traditional')
   const [previewTables, setPreviewTables] = useState(emptyTables)
   const [previewGuests, setPreviewGuests] = useState(emptyGuests)
   const [selected, setSelected] = useState<string[]>([])
@@ -34,12 +34,14 @@ export function SeatingPage() {
     queryKey: ['seating-ceremonies', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('ceremonies').select('id,kind').eq('workspace_id', workspace.id).in('kind', ['traditional', 'white']).is('deleted_at', null)
+      const { data, error } = await supabase!.from('ceremonies').select('id,kind,name').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
       if (error) throw error
       return data
     },
   })
-  const ceremony = ceremoniesQuery.data?.find((item) => item.kind === event.toLocaleLowerCase())
+  const ceremonyOptions = isPreview ? previewCeremonies : ceremoniesQuery.data ?? []
+  const ceremony = ceremonyOptions.find((item) => item.id === event) ?? ceremonyOptions[0]
+  const ceremonyName = ceremonyLabel(ceremony)
   const seatingQuery = useQuery({
     queryKey: ['seating', workspace.id, ceremony?.id],
     enabled: !isPreview && Boolean(ceremony?.id),
@@ -77,7 +79,7 @@ export function SeatingPage() {
 
   const persistMutation = useMutation({
     mutationFn: async (operation: PersistOperation) => {
-      if (!ceremony) throw new Error(`Set up the ${event} ceremony before managing seating.`)
+      if (!ceremony) throw new Error('Set up a ceremony before managing seating.')
       if (operation.type === 'add-table') {
         const { error } = await supabase!.from('seating_tables').insert({ workspace_id: workspace.id, ceremony_id: ceremony.id, name: operation.name, capacity: operation.capacity, created_by: userId, updated_by: userId })
         if (error) throw error
@@ -113,8 +115,9 @@ export function SeatingPage() {
     },
   })
 
-  const tables = isPreview ? previewTables[event] : seatingQuery.data?.tables ?? []
-  const guests = isPreview ? previewGuests[event] : seatingQuery.data?.guests ?? []
+  const activeEvent = ceremony?.id ?? event
+  const tables = isPreview ? previewTables[activeEvent] ?? [] : seatingQuery.data?.tables ?? []
+  const guests = isPreview ? previewGuests[activeEvent] ?? [] : seatingQuery.data?.guests ?? []
   const waiting = guests.filter((guest) => !guest.tableId)
   const busy = persistMutation.isPending
   const dataError = operationError || ceremoniesQuery.error?.message || seatingQuery.error?.message || persistMutation.error?.message
@@ -130,7 +133,7 @@ export function SeatingPage() {
       return
     }
     if (isPreview) {
-      setPreviewTables((current) => ({ ...current, [event]: [...current[event], { id: crypto.randomUUID(), name, capacity: tableCapacity, locked: false }] }))
+      setPreviewTables((current) => ({ ...current, [activeEvent]: [...(current[activeEvent] ?? []), { id: crypto.randomUUID(), name, capacity: tableCapacity, locked: false }] }))
       setTableName('')
       return
     }
@@ -144,7 +147,7 @@ export function SeatingPage() {
       setSelected((current) => current.filter((id) => !guestIds.includes(id)))
     }
     if (isPreview) {
-      setPreviewTables((current) => ({ ...current, [event]: current[event].map((item) => item.id === table.id ? { ...item, locked: !item.locked } : item) }))
+      setPreviewTables((current) => ({ ...current, [activeEvent]: (current[activeEvent] ?? []).map((item) => item.id === table.id ? { ...item, locked: !item.locked } : item) }))
       return
     }
     persistMutation.mutate({ type: 'set-lock', tableId: table.id, locked: !table.locked })
@@ -174,7 +177,7 @@ export function SeatingPage() {
       }
     }
     if (isPreview) {
-      setPreviewGuests((current) => ({ ...current, [event]: current[event].map((guest) => selected.includes(guest.id) ? { ...guest, tableId } : guest) }))
+      setPreviewGuests((current) => ({ ...current, [activeEvent]: (current[activeEvent] ?? []).map((guest) => selected.includes(guest.id) ? { ...guest, tableId } : guest) }))
       setSelected([])
       return
     }
@@ -190,15 +193,15 @@ export function SeatingPage() {
     const guestIds = guests.filter((guest) => guest.tableId === pendingDelete.id).map((guest) => guest.id)
     setSelected((current) => current.filter((id) => !guestIds.includes(id)))
     if (isPreview) {
-      setPreviewGuests((current) => ({ ...current, [event]: current[event].map((guest) => guest.tableId === pendingDelete.id ? { ...guest, tableId: null } : guest) }))
-      setPreviewTables((current) => ({ ...current, [event]: current[event].filter((table) => table.id !== pendingDelete.id) }))
+      setPreviewGuests((current) => ({ ...current, [activeEvent]: (current[activeEvent] ?? []).map((guest) => guest.tableId === pendingDelete.id ? { ...guest, tableId: null } : guest) }))
+      setPreviewTables((current) => ({ ...current, [activeEvent]: (current[activeEvent] ?? []).filter((table) => table.id !== pendingDelete.id) }))
     } else {
       persistMutation.mutate({ type: 'delete-table', tableId: pendingDelete.id, guestIds })
     }
     setPendingDelete(null)
   }
 
-  function switchEvent(nextEvent: EventName) {
+  function switchEvent(nextEvent: string) {
     setEvent(nextEvent)
     setSelected([])
     setOperationError('')
@@ -209,8 +212,8 @@ export function SeatingPage() {
 
   return <div className="page seating-page ui-page">
     <header className="page-header">
-      <div><p className="eyebrow">Guest placement</p><h1>Seating</h1><p className="page-lead">Assign Traditional and White guests in bulk, then refine individual placements table by table.</p></div>
-      <div className="event-switch"><button className={event === 'Traditional' ? 'active' : ''} type="button" onClick={() => switchEvent('Traditional')}>Traditional</button><button className={event === 'White' ? 'active' : ''} type="button" onClick={() => switchEvent('White')}>White</button></div>
+      <div><p className="eyebrow">Guest placement</p><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
+      <label className="page-ceremony-filter"><span>Ceremony</span><select value={ceremony?.id ?? ''} onChange={(change) => switchEvent(change.target.value)}><option value="" disabled>Select ceremony</option>{ceremonyOptions.map((item) => <option value={item.id} key={item.id}>{ceremonyLabel(item)}</option>)}</select></label>
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}
     <section className="seating-summary"><div><strong>{guests.length}</strong><span>Confirmed guests</span></div><div><strong>{guests.length - waiting.length}</strong><span>Seated</span></div><div><strong>{waiting.length}</strong><span>Waiting</span></div><div><strong>{tables.length}</strong><span>Tables</span></div></section>
@@ -229,7 +232,7 @@ export function SeatingPage() {
           <div className="seated-list">{seated.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" disabled={table.locked} checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>)}{!seated.length && <p>No guests assigned.</p>}</div>
           <button className="assign-button" type="button" disabled={!selected.length || busy || full || table.locked} onClick={() => assign(table.id)}><Plus size={13} /> Assign selected</button>
         </article>
-      }) : <div className="tables-empty"><Armchair size={24} /><h2>No {event.toLocaleLowerCase()} tables</h2><p>{!isPreview && !ceremony ? `Set up the ${event} ceremony first.` : 'Create the first table above, then select waiting guests to assign them.'}</p></div>}</section>
+      }) : <div className="tables-empty"><Armchair size={24} /><h2>No {ceremonyName.toLocaleLowerCase()} tables</h2><p>{!ceremony ? 'Set up a ceremony first.' : 'Create the first table above, then select waiting guests to assign them.'}</p></div>}</section>
     </div>
     {selected.some((id) => guests.find((guest) => guest.id === id)?.tableId) && <button className="button secondary unseat-button" type="button" disabled={busy} onClick={() => assign(null)}>Move selected to waiting list</button>}
     {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.name}?`} description="Guests assigned to this table will return to the waiting list. The table will move to the recycle bin." pending={busy} onCancel={() => setPendingDelete(null)} onConfirm={deleteTable} />}

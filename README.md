@@ -1,6 +1,6 @@
 # Timmy & Bisola Wedding Planner
 
-Private React application for planning the Court, Traditional, and White weddings.
+Private React application for planning multiple flexible wedding ceremonies.
 
 ## Local development
 
@@ -27,7 +27,7 @@ Server-only credentials, including `RESEND_API_KEY`, must be configured as Supab
 
 ## Current integrations
 
-- Authenticated workspace onboarding and two-owner access
+- Authenticated workspace onboarding, two-owner access, and planner invitations
 - Persistent ceremonies, tasks, guests, RSVP records, tags, accommodation, budgets, expenses, contributions, and Traditional requirements
 - CSV, XLSX, and pasted guest imports
 - Installable PWA shell with offline navigation fallback
@@ -42,3 +42,9 @@ Import this directory as a Vercel project. Add `VITE_SUPABASE_URL` and `VITE_SUP
 ## Scheduled reminders
 
 In Supabase Dashboard, open **Integrations → Cron**, create an Edge Function job for `process-notifications`, and use `*/5 * * * *` as the schedule. The worker atomically claims due reminders and creates the Sunday 18:00 Africa/Lagos weekly summary. Configure the invocation with the project's service-role authorization through Supabase's Edge Function scheduler; never place that key in this repository.
+
+## I Do AI server workflows
+
+Trigger.dev tasks live in `src/trigger` and are configured by `trigger.config.ts`. Configure `OPENAI_API_KEY`, `APIFY_TOKEN`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in Trigger.dev. Configure `TRIGGER_SECRET_KEY` and `APP_URL` as Supabase Edge Function secrets. Apply `202609070001_i_do_ai.sql`, deploy the AI and email Edge Functions, then deploy the Trigger.dev project with `npx trigger.dev@latest deploy`.
+
+The agent uses the exact `gpt-5.6-luna` model identifier and can only produce allowlisted action proposals. Batches remain pending until a workspace member reviews them. Approved task, vendor, ceremony, budget, allocation, and expense actions are executed transactionally. Apify and document inputs are treated as untrusted, and vendor prices remain unknown unless supplied by the user or a vendor document.

@@ -5,7 +5,7 @@
 .settings-section header > span { color: var(--faint); font-size: 9px; text-transform: uppercase; }
 .settings-fields { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; padding: 20px; }
 .settings-fields label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
-.settings-fields input,.settings-fields select,.owner-form input { height: 40px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font-size: 11px; text-transform: none; }
+.settings-fields input,.settings-fields select,.owner-form input,.planner-invite-form input,.planner-invite-form select,.invitation-link input { height: 40px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font-size: 11px; text-transform: none; }
 .settings-section > footer { display: flex; min-height: 67px; align-items: center; justify-content: flex-end; gap: 12px; padding: 12px 20px; border-top: 1px solid var(--line); }
 .settings-section footer span,.settings-error { color: #8d3535; font-size: 9px; }
 .owner-form { display: grid; grid-template-columns: 1fr minmax(220px,.7fr) auto; align-items: center; gap: 14px; padding: 20px; }
@@ -15,4 +15,33 @@
 .settings-success { color: #35634a; font-size: 9px; }
 .email-test,.danger-zone > div { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px; }
 .danger-zone > div > p { margin: 0; }
-@media(max-width:650px){.settings-fields{grid-template-columns:1fr}.owner-form{grid-template-columns:1fr}.email-test,.danger-zone>div{align-items:flex-start;flex-direction:column}}
+.planner-invite-form { display: grid; grid-template-columns: minmax(220px,1fr) 160px auto; align-items: end; gap: 14px; padding: 20px; }
+.planner-invite-form label,.invitation-link label { display: flex; min-width: 0; flex-direction: column; gap: 7px; color: var(--muted); font-size: 9px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
+.delivery-note { margin: 0 20px 20px; border-radius: 6px; padding: 12px 14px; color: var(--muted); background: #f7f5ef; font-size: 10px; line-height: 1.5; }
+.delivery-note strong { color: var(--ink); }
+.invitation-link { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 12px; padding: 0 20px 20px; }
+.invitation-link .settings-error { grid-column: 1 / -1; padding: 0; }
+.access-list article { display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; align-items: center; gap: 12px; min-height: 68px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.access-list article:last-child { border-bottom: 0; }
+.access-list article strong { display: block; overflow: hidden; font-size: 11px; text-overflow: ellipsis; }
+.access-list article p { margin-top: 3px; color: var(--muted); font-size: 9px; }
+.access-icon { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 50%; color: var(--muted); background: #f4f3ef; }
+.role-badge { border-radius: 999px; padding: 5px 8px; color: #35634a; background: #edf6f0; font-size: 9px; font-weight: 650; text-transform: capitalize; }
+.role-badge.is-expired { color: #775d36; background: #f8f1e7; }
+.danger-button { color: #8d3535; }
+.settings-empty { padding: 22px 20px; color: var(--muted); font-size: 10px; }
+.planner-invitation-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: #f8f8f6; }
+.planner-invitation-page > section { display: flex; width: min(560px,100%); flex-direction: column; gap: 28px; border: 1px solid #e4e4e1; border-radius: 14px; padding: clamp(28px,6vw,52px); background: white; box-shadow: 0 10px 30px rgba(28,28,25,.06); }
+.planner-invitation-page h1 { margin-top: 6px; font-size: clamp(32px,7vw,48px); line-height: 1.05; letter-spacing: -.035em; }
+.planner-invitation-page h1 + p { margin-top: 14px; color: #667085; font-size: 14px; line-height: 1.6; }
+.invitation-account { border-radius: 8px; padding: 12px 14px; color: #667085; background: #f5f6f7; font-size: 13px; }
+.invitation-account strong { color: #101828; }
+.invitation-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.ui-page .planner-invite-form,.ui-page .invitation-link { padding-right: 24px; padding-left: 24px; }
+.ui-page .planner-invite-form label,.ui-page .invitation-link label { color: var(--ui-gray-700); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.ui-page .planner-invite-form input,.ui-page .planner-invite-form select,.ui-page .invitation-link input { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; padding-inline: 12px; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
+.ui-page .delivery-note { color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; }
+.ui-page .access-list article { border-color: var(--ui-gray-100); padding-right: 24px; padding-left: 24px; }
+.ui-page .access-list article strong { color: var(--ui-gray-900); font-size: 13px; }
+.ui-page .access-list article p,.ui-page .settings-empty { color: var(--ui-gray-500); font-size: 12px; }
+@media(max-width:650px){.settings-fields{grid-template-columns:1fr}.owner-form,.planner-invite-form,.invitation-link{grid-template-columns:1fr}.email-test,.danger-zone>div{align-items:flex-start;flex-direction:column}.access-list article{grid-template-columns:auto minmax(0,1fr) auto}.access-list article .danger-button{grid-column:2/-1;justify-self:start}}

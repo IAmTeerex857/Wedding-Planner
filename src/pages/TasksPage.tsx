@@ -4,12 +4,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
-import { relationOne, useWorkspace } from '../lib/workspace-context'
+import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
 
 export type TaskStatus = 'todo' | 'doing' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high'
-export type TaskEvent = 'Court' | 'Traditional' | 'White' | 'General'
+export type TaskEvent = string
 
 export interface PlanningTask {
   id: string
@@ -18,6 +18,7 @@ export interface PlanningTask {
   status: TaskStatus
   priority: TaskPriority
   assignee: string
+  ceremonyId: string | null
   event: TaskEvent
   dueAt: string
   reminderAt: string
@@ -38,10 +39,12 @@ const emptyDraft: TaskDraft = {
   status: 'todo',
   priority: 'medium',
   assignee: '',
-  event: 'General',
+  ceremonyId: null,
+  event: 'General / shared',
   dueAt: '',
   reminderAt: '',
 }
+const previewCeremonyOptions = [{ id: 'court', kind: 'court', name: 'Court Wedding' }, { id: 'traditional', kind: 'traditional', name: 'Traditional Wedding' }, { id: 'white', kind: 'white', name: 'White Wedding' }]
 
 export function TasksPage() {
   const [searchParams] = useSearchParams()
@@ -57,7 +60,7 @@ export function TasksPage() {
     queryKey: ['ceremony-options', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('ceremonies').select('id,kind').eq('workspace_id', workspace.id).is('deleted_at', null)
+      const { data, error } = await supabase!.from('ceremonies').select('id,kind,name').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
       if (error) throw error
       return data
     },
@@ -66,15 +69,16 @@ export function TasksPage() {
     queryKey: ['tasks', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('tasks').select('id,title,description,status,priority,assignee_name,due_at,reminder_at,task_ceremonies(ceremonies(kind))').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
+      const { data, error } = await supabase!.from('tasks').select('id,title,description,status,priority,assignee_name,due_at,reminder_at,task_ceremonies(ceremonies(id,kind,name))').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
       if (error) throw error
       return data
     },
   })
+  const ceremonyOptions = isPreview ? previewCeremonyOptions : ceremonyQuery.data ?? []
   const addMutation = useMutation({
     mutationFn: async (task: TaskDraft) => {
-      const ceremony = task.event === 'General' ? null : ceremonyQuery.data?.find((item) => item.kind === task.event.toLocaleLowerCase())
-      if (task.event !== 'General' && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
+      const ceremony = task.ceremonyId ? ceremonyQuery.data?.find((item) => item.id === task.ceremonyId) : null
+      if (task.ceremonyId && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
       const { data, error } = await supabase!.from('tasks').insert({ workspace_id: workspace.id, title: task.title, description: task.description || null, status: task.status, priority: task.priority, assignee_name: task.assignee || null, due_at: lagosDateTime(task.dueAt), reminder_at: lagosDateTime(task.reminderAt), created_by: userId, updated_by: userId }).select('id').single()
       if (error) throw error
       if (ceremony) {
@@ -89,8 +93,8 @@ export function TasksPage() {
   })
   const updateMutation = useMutation({
     mutationFn: async ({ id, task }: { id: string; task: TaskDraft }) => {
-      const ceremony = task.event === 'General' ? null : ceremonyQuery.data?.find((item) => item.kind === task.event.toLocaleLowerCase())
-      if (task.event !== 'General' && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
+      const ceremony = task.ceremonyId ? ceremonyQuery.data?.find((item) => item.id === task.ceremonyId) : null
+      if (task.ceremonyId && !ceremony) throw new Error(`${task.event} ceremony is unavailable`)
       const { error } = await supabase!.from('tasks').update({ title: task.title, description: task.description || null, status: task.status, priority: task.priority, assignee_name: task.assignee || null, due_at: lagosDateTime(task.dueAt), reminder_at: lagosDateTime(task.reminderAt), completed_at: task.status === 'done' ? new Date().toISOString() : null, updated_by: userId }).eq('id', id).eq('workspace_id', workspace.id)
       if (error) throw error
       if (ceremony) {
@@ -131,9 +135,8 @@ export function TasksPage() {
     // oxlint-disable-next-line react/set-state-in-effect
     setTasks(tasksQuery.data.map((task) => {
       const links = Array.isArray(task.task_ceremonies) ? task.task_ceremonies : []
-      const kind = relationOne(links[0]?.ceremonies)?.kind as string | undefined
-      const event = kind ? `${kind[0].toUpperCase()}${kind.slice(1)}` as TaskEvent : 'General'
-      return { id: task.id, title: task.title, description: task.description ?? '', status: task.status as TaskStatus, priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority as TaskPriority : 'medium', assignee: task.assignee_name ?? '', event, dueAt: localDateTime(task.due_at), reminderAt: localDateTime(task.reminder_at) }
+      const linked = relationOne(links[0]?.ceremonies)
+      return { id: task.id, title: task.title, description: task.description ?? '', status: task.status as TaskStatus, priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority as TaskPriority : 'medium', assignee: task.assignee_name ?? '', ceremonyId: linked?.id ?? null, event: ceremonyLabel(linked), dueAt: localDateTime(task.due_at), reminderAt: localDateTime(task.reminder_at) }
     }))
   }, [tasksQuery.data])
 
@@ -156,7 +159,7 @@ export function TasksPage() {
   }, [isAdding, editingId])
 
   function editTask(task: PlanningTask) {
-    setDraft({ title: task.title, description: task.description, status: task.status, priority: task.priority, assignee: task.assignee, event: task.event, dueAt: task.dueAt, reminderAt: task.reminderAt })
+    setDraft({ title: task.title, description: task.description, status: task.status, priority: task.priority, assignee: task.assignee, ceremonyId: task.ceremonyId, event: task.event, dueAt: task.dueAt, reminderAt: task.reminderAt })
     setEditingId(task.id)
   }
 
@@ -272,8 +275,9 @@ export function TasksPage() {
                 </label>
                 <label className="planning-field">
                   <span>Event</span>
-                  <select value={draft.event} onChange={(event) => setDraft({ ...draft, event: event.target.value as TaskEvent })}>
-                    <option>General</option><option>Court</option><option>Traditional</option><option>White</option>
+                  <select value={draft.ceremonyId ?? ''} onChange={(event) => { const ceremony = ceremonyOptions.find((item) => item.id === event.target.value); setDraft({ ...draft, ceremonyId: ceremony?.id ?? null, event: ceremonyLabel(ceremony) }) }}>
+                    <option value="">General / shared</option>
+                    {ceremonyOptions.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremonyLabel(ceremony)}</option>)}
                   </select>
                 </label>
                 <label className="planning-field">

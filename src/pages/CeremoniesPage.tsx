@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './planning.css'
 
-export type CeremonyKind = 'court' | 'traditional' | 'white'
 export type CeremonyStatus = 'tentative' | 'confirmed' | 'completed' | 'cancelled'
 
 export interface CeremonySegment {
@@ -16,8 +15,9 @@ export interface CeremonySegment {
 }
 
 export interface Ceremony {
-  id: CeremonyKind
+  id: string
   databaseId?: string
+  kind: string
   name: string
   status: CeremonyStatus
   date: string
@@ -27,9 +27,9 @@ export interface Ceremony {
 }
 
 const initialCeremonies: Ceremony[] = [
-  { id: 'court', name: 'Court', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
-  { id: 'traditional', name: 'Traditional', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
-  { id: 'white', name: 'White', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
+  { id: 'court', kind: 'court', name: 'Court', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
+  { id: 'traditional', kind: 'traditional', name: 'Traditional', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
+  { id: 'white', kind: 'white', name: 'White', status: 'tentative', date: '', location: '', capacity: null, segments: [] },
 ]
 
 const statusOptions: Array<{ value: CeremonyStatus; label: string }> = [
@@ -43,23 +43,31 @@ export function CeremoniesPage() {
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [ceremonies, setCeremonies] = useState<Ceremony[]>(initialCeremonies)
-  const [pendingSegmentDelete, setPendingSegmentDelete] = useState<{ ceremonyId: CeremonyKind; segment: CeremonySegment } | null>(null)
+  const [pendingSegmentDelete, setPendingSegmentDelete] = useState<{ ceremonyId: string; segment: CeremonySegment } | null>(null)
+  const [pendingCeremonyDelete, setPendingCeremonyDelete] = useState<Ceremony | null>(null)
   const ceremonyQuery = useQuery({
     queryKey: ['ceremonies', workspace.id],
     enabled: !isPreview,
     queryFn: async () => {
-      const { data, error } = await supabase!.from('ceremonies').select('id,kind,name,status,starts_at,location_name,guest_capacity,ceremony_segments(id,name,starts_at,position,deleted_at)').eq('workspace_id', workspace.id).is('deleted_at', null)
+      const { data, error } = await supabase!.from('ceremonies').select('id,kind,name,status,starts_at,location_name,guest_capacity,ceremony_segments(id,name,starts_at,position,deleted_at)').eq('workspace_id', workspace.id).is('deleted_at', null).order('created_at')
       if (error) throw error
       return data
     },
   })
   const saveMutation = useMutation({
     mutationFn: async (ceremony: Ceremony) => {
-      if (isPreview || !ceremony.databaseId) return
+      if (isPreview) return
+      const label = ceremony.name.trim()
+      if (!label) throw new Error('Enter a ceremony name.')
       const startsAt = ceremony.date ? new Date(`${ceremony.date}T12:00:00+01:00`).toISOString() : null
-      const { error } = await supabase!.from('ceremonies').update({ name: `${ceremony.name} Wedding`, status: ceremony.status, starts_at: startsAt, location_name: ceremony.location || null, guest_capacity: ceremony.capacity, updated_by: userId }).eq('id', ceremony.databaseId)
+      const values = { kind: label, name: `${label} Wedding`, status: ceremony.status, starts_at: startsAt, location_name: ceremony.location || null, guest_capacity: ceremony.capacity, updated_by: userId }
+      const result = ceremony.databaseId
+        ? await supabase!.from('ceremonies').update(values).eq('workspace_id', workspace.id).eq('id', ceremony.databaseId).select('id').single()
+        : await supabase!.from('ceremonies').insert({ workspace_id: workspace.id, ...values, created_by: userId }).select('id').single()
+      const { data, error } = result
       if (error) throw error
-      const { data: existing, error: existingError } = await supabase!.from('ceremony_segments').select('id').eq('ceremony_id', ceremony.databaseId).is('deleted_at', null)
+      const ceremonyId = data.id
+      const { data: existing, error: existingError } = await supabase!.from('ceremony_segments').select('id').eq('ceremony_id', ceremonyId).is('deleted_at', null)
       if (existingError) throw existingError
       const currentIds = new Set(ceremony.segments.map((segment) => segment.id))
       const removedIds = existing.filter((segment) => !currentIds.has(segment.id)).map((segment) => segment.id)
@@ -68,32 +76,48 @@ export function CeremoniesPage() {
         if (removeError) throw removeError
       }
       if (ceremony.segments.length) {
-        const { error: segmentError } = await supabase!.from('ceremony_segments').upsert(ceremony.segments.map((segment, position) => ({ id: segment.id, ceremony_id: ceremony.databaseId, name: segment.title || `Segment ${position + 1}`, position, starts_at: ceremony.date && segment.time ? new Date(`${ceremony.date}T${segment.time}:00+01:00`).toISOString() : null, created_by: userId, updated_by: userId, deleted_at: null })))
+        const { error: segmentError } = await supabase!.from('ceremony_segments').upsert(ceremony.segments.map((segment, position) => ({ id: segment.id, ceremony_id: ceremonyId, name: segment.title || `Segment ${position + 1}`, position, starts_at: ceremony.date && segment.time ? new Date(`${ceremony.date}T${segment.time}:00+01:00`).toISOString() : null, created_by: userId, updated_by: userId, deleted_at: null })))
         if (segmentError) throw segmentError
       }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['ceremonies', workspace.id] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['ceremonies', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['ceremony-options', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['seating-ceremonies', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', workspace.id] })
+    },
+  })
+  const deleteMutation = useMutation({
+    mutationFn: async (ceremony: Ceremony) => {
+      if (isPreview || !ceremony.databaseId) return
+      const { error } = await supabase!.from('ceremonies').update({ deleted_at: new Date().toISOString(), updated_by: userId }).eq('workspace_id', workspace.id).eq('id', ceremony.databaseId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['ceremonies', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['ceremony-options', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['seating-ceremonies', workspace.id] })
+      void queryClient.invalidateQueries({ queryKey: ['dashboard', workspace.id] })
+    },
   })
 
   useEffect(() => {
     if (!ceremonyQuery.data) return
     // Remote records initialize the editable local draft after the query resolves.
     // oxlint-disable-next-line react/set-state-in-effect
-    setCeremonies(initialCeremonies.map((fallback) => {
-      const row = ceremonyQuery.data.find((item) => item.kind === fallback.id)
-      if (!row) return fallback
+    setCeremonies(ceremonyQuery.data.map((row) => {
       const segmentRows = (Array.isArray(row.ceremony_segments) ? row.ceremony_segments : []).filter((segment) => !segment.deleted_at)
-      return { ...fallback, databaseId: row.id, name: row.name.replace(/ Wedding$/i, ''), status: row.status as CeremonyStatus, date: lagosParts(row.starts_at).date, location: row.location_name ?? '', capacity: row.guest_capacity, segments: segmentRows.sort((a, b) => a.position - b.position).map((segment) => ({ id: segment.id, title: segment.name, time: lagosParts(segment.starts_at).time })) }
+      return { id: row.id, databaseId: row.id, kind: row.kind, name: row.name.replace(/ Wedding$/i, ''), status: row.status as CeremonyStatus, date: lagosParts(row.starts_at).date, location: row.location_name ?? '', capacity: row.guest_capacity, segments: segmentRows.sort((a, b) => a.position - b.position).map((segment) => ({ id: segment.id, title: segment.name, time: lagosParts(segment.starts_at).time })) }
     }))
   }, [ceremonyQuery.data])
 
-  function updateCeremony(id: CeremonyKind, patch: Partial<Ceremony>) {
+  function updateCeremony(id: string, patch: Partial<Ceremony>) {
     setCeremonies((current) => current.map((ceremony) =>
       ceremony.id === id ? { ...ceremony, ...patch } : ceremony,
     ))
   }
 
-  function addSegment(ceremonyId: CeremonyKind) {
+  function addSegment(ceremonyId: string) {
     setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
       ? {
           ...ceremony,
@@ -102,7 +126,7 @@ export function CeremoniesPage() {
       : ceremony))
   }
 
-  function updateSegment(ceremonyId: CeremonyKind, segmentId: string, patch: Partial<CeremonySegment>) {
+  function updateSegment(ceremonyId: string, segmentId: string, patch: Partial<CeremonySegment>) {
     setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
       ? {
           ...ceremony,
@@ -113,20 +137,31 @@ export function CeremoniesPage() {
       : ceremony))
   }
 
-  function removeSegment(ceremonyId: CeremonyKind, segmentId: string) {
+  function removeSegment(ceremonyId: string, segmentId: string) {
     setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
       ? { ...ceremony, segments: ceremony.segments.filter((segment) => segment.id !== segmentId) }
       : ceremony))
+  }
+
+  function addCeremony() {
+    setCeremonies((current) => [...current, { id: crypto.randomUUID(), kind: '', name: '', status: 'tentative', date: '', location: '', capacity: null, segments: [] }])
+  }
+
+  function removeCeremony(ceremony: Ceremony) {
+    setCeremonies((current) => current.filter((item) => item.id !== ceremony.id))
+    if (!isPreview) deleteMutation.mutate(ceremony)
+    setPendingCeremonyDelete(null)
   }
 
   return (
     <div className="page planning-page ceremonies-page ui-page">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Celebration plan / 03 ceremonies</p>
+          <p className="eyebrow">Celebration plan / {String(ceremonies.length).padStart(2, '0')} ceremonies</p>
           <h1>Ceremonies</h1>
           <p className="page-lead">Keep the essentials for each celebration together. Save each ceremony after making changes.</p>
         </div>
+        <button className="button primary" type="button" onClick={addCeremony}><Plus size={16} /> Add ceremony</button>
         <div className="ceremony-summary" aria-label="Ceremony status summary">
           <strong>{ceremonies.filter(({ status }) => status === 'confirmed').length}</strong>
           <span>dates confirmed</span>
@@ -139,9 +174,10 @@ export function CeremoniesPage() {
             <div className="ceremony-editor-heading">
               <span className="ceremony-editor-number">0{index + 1}</span>
               <div>
-                <p className="eyebrow">{ceremony.id === 'court' ? 'Legal ceremony' : 'Celebration'}</p>
-                <h2>{ceremony.name}</h2>
+                <p className="eyebrow">Celebration</p>
+                <input aria-label={`Ceremony ${index + 1} name`} maxLength={80} value={ceremony.name} placeholder="Ceremony name" onChange={(event) => updateCeremony(ceremony.id, { name: event.target.value })} />
               </div>
+              <button className="plain-icon-button" type="button" aria-label={`Delete ${ceremony.name || 'ceremony'}`} onClick={() => setPendingCeremonyDelete(ceremony)}><Trash2 size={15} /></button>
               <label className={`status-select status-${ceremony.status}`}>
                 <span className="sr-only">{ceremony.name} status</span>
                 <select
@@ -186,8 +222,7 @@ export function CeremoniesPage() {
               </label>
             </div>
 
-            {ceremony.id !== 'court' && (
-              <section className="segments-section" aria-labelledby={`${ceremony.id}-segments`}>
+            <section className="segments-section" aria-labelledby={`${ceremony.id}-segments`}>
                 <div className="segments-header">
                   <div>
                     <p className="eyebrow">Order of events</p>
@@ -227,15 +262,15 @@ export function CeremoniesPage() {
                   </div>
                 )}
               </section>
-            )}
             <div className="ceremony-save-row">
-              {saveMutation.error && <span>{saveMutation.error.message}</span>}
+              {(saveMutation.error || deleteMutation.error) && <span>{saveMutation.error?.message ?? deleteMutation.error?.message}</span>}
               <button className="button primary" type="button" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate(ceremony)}>{isPreview ? 'Keep preview changes' : saveMutation.isPending ? 'Saving...' : 'Save ceremony'}</button>
             </div>
           </article>
         ))}
       </div>
       {pendingSegmentDelete && <ConfirmDialog title={`Remove ${pendingSegmentDelete.segment.title || 'this segment'}?`} description="The segment will be removed when you save this ceremony." onCancel={() => setPendingSegmentDelete(null)} onConfirm={() => { removeSegment(pendingSegmentDelete.ceremonyId, pendingSegmentDelete.segment.id); setPendingSegmentDelete(null) }} />}
+      {pendingCeremonyDelete && <ConfirmDialog title={`Delete ${pendingCeremonyDelete.name || 'this ceremony'}?`} description="This ceremony will move to the recycle bin and disappear from ceremony options." pending={deleteMutation.isPending} onCancel={() => setPendingCeremonyDelete(null)} onConfirm={() => removeCeremony(pendingCeremonyDelete)} />}
     </div>
   )
 }
