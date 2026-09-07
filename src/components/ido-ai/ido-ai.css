@@ -164,6 +164,13 @@
 .ido-ai-action-buttons { display: flex; justify-content: flex-end; gap: 7px; margin-top: 11px; }
 .ido-ai-decision { display: flex; align-items: center; gap: 5px; margin-top: 10px; color: #067647; font-size: 10px; font-weight: 600; }
 .ido-ai-decision button { margin-left: auto; border: 0; color: #475467; background: transparent; font-size: 10px; text-decoration: underline; cursor: pointer; }
+.ido-ai-action-error { color: #b42318 !important; }
+.ido-ai-research-progress { display: flex; align-items: center; gap: 10px; border-top: 1px solid #d1fadf; padding: 12px 14px; background: #f6fef9; }
+.ido-ai-research-progress > span:last-child { display: flex; min-width: 0; flex-direction: column; }
+.ido-ai-research-progress strong { color: #067647; font-size: 11px; }
+.ido-ai-research-progress small { margin-top: 2px; color: #475467; font-size: 9px; }
+.ido-ai-research-progress.is-failed { border-color: #fecdca; background: #fef3f2; }
+.ido-ai-research-progress.is-failed .ido-ai-job-icon, .ido-ai-research-progress.is-failed strong { color: #b42318; }
 .ido-ai-batch-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid #eaecf0; background: #f9fafb; }
 .ido-ai-batch-actions button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 12px; color: #344054; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
 .ido-ai-batch-actions button:last-child { border-color: #101828; color: white; background: #101828; }
@@ -182,7 +189,7 @@
 .ido-ai-suggestions button:last-child { border-color: #101828; color: #fff; background: #101828; }
 
 .ido-ai-composer { flex: 0 0 auto; padding: 12px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e4e7ec; background: white; }
-.ido-ai-composer textarea { max-height: 100px; border: 0; padding: 2px; box-shadow: none; }
+.ido-ai-composer textarea { min-height: 22px; max-height: 100px; overflow-y: auto; border: 0; padding: 2px; box-shadow: none; }
 .ido-ai-composer > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
 .ido-ai-composer span { color: #98a2b3; font-size: 9px; }
 .ido-ai-composer button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }

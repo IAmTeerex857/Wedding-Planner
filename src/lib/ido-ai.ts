@@ -5,6 +5,8 @@ export type IdoAiMessage = {
   role: 'assistant' | 'user'
   body: string
   createdAt: string
+  runId: string | null
+  metadata: Record<string, unknown>
 }
 
 export type IdoAiAction = {
@@ -13,6 +15,9 @@ export type IdoAiAction = {
   description: string
   destination: string
   status: 'proposed' | 'approved' | 'rejected' | 'executing' | 'executed' | 'failed' | 'cancelled'
+  sources: string[]
+  progress: 'queued' | 'searching' | 'processing' | 'completed' | 'failed' | null
+  error: string | null
 }
 
 export type IdoAiBatch = {
@@ -20,6 +25,8 @@ export type IdoAiBatch = {
   summary: string
   status: 'proposed' | 'partially_approved' | 'approved' | 'executing' | 'completed' | 'failed' | 'rejected' | 'cancelled'
   actions: IdoAiAction[]
+  runId: string | null
+  createdAt: string
 }
 
 export type IdoAiJob = {
@@ -41,18 +48,28 @@ export type IdoAiState = {
 
 type ActionRow = {
   id: string
+  position: number
   action_type: string
   resource_type: string
   payload: Record<string, unknown>
   rationale: string | null
   status: IdoAiAction['status']
+  execution_error: string | null
 }
 
 type BatchRow = {
   id: string
   summary: string
   status: IdoAiBatch['status']
+  run_id: string | null
+  created_at: string
   agent_actions: ActionRow[]
+}
+
+type AuditRow = {
+  action_id: string | null
+  event_type: string
+  created_at: string
 }
 
 export async function loadIdoAiState(workspaceId: string): Promise<IdoAiState> {
@@ -67,15 +84,16 @@ export async function loadIdoAiState(workspaceId: string): Promise<IdoAiState> {
   if (suggestionError || runError) throw suggestionError ?? runError
 
   if (!conversation) return { conversationId: null, messages: [], batches: [], job: mapJob(run), suggestionCount: suggestions?.length ?? 0, suggestions: suggestions ?? [] }
-  const [{ data: messages, error: messagesError }, { data: batches, error: batchesError }] = await Promise.all([
-    db.from('agent_messages').select('id,role,content,created_at').eq('workspace_id', workspaceId).eq('conversation_id', conversation.id).in('role', ['user', 'assistant']).order('created_at'),
-    db.from('agent_action_batches').select('id,summary,status,created_at,agent_actions(id,action_type,resource_type,payload,rationale,status)').eq('workspace_id', workspaceId).eq('conversation_id', conversation.id).order('created_at', { ascending: false }).limit(5),
+  const [{ data: messages, error: messagesError }, { data: batches, error: batchesError }, { data: audits, error: auditsError }] = await Promise.all([
+    db.from('agent_messages').select('id,role,content,run_id,metadata,created_at').eq('workspace_id', workspaceId).eq('conversation_id', conversation.id).in('role', ['user', 'assistant']).order('created_at'),
+    db.from('agent_action_batches').select('id,summary,status,run_id,created_at,agent_actions(id,position,action_type,resource_type,payload,rationale,status,execution_error)').eq('workspace_id', workspaceId).eq('conversation_id', conversation.id).order('created_at', { ascending: false }).limit(20),
+    db.from('agent_audit_logs').select('action_id,event_type,created_at').eq('workspace_id', workspaceId).in('event_type', ['research_searching', 'research_processing']).order('created_at', { ascending: false }).limit(100),
   ])
-  if (messagesError || batchesError) throw messagesError ?? batchesError
+  if (messagesError || batchesError || auditsError) throw messagesError ?? batchesError ?? auditsError
   return {
     conversationId: conversation.id,
-    messages: (messages ?? []).map((message) => ({ id: message.id, role: message.role as 'assistant' | 'user', body: message.content, createdAt: message.created_at })),
-    batches: ((batches ?? []) as BatchRow[]).map((batch) => ({ ...batch, actions: batch.agent_actions.sort((left, right) => left.id.localeCompare(right.id)).map(mapAction) })),
+    messages: (messages ?? []).map((message) => ({ id: message.id, role: message.role as 'assistant' | 'user', body: message.content, createdAt: message.created_at, runId: message.run_id, metadata: message.metadata ?? {} })),
+    batches: ((batches ?? []) as BatchRow[]).map((batch) => ({ id: batch.id, summary: batch.summary, status: batch.status, runId: batch.run_id, createdAt: batch.created_at, actions: batch.agent_actions.sort((left, right) => left.position - right.position).map((action) => mapAction(action, (audits ?? []) as AuditRow[])) })),
     job: mapJob(run),
     suggestionCount: suggestions?.length ?? 0,
     suggestions: suggestions ?? [],
@@ -104,15 +122,25 @@ export async function dismissIdoAiSuggestion(workspaceId: string, suggestionId: 
   if (error) throw error
 }
 
-function mapAction(action: ActionRow): IdoAiAction {
+function mapAction(action: ActionRow, audits: AuditRow[]): IdoAiAction {
   const payload = action.payload ?? {}
   const subject = text(payload.title) ?? text(payload.name) ?? text(payload.query) ?? action.resource_type.replaceAll('_', ' ')
+  const latestProgress = audits.find((audit) => audit.action_id === action.id)?.event_type
+  const progress = action.status === 'executed' ? 'completed'
+    : action.status === 'failed' ? 'failed'
+    : latestProgress === 'research_processing' ? 'processing'
+    : latestProgress === 'research_searching' ? 'searching'
+    : ['approved', 'executing'].includes(action.status) ? 'queued'
+    : null
   return {
     id: action.id,
-    title: `${action.action_type === 'create' ? 'Add' : 'Update'} ${subject}`,
+    title: action.resource_type === 'vendor_research' ? `Search for ${subject}` : `${action.action_type === 'create' ? 'Add' : 'Update'} ${subject}`,
     description: action.rationale ?? summarizePayload(payload),
     destination: action.resource_type.replaceAll('_', ' '),
     status: action.status,
+    sources: stringArray(payload.research_platforms),
+    progress,
+    error: action.execution_error,
   }
 }
 
@@ -135,4 +163,8 @@ function summarizePayload(payload: Record<string, unknown>) {
 
 function text(value: unknown) {
   return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function stringArray(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && Boolean(item.trim())).map((item) => item.trim()) : []
 }

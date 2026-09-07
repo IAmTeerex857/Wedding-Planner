@@ -1,12 +1,16 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Check, Trash2, X } from '../KoboyoIcon'
-import { deleteIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, sendIdoAiMessage } from '../../lib/ido-ai'
+import { deleteIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, sendIdoAiMessage, type IdoAiBatch } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import './ido-ai.css'
 
 const PANEL_KEY = 'wedding-planner:ido-ai-panel:v2'
 const ReactMarkdown = lazy(() => import('react-markdown'))
+
+type TimelineItem =
+  | { kind: 'message'; id: string; createdAt: string; order: number; message: Awaited<ReturnType<typeof loadIdoAiState>>['messages'][number] }
+  | { kind: 'batch'; id: string; createdAt: string; order: number; batch: IdoAiBatch }
 
 const onboardingQuestions = [
   { eyebrow: 'Wedding setup', prompt: 'Which ceremonies are you planning?', helper: 'Choose the closest option or list every ceremony in your own words.', options: ['Court, traditional and white', 'Traditional and white', 'One main ceremony'] },
@@ -28,6 +32,7 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const [onboardingStep, setOnboardingStep] = useState(() => Number(window.localStorage.getItem(`${PANEL_KEY}:${workspace.id}:step`) ?? 0))
   const panelRef = useRef<HTMLElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const composerRef = useRef<HTMLTextAreaElement>(null)
   const stateQuery = useQuery({
     queryKey: ['ido-ai', workspace.id],
     enabled: !isPreview,
@@ -39,7 +44,14 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
 
   useEffect(() => { window.localStorage.setItem(PANEL_KEY, open ? 'open' : 'closed') }, [open])
   useEffect(() => { window.localStorage.setItem(`${PANEL_KEY}:${workspace.id}:step`, String(onboardingStep)) }, [onboardingStep, workspace.id])
-  useEffect(() => { if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }) }, [open, state.messages.length, state.batches.length])
+  const activitySignature = state.batches.flatMap((batch) => batch.actions.map((action) => `${action.id}:${action.status}:${action.progress}`)).join('|')
+  useEffect(() => { if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }) }, [open, state.messages.length, state.batches.length, activitySignature])
+  useEffect(() => {
+    const textarea = composerRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`
+  }, [composer])
   useEffect(() => {
     if (!open) return
     const closeOnEscape = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
@@ -79,10 +91,15 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     if (onboarding) setOnboardingStep((step) => step + 1)
   }
 
-  const activeBatch = state.batches.find((batch) => batch.status === 'proposed' || batch.status === 'approved' || batch.status === 'executing' || batch.status === 'failed')
   const hasActivity = state.messages.length > 0
   const isThinking = Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
-  const isResearchBatch = Boolean(activeBatch?.actions.length && activeBatch.actions.every((action) => action.destination === 'vendor research'))
+  const timeline: TimelineItem[] = [
+    ...state.messages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message })),
+    ...state.batches.filter((batch) => batch.actions.length > 0).map((batch) => {
+      const reply = state.messages.find((message) => message.role === 'assistant' && ((message.runId && message.runId === batch.runId) || message.metadata.vendor_research_batch_id === batch.id))
+      return { kind: 'batch' as const, id: batch.id, createdAt: reply?.createdAt ?? batch.createdAt, order: reply ? 1 : 0, batch }
+    }),
+  ].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order)
 
   function sendOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>, value: string, onboarding = false) {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
@@ -100,7 +117,9 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
       <div className="ido-ai-scroll" ref={scrollRef} aria-live="polite">
         <div className="ido-ai-date"><span>Today</span></div>
         {!hasActivity && <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>}
-        {state.messages.map((message) => <article className={`ido-ai-message is-${message.role}`} key={message.id}>{message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{message.body}</span>}><ReactMarkdown>{message.body}</ReactMarkdown></Suspense></div> : <p>{message.body}</p>}</div></article>)}
+        {timeline.map((item) => item.kind === 'message'
+          ? <article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`}>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{item.message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><ReactMarkdown>{item.message.body}</ReactMarkdown></Suspense></div> : <p>{item.message.body}</p>}</div></article>
+          : <BatchCard key={`batch:${item.id}`} batch={item.batch} pending={reviewMutation.isPending} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} onReview={(decision) => reviewMutation.mutate({ batchId: item.batch.id, decision })} />)}
         {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><strong>You</strong><p>{optimisticMessage.body}</p>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
         {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
         {stateQuery.isError && <p className="ido-ai-error">{stateQuery.error.message}</p>}
@@ -108,11 +127,34 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
         {state.job && (state.job.kind !== 'agent_turn' || state.job.status === 'failed') && ['queued', 'running', 'failed'].includes(state.job.status) && <div className={`ido-ai-job is-${state.job.status}`}><span className="ido-ai-job-icon">{state.job.status === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{state.job.label}</strong><small>{state.job.detail}</small></span></div>}
         {state.suggestions.length > 0 && <section className="ido-ai-suggestions"><header><span>Needs attention</span><strong>{state.suggestions.length} planning suggestion{state.suggestions.length === 1 ? '' : 's'}</strong></header>{state.suggestions.map((suggestion) => <article key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.body}</p></div><div><button type="button" onClick={() => suggestionMutation.mutate(suggestion.id)}>Dismiss</button><button type="button" onClick={() => submitMessage(`Help me with this suggestion: ${suggestion.title}. ${suggestion.body}`)}>Discuss</button></div></article>)}</section>}
         {question && <section className="ido-ai-question" aria-labelledby="ido-ai-question-title"><div className="ido-ai-question-progress"><span>{question.eyebrow}</span><strong>{onboardingStep + 1} of {onboardingQuestions.length}</strong></div><div className="ido-ai-progress-track" aria-hidden="true"><span style={{ width: `${((onboardingStep + 1) / onboardingQuestions.length) * 100}%` }} /></div><h2 id="ido-ai-question-title">{question.prompt}</h2><p>{question.helper}</p><div className="ido-ai-choices">{question.options.map((option) => <button type="button" disabled={sendMutation.isPending} key={option} onClick={() => submitMessage(option, true)}>{option}<span aria-hidden="true">→</span></button>)}</div><form className="ido-ai-answer" onSubmit={(event) => { event.preventDefault(); submitMessage(answer, true) }}><label htmlFor="ido-ai-answer">Something else</label><textarea id="ido-ai-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, answer, true)} placeholder="Describe what you have in mind..." rows={3} /><div><button type="button" onClick={() => setOnboardingStep((step) => step + 1)}>Skip for now</button><button type="submit" disabled={!answer.trim() || sendMutation.isPending}>Continue</button></div></form></section>}
-        {activeBatch && <section className="ido-ai-batch" aria-labelledby="ido-ai-batch-title"><div className="ido-ai-batch-heading"><span>{isResearchBatch ? 'Research request' : 'Proposed actions'}</span><strong id="ido-ai-batch-title">{activeBatch.summary}</strong>{isResearchBatch && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>{activeBatch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}</article>)}{activeBatch.status === 'proposed' && <div className="ido-ai-batch-actions"><button type="button" disabled={reviewMutation.isPending} onClick={() => reviewMutation.mutate({ batchId: activeBatch.id, decision: 'reject' })}>Not now</button><button type="button" disabled={reviewMutation.isPending} onClick={() => reviewMutation.mutate({ batchId: activeBatch.id, decision: 'approve' })}>{isResearchBatch ? 'Start research' : 'Apply changes'}</button></div>}{reviewMutation.error && <p className="ido-ai-error">{reviewMutation.error.message}</p>}</section>}
       </div>
-      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}><label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label><textarea id="ido-ai-message" rows={2} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder="Ask I Do AI anything..." /><div><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={!composer.trim() || sendMutation.isPending || isPreview} aria-label="Send message">↑</button></div></form>
+      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}><label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label><textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder="Ask I Do AI anything..." /><div><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={!composer.trim() || sendMutation.isPending || isPreview} aria-label="Send message">↑</button></div></form>
     </aside>
   </div>
+}
+
+function BatchCard({ batch, pending, approving, error, onReview }: { batch: IdoAiBatch; pending: boolean; approving: boolean; error?: string; onReview: (decision: 'approve' | 'reject') => void }) {
+  const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
+  const researchAction = isResearch ? batch.actions[0] : null
+  const progress = researchAction?.progress ?? (approving ? 'queued' : null)
+  const sourceLabel = researchAction?.sources.map(formatResearchSource).join(', ')
+  const progressCopy = progress === 'searching' ? `Searching${sourceLabel ? ` ${sourceLabel} through Google` : ' public sources'}…`
+    : progress === 'processing' ? 'Processing and verifying the search results…'
+    : progress === 'completed' ? 'Research complete'
+    : progress === 'failed' ? 'Research failed'
+    : 'Research queued…'
+
+  return <section className="ido-ai-batch" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
+    <div className="ido-ai-batch-heading"><span>{isResearch ? 'Research request' : 'Proposed actions'}</span><strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>{isResearch && batch.status === 'proposed' && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>
+    {batch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && !isResearch && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}{action.error && <p className="ido-ai-action-error">{action.error}</p>}</article>)}
+    {isResearch && progress && <div className={`ido-ai-research-progress is-${progress}`} role="status"><span className="ido-ai-job-icon">{progress === 'completed' ? <Check size={14} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{progressCopy}</strong>{sourceLabel && <small>Sources requested: {sourceLabel}</small>}</span></div>}
+    {batch.status === 'proposed' && <div className="ido-ai-batch-actions"><button type="button" disabled={pending} onClick={() => onReview('reject')}>Not now</button><button type="button" disabled={pending} onClick={() => onReview('approve')}>{isResearch ? 'Start research' : 'Apply changes'}</button></div>}
+    {error && <p className="ido-ai-error">{error}</p>}
+  </section>
+}
+
+function formatResearchSource(source: string) {
+  return source === 'google' ? 'the web' : source === 'instagram' ? 'Instagram pages' : source === 'tiktok' ? 'TikTok pages' : source
 }
 
 function SparkleMark() {

@@ -17,6 +17,7 @@ export type ActionProposal = {
   website: string | null;
   source_url: string | null;
   research_query: string | null;
+  research_platforms: Array<"google" | "instagram" | "tiktok"> | null;
   location: string | null;
   ceremony_name: string | null;
   ceremony_kind: string | null;
@@ -64,6 +65,7 @@ export const proposedBatchSchema = {
           website: { type: ["string", "null"] },
           source_url: { type: ["string", "null"] },
           research_query: { type: ["string", "null"] },
+          research_platforms: { type: ["array", "null"], items: { type: "string", enum: ["google", "instagram", "tiktok"] } },
           location: { type: ["string", "null"] },
           ceremony_name: { type: ["string", "null"] },
           ceremony_kind: { type: ["string", "null"] },
@@ -81,7 +83,7 @@ export const proposedBatchSchema = {
           record_type: { type: ["string", "null"], enum: ["ceremony_segment", "guest", "guest_invitation", "vendor_quote", "vendor_appointment", "payment_schedule", "venue", "food_drink_plan", "attire", "traditional_requirement", "seating_table", "itinerary_item", "calendar_entry", "packing_item", "gift", "honeymoon_trip", "honeymoon_booking", null] },
           payload_json: { type: ["string", "null"] },
         },
-        required: ["action", "rationale", "target_id", "title", "description", "priority", "due_at", "vendor_name", "vendor_category", "website", "source_url", "research_query", "location", "ceremony_name", "ceremony_kind", "ceremony_status", "starts_at", "location_name", "guest_capacity", "category", "amount_minor", "currency", "expense_status", "transaction_date", "ceremony_id", "vendor_status", "record_type", "payload_json"],
+        required: ["action", "rationale", "target_id", "title", "description", "priority", "due_at", "vendor_name", "vendor_category", "website", "source_url", "research_query", "research_platforms", "location", "ceremony_name", "ceremony_kind", "ceremony_status", "starts_at", "location_name", "guest_capacity", "category", "amount_minor", "currency", "expense_status", "transaction_date", "ceremony_id", "vendor_status", "record_type", "payload_json"],
         additionalProperties: false,
       },
     },
@@ -103,6 +105,7 @@ export type VendorResearchPayload = {
   requesterId: string;
   conversationId?: string | null;
   query: string;
+  platforms?: Array<"google" | "instagram" | "tiktok">;
   location?: string;
   sourceRef?: string;
 };

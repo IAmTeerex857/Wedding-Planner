@@ -60,6 +60,7 @@ async function executeResearch(batch: ExecuteBatchPayload, action: AgentAction) 
     requesterId: batch.requesterId,
     conversationId: parentBatch.conversation_id,
     query,
+    platforms: researchPlatforms(action.payload.research_platforms),
     location: optionalString(action.payload.location),
     sourceRef: action.id,
   }, { idempotencyKey: action.id });
@@ -84,4 +85,10 @@ function requiredString(value: unknown, label: string) {
 
 function optionalString(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function researchPlatforms(value: unknown): Array<"google" | "instagram" | "tiktok"> {
+  const allowed = new Set(["google", "instagram", "tiktok"]);
+  const platforms = Array.isArray(value) ? value.filter((item): item is "google" | "instagram" | "tiktok" => typeof item === "string" && allowed.has(item)) : [];
+  return platforms.length ? [...new Set(platforms)] : ["google", "instagram", "tiktok"];
 }

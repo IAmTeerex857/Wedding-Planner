@@ -15,7 +15,7 @@ export const agentTurn = task({
 
     const [context, historyResult, profileResult] = await Promise.all([
       workspaceContext(payload.workspaceId),
-      admin.from("agent_messages").select("role,content,created_at").eq("workspace_id", payload.workspaceId).eq("conversation_id", payload.conversationId).in("role", ["user", "assistant"]).order("created_at", { ascending: false }).limit(30),
+      admin.from("agent_messages").select("role,content,metadata,created_at").eq("workspace_id", payload.workspaceId).eq("conversation_id", payload.conversationId).in("role", ["user", "assistant"]).order("created_at", { ascending: false }).limit(30),
       admin.from("agent_planning_profiles").select("wedding_date,priorities,preferences,constraints,onboarding_answers").eq("workspace_id", payload.workspaceId).maybeSingle(),
     ]);
     if (historyResult.error || profileResult.error) throw new Error("Could not load agent memory");
