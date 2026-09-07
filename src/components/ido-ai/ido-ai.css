@@ -49,7 +49,7 @@
 }
 .is-agent-open .ido-ai-panel { transform: translateX(0); visibility: visible; }
 .ido-ai-panel:focus { outline: none; }
-.ido-ai-backdrop { display: none; }
+.ido-ai-backdrop { position: fixed; inset: 0; z-index: 34; display: block; border: 0; background: transparent; }
 
 .ido-ai-header {
   display: flex;
@@ -214,7 +214,7 @@
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 
 @media (max-width: 1000px) {
-  .ido-ai-backdrop { position: fixed; inset: 0; z-index: 34; display: block; border: 0; background: rgba(16, 24, 40, .35); backdrop-filter: blur(3px); }
+  .ido-ai-backdrop { background: rgba(16, 24, 40, .35); backdrop-filter: blur(3px); }
 }
 
 @media (max-width: 760px) {
