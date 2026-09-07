@@ -25,10 +25,15 @@ Deno.serve(async (request) => {
 
     const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
     const conversationId = body.conversationId
-    const { data: existingConversation } = await userClient.from('agent_conversations').select('id').eq('id', conversationId).eq('workspace_id', body.workspaceId).is('deleted_at', null).maybeSingle()
+    const { data: existingConversation } = await userClient.from('agent_conversations').select('id,status').eq('id', conversationId).eq('workspace_id', body.workspaceId).is('deleted_at', null).maybeSingle()
+    const { error: archiveError } = await admin.from('agent_conversations').update({ status: 'archived', updated_by: userData.user.id }).eq('workspace_id', body.workspaceId).eq('status', 'active').neq('id', conversationId)
+    if (archiveError) throw new Error('Could not update conversation history')
     if (!existingConversation) {
       const { error: conversationError } = await admin.from('agent_conversations').insert({ id: conversationId, workspace_id: body.workspaceId, title: content.slice(0, 80), created_by: userData.user.id, updated_by: userData.user.id })
       if (conversationError && conversationError.code !== '23505') throw new Error('Could not create conversation')
+    } else {
+      const { error: resumeError } = await admin.from('agent_conversations').update({ status: 'active', updated_by: userData.user.id, updated_at: new Date().toISOString() }).eq('id', conversationId).eq('workspace_id', body.workspaceId)
+      if (resumeError) throw new Error('Could not resume conversation')
     }
     const { data: existingRun } = await admin.from('agent_runs').select('id,status').eq('id', body.requestId).eq('workspace_id', body.workspaceId).maybeSingle()
     if (existingRun) return response({ conversationId, messageId: body.requestId, runId: existingRun.id, status: existingRun.status }, 202)

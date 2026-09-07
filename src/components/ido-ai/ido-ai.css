@@ -44,7 +44,8 @@
   box-shadow: -8px 0 28px rgba(16, 24, 40, .08);
   transform: translateX(100%);
   visibility: hidden;
-  transition: transform 180ms ease, visibility 180ms;
+  transition: transform 120ms ease-out, visibility 120ms;
+  will-change: transform;
 }
 .is-agent-open .ido-ai-panel { transform: translateX(0); visibility: visible; }
 .ido-ai-panel:focus { outline: none; }
@@ -86,6 +87,23 @@
   cursor: pointer;
 }
 .ido-ai-header-actions button:hover { color: #344054; background: #f2f4f7; }
+
+.ido-ai-history { position: absolute; inset: 72px 0 0; z-index: 4; display: flex; flex-direction: column; padding: 16px; background: #fcfcfd; }
+.ido-ai-history > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.ido-ai-history > header div { display: flex; flex-direction: column; gap: 3px; }
+.ido-ai-history > header strong { color: #101828; font-size: 16px; }
+.ido-ai-history > header span { color: #667085; font-size: 11px; }
+.ido-ai-history > header button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 7px; color: #667085; background: transparent; cursor: pointer; }
+.ido-ai-new-chat { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #101828; border-radius: 8px; color: white; background: #101828; font-size: 12px; font-weight: 650; cursor: pointer; }
+.ido-ai-history-list { display: grid; gap: 7px; margin-top: 14px; overflow-y: auto; }
+.ido-ai-history-list > button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 11px 12px; color: #344054; background: white; text-align: left; cursor: pointer; }
+.ido-ai-history-list > button:hover, .ido-ai-history-list > button.is-selected { border-color: #98a2b3; background: #f9fafb; }
+.ido-ai-history-list > button.is-selected { box-shadow: inset 3px 0 #7f56d9; }
+.ido-ai-history-list > button > span:first-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
+.ido-ai-history-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.ido-ai-history-list small { color: #667085; font-size: 9px; }
+.ido-ai-history-list > button > span:last-child { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #667085; background: #f2f4f7; font-size: 8px; text-transform: capitalize; }
+.ido-ai-history-list > p { margin-top: 24px; color: #667085; font-size: 11px; text-align: center; }
 
 .ido-ai-delete-confirm { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #fecdca; background: #fef3f2; }
 .ido-ai-delete-confirm > div { display: flex; flex-direction: column; }
@@ -148,7 +166,7 @@
 .ido-ai-answer button[type="submit"], .ido-ai-action-buttons button:last-child { border-color: #101828; color: white; background: #101828; }
 .ido-ai-answer button:disabled, .ido-ai-composer button:disabled { cursor: not-allowed; opacity: .4; }
 
-.ido-ai-batch { margin-top: 18px; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 11px; background: white; }
+.ido-ai-batch { margin: 18px 0; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 11px; background: white; }
 .ido-ai-batch-heading { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-bottom: 1px solid #e4e7ec; background: #f9fafb; }
 .ido-ai-batch-heading span { color: #6941c6; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-batch-heading strong { color: #101828; font-size: 13px; }
@@ -196,11 +214,6 @@
 
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 
-@media (min-width: 1001px) {
-  .ido-ai-workspace.is-agent-open { padding-right: 400px; }
-  .ido-ai-workspace { transition: padding-right 180ms ease; }
-}
-
 @media (max-width: 1000px) {
   .ido-ai-backdrop { position: fixed; inset: 0; z-index: 34; display: block; border: 0; background: rgba(16, 24, 40, .35); backdrop-filter: blur(3px); }
 }
@@ -209,13 +222,14 @@
   .ido-ai-workspace { margin-left: 0; }
   .ido-ai-panel { top: 0; width: 100%; border-left: 0; box-shadow: none; }
   .ido-ai-header { min-height: 62px; padding-top: max(10px, env(safe-area-inset-top)); }
+  .ido-ai-history { top: 62px; }
   .ido-ai-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 46px; }
   .ido-ai-backdrop { display: none; }
   .ido-ai-scroll { padding-inline: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ido-ai-panel, .ido-ai-workspace { transition: none; }
+  .ido-ai-panel { transition: none; }
   .ido-ai-thinking-bubble span, .ido-ai-spinner { animation: none; }
 }
 
