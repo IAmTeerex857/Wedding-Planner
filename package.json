@@ -19,6 +19,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.86.0",
+    "react-markdown": "^10.1.0",
     "react-pdf": "^10.5.0",
     "react-router-dom": "^7.18.2",
     "tus-js-client": "^4.3.1",

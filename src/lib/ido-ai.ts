@@ -27,6 +27,7 @@ export type IdoAiJob = {
   label: string
   detail: string
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled'
+  kind: string
 }
 
 export type IdoAiState = {
@@ -61,7 +62,7 @@ export async function loadIdoAiState(workspaceId: string): Promise<IdoAiState> {
 
   const [{ data: suggestions, error: suggestionError }, { data: run, error: runError }] = await Promise.all([
     db.from('agent_suggestions').select('id,title,body,priority').eq('workspace_id', workspaceId).eq('status', 'open').is('deleted_at', null).order('created_at', { ascending: false }).limit(5),
-    db.from('agent_runs').select('id,status,error_message,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    db.from('agent_runs').select('id,status,error_message,input,created_at').eq('workspace_id', workspaceId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ])
   if (suggestionError || runError) throw suggestionError ?? runError
 
@@ -81,8 +82,8 @@ export async function loadIdoAiState(workspaceId: string): Promise<IdoAiState> {
   }
 }
 
-export async function sendIdoAiMessage(workspaceId: string, conversationId: string | null, content: string) {
-  const { data, error } = await requireSupabase().functions.invoke('agent-message', { body: { workspaceId, conversationId: conversationId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), content } })
+export async function sendIdoAiMessage(workspaceId: string, conversationId: string | null, content: string, requestId: string) {
+  const { data, error } = await requireSupabase().functions.invoke('agent-message', { body: { workspaceId, conversationId: conversationId ?? crypto.randomUUID(), requestId, content } })
   if (error) throw error
   return data as { conversationId: string; runId: string }
 }
@@ -115,12 +116,13 @@ function mapAction(action: ActionRow): IdoAiAction {
   }
 }
 
-function mapJob(run: { id: string; status: string; error_message?: string | null } | null): IdoAiJob | null {
+function mapJob(run: { id: string; status: string; error_message?: string | null; input?: Record<string, unknown> | null } | null): IdoAiJob | null {
   if (!run) return null
   const status = run.status as IdoAiJob['status']
   return {
     id: run.id,
     status,
+    kind: typeof run.input?.kind === 'string' ? run.input.kind : 'agent_turn',
     label: status === 'queued' ? 'I Do AI is queued' : status === 'running' ? 'I Do AI is working' : status === 'failed' ? 'I Do AI needs attention' : 'Planning review complete',
     detail: run.error_message ?? (status === 'completed' ? 'Your latest response and proposals are ready' : 'You can continue using the planner while this runs'),
   }

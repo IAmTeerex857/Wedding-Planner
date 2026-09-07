@@ -102,10 +102,23 @@
 .ido-ai-message-mark { width: 26px; height: 26px; margin-top: 1px; border-radius: 7px; }
 .ido-ai-message-mark svg { width: 15px; height: 15px; }
 .ido-ai-message > div { max-width: 82%; }
-.ido-ai-message strong { display: block; margin: 0 0 4px; color: #667085; font-size: 10px; font-weight: 600; }
-.ido-ai-message p { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 10px; font-weight: 600; }
+.ido-ai-message > div > p, .ido-ai-message-body { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-message-body > :first-child { margin-top: 0; }
+.ido-ai-message-body > :last-child { margin-bottom: 0; }
+.ido-ai-message-body p + p, .ido-ai-message-body p + ul, .ido-ai-message-body p + ol, .ido-ai-message-body ul + p, .ido-ai-message-body ol + p { margin-top: 8px; }
+.ido-ai-message-body ul, .ido-ai-message-body ol { margin: 7px 0; padding-left: 18px; }
+.ido-ai-message-body li { margin: 3px 0; padding-left: 2px; }
+.ido-ai-message-body h1, .ido-ai-message-body h2, .ido-ai-message-body h3 { margin: 10px 0 5px; color: #101828; font-size: 13px; line-height: 1.4; }
+.ido-ai-message-body a { color: #6941c6; text-decoration: underline; text-underline-offset: 2px; }
 .ido-ai-message.is-user strong { text-align: right; }
-.ido-ai-message.is-user p { border-color: #101828; border-radius: 12px 4px 12px 12px; color: white; background: #101828; }
+.ido-ai-message.is-user > div > p { border-color: #101828; border-radius: 12px 4px 12px 12px; color: white; background: #101828; white-space: pre-wrap; }
+.ido-ai-message.is-failed > div > p { border-color: #fda29b; }
+.ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 10px; font-weight: 650; cursor: pointer; }
+.ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-thinking-bubble span { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: linear-gradient(90deg, #eaecf0 20%, #f9fafb 45%, #d0d5dd 70%, #eaecf0 100%); background-size: 240% 100%; animation: ido-ai-shimmer 1.25s ease-in-out infinite; }
+.ido-ai-thinking-bubble span:nth-child(2) { width: 88%; animation-delay: 100ms; }
+.ido-ai-thinking-bubble span:nth-child(3) { width: 58%; animation-delay: 200ms; }
 
 .ido-ai-job { display: flex; align-items: center; gap: 10px; margin: 18px 0; border: 1px solid #d1fadf; border-radius: 9px; padding: 10px; background: #f6fef9; }
 .ido-ai-job-icon { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #067647; background: #dcfae6; }
@@ -139,6 +152,7 @@
 .ido-ai-batch-heading { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-bottom: 1px solid #e4e7ec; background: #f9fafb; }
 .ido-ai-batch-heading span { color: #6941c6; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-batch-heading strong { color: #101828; font-size: 13px; }
+.ido-ai-batch-heading p { margin-top: 5px; color: #667085; font-size: 10px; line-height: 1.45; }
 .ido-ai-action { padding: 14px; border-bottom: 1px solid #eaecf0; }
 .ido-ai-action:last-child { border-bottom: 0; }
 .ido-ai-action.is-approved { background: #f6fef9; }
@@ -195,6 +209,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .ido-ai-panel, .ido-ai-workspace { transition: none; }
+  .ido-ai-thinking-bubble span, .ido-ai-spinner { animation: none; }
 }
 
 @keyframes ido-ai-spin { to { transform: rotate(360deg); } }
+@keyframes ido-ai-shimmer { to { background-position: -240% 0; } }

@@ -10,9 +10,8 @@ export default defineConfig({
     extensions: [
       syncEnvVars(() => {
         const names = ["APIFY_TOKEN", "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"] as const;
-        const missing = names.filter((name) => !process.env[name]);
-        if (missing.length) throw new Error(`${missing.join(", ")} required when deploying Trigger.dev`);
-        return names.map((name) => ({ name, value: process.env[name]!, isSecret: name.endsWith("KEY") || name === "APIFY_TOKEN" }));
+        if (!process.env.APIFY_TOKEN) throw new Error("APIFY_TOKEN is required when deploying Trigger.dev");
+        return names.filter((name) => process.env[name]).map((name) => ({ name, value: process.env[name]!, isSecret: name.endsWith("KEY") || name === "APIFY_TOKEN" }));
       }, { override: true }),
     ],
   },
