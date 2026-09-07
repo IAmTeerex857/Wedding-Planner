@@ -45,6 +45,6 @@ In Supabase Dashboard, open **Integrations → Cron**, create an Edge Function j
 
 ## I Do AI server workflows
 
-Trigger.dev tasks live in `src/trigger` and are configured by `trigger.config.ts`. Configure `OPENAI_API_KEY`, `APIFY_TOKEN`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in Trigger.dev. Configure `TRIGGER_SECRET_KEY` and `APP_URL` as Supabase Edge Function secrets. Apply `202609070001_i_do_ai.sql`, deploy the AI and email Edge Functions, then deploy the Trigger.dev project with `npx trigger.dev@latest deploy`.
+Trigger.dev tasks live in `src/trigger` and are configured by `trigger.config.ts`. Configure `APIFY_TOKEN`, `SUPABASE_URL`, and either `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY` in Trigger.dev. Configure either direct `OPENAI_API_KEY` or the Azure OpenAI endpoint, key, and deployment variables. Configure `TRIGGER_SECRET_KEY` and `APP_URL` as Supabase Edge Function secrets. Apply `202609070001_i_do_ai.sql`, deploy the AI and email Edge Functions, then deploy the Trigger.dev project with `npx trigger.dev@latest deploy`.
 
 The agent uses the exact `gpt-5.6-luna` model identifier and can only produce allowlisted action proposals. Batches remain pending until a workspace member reviews them. Approved task, vendor, ceremony, budget, allocation, and expense actions are executed transactionally. Apify and document inputs are treated as untrusted, and vendor prices remain unknown unless supplied by the user or a vendor document.

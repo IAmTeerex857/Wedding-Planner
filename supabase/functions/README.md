@@ -37,6 +37,6 @@ supabase functions deploy review-action-batch
 
 `agent-message` requires a Supabase user bearer token, verifies `workspace_members`, stores an idempotent conversation turn, and queues `ido-ai-agent-turn`. `review-action-batch` atomically records a member's decision and queues the allowlisted domain executor after approval.
 
-The Trigger.dev environment needs `OPENAI_API_KEY`, `APIFY_TOKEN`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. Keep all four server-only. Deploy Trigger tasks after applying `202609070001_i_do_ai.sql`.
+The Trigger.dev environment needs `APIFY_TOKEN`, `SUPABASE_URL`, a Supabase server key (`SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_SECRET_KEY`), and either direct OpenAI or Azure OpenAI credentials. Keep every value server-only. Deploy Trigger tasks after applying `202609070001_i_do_ai.sql`.
 
 `send-notification` also sends planner invitation links. `APP_URL` is server-controlled so invitation emails cannot be redirected to an arbitrary domain.

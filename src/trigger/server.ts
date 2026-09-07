@@ -13,7 +13,7 @@ Use only the allowed proposal actions in the response schema. Use an empty propo
 
 export function adminClient() {
   const url = requiredEnv("SUPABASE_URL");
-  const key = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const key = optionalEnv("SUPABASE_SERVICE_ROLE_KEY") ?? requiredEnv("SUPABASE_SECRET_KEY");
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
@@ -78,14 +78,19 @@ export async function workspaceContext(workspaceId: string) {
 }
 
 export async function structuredResponse(userContent: unknown, extraSystem = ""): Promise<ProposedBatch> {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const directKey = optionalEnv("OPENAI_API_KEY");
+  const azureKey = optionalEnv("AZURE_OPENAI_API_KEY");
+  const azureEndpoint = optionalEnv("AZURE_OPENAI_ENDPOINT")?.replace(/\/+$/, "");
+  const model = directKey ? MODEL : requiredEnv("AZURE_OPENAI_DEPLOYMENT");
+  if (!directKey && (!azureKey || !azureEndpoint)) throw new Error("OpenAI is not configured");
+  const response = await fetch(directKey ? "https://api.openai.com/v1/responses" : `${azureEndpoint}/openai/v1/responses`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${requiredEnv("OPENAI_API_KEY")}`,
+      ...(directKey ? { Authorization: `Bearer ${directKey}` } : { "api-key": azureKey! }),
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       input: [
         { role: "system", content: `${SYSTEM_RULES}\n${extraSystem}`.trim() },
         { role: "user", content: userContent },
@@ -195,9 +200,13 @@ export async function saveAssistantReply(input: { workspaceId: string; conversat
 }
 
 export function requiredEnv(name: string) {
-  const value = (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name];
+  const value = optionalEnv(name);
   if (!value) throw new Error(`${name} is not configured`);
   return value;
+}
+
+function optionalEnv(name: string) {
+  return (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env?.[name];
 }
 
 function readOutputText(body: Record<string, unknown>) {
