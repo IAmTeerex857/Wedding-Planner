@@ -417,7 +417,8 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-shell .nav-item.active .koboyo-icon { color: var(--ui-gray-900); }
 .ui-shell .sidebar-footer { border-color: var(--ui-gray-200); }
 .ui-shell .profile-button { min-height: 46px; border-radius: 8px; padding: 8px; }
-.ui-shell .ido-ai-launcher.is-docked { height: 36px; margin-bottom: 6px; }
+.ui-shell .ido-ai-launcher.is-docked { width: 38px; height: 38px; margin: 0; padding: 0; }
+.ui-shell .ido-ai-launcher.is-docked span { display: none; }
 .ui-shell .profile-button:hover { background: var(--ui-gray-50); }
 .ui-shell .profile-button strong { font-size: 13px; }
 .ui-shell .profile-button small { color: var(--ui-gray-500); font-size: 12px; }
@@ -928,3 +929,277 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .guest-entry.in-modal,
 .ui-page .guest-entry.in-modal { display: block; margin: 0; border: 0; padding: 0; background: transparent; }
 .guest-entry.in-modal > .entry-fields { margin: 0; }
+
+/* ==========================================================================
+   Form controls — Untitled UI "Input / md"
+   Previously only border, colour and background were set here, and sizing came
+   from whichever page stylesheet happened to define it. Anything rendered
+   outside a page — the shared Modal portals to <body> — therefore got no
+   sizing at all, and date/time inputs were never styled anywhere.
+   ========================================================================== */
+.ui-page input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.ui-page select,
+.ui-page textarea,
+.ui-modal-panel input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.ui-modal-panel select,
+.ui-modal-panel textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--ui-gray-900);
+  background-color: white;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-page select,
+.ui-modal-panel select { padding-right: 36px; }
+
+.ui-page textarea,
+.ui-modal-panel textarea { min-height: 88px; resize: vertical; }
+
+.ui-page input::placeholder,
+.ui-page textarea::placeholder,
+.ui-modal-panel input::placeholder,
+.ui-modal-panel textarea::placeholder { color: var(--ui-gray-500); }
+
+.ui-page input:hover:not(:disabled),
+.ui-page select:hover:not(:disabled),
+.ui-modal-panel input:hover:not(:disabled),
+.ui-modal-panel select:hover:not(:disabled) { border-color: var(--ui-gray-400); }
+
+/* Focus: a soft ring in the brand hue rather than a hard outline, which is what
+   gives the brand tokens somewhere real to live. */
+.ui-page input:focus-visible,
+.ui-page select:focus-visible,
+.ui-page textarea:focus-visible,
+.ui-modal-panel input:focus-visible,
+.ui-modal-panel select:focus-visible,
+.ui-modal-panel textarea:focus-visible {
+  border-color: var(--ui-brand-500);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ui-brand-100);
+}
+
+/* Date and time fields were fully native: no sizing, and a browser-default
+   calendar glyph. They now match every other control and open on click. */
+.ui-page input[type="date"],
+.ui-page input[type="time"],
+.ui-page input[type="datetime-local"],
+.ui-modal-panel input[type="date"],
+.ui-modal-panel input[type="time"],
+.ui-modal-panel input[type="datetime-local"] {
+  appearance: none;
+  position: relative;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-page input[type="date"]::-webkit-calendar-picker-indicator,
+.ui-page input[type="time"]::-webkit-calendar-picker-indicator,
+.ui-page input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="date"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="time"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  opacity: .6;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.ui-page input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+.ui-page input[type="number"],
+.ui-modal-panel input[type="number"] { font-variant-numeric: tabular-nums; }
+
+/* Checkboxes were the one control still rendering at the platform default. */
+.ui-page input[type="checkbox"],
+.ui-modal-panel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ui-brand-600);
+  cursor: pointer;
+}
+
+/* Field labels wrapping a control. */
+.ui-modal-panel label { display: flex; flex-direction: column; gap: 6px; color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+.ui-modal-panel label > span:first-child { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+
+/* ==========================================================================
+   Sidebar: create action, grouped nav with a divider, account menu
+   ========================================================================== */
+.ui-shell .sidebar-actions { display: flex; align-items: center; gap: 8px; padding: 10px; }
+.ui-shell .sidebar-actions .menu-root { flex: 1; min-width: 0; }
+.ui-shell .sidebar-actions #ido-ai-launcher-slot { flex: 0 0 auto; }
+.ui-shell .sidebar-actions:empty { display: none; }
+
+.ui-shell .new-button {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--ui-gray-900);
+  border-radius: 8px;
+  color: white;
+  background: var(--ui-gray-900);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-shell .new-button:hover { background: #000; }
+.ui-shell .new-button > span { flex: 1; text-align: left; }
+.ui-shell .new-button > .koboyo-icon:last-child { opacity: .7; filter: none; }
+
+/* The rule between Workspace and Planning. */
+.ui-shell .sidebar-nav .nav-section + .nav-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+.ui-shell .nav-label { padding: 0 12px 6px; color: var(--ui-gray-500); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+/* Roomier than the 32px it took to fit everything before Settings and Recycle
+   bin moved into the account menu. */
+.ui-shell .nav-item { min-height: 36px; gap: 12px; margin: 2px 0; padding: 8px 12px; border: 0; border-radius: 6px; color: var(--ui-gray-600); font-size: 14px; font-weight: 500; }
+
+.ui-shell .sidebar-footer { padding: 10px; }
+.ui-shell .profile-button { min-height: 48px; margin-top: 0; border-radius: 8px; padding: 8px; }
+
+/* ---- Menu popover -------------------------------------------------------- */
+.menu-root { position: relative; }
+.menu-popover {
+  position: absolute;
+  z-index: 60;
+  min-width: 208px;
+  padding: 6px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+}
+.menu-popover.place-bottom { top: calc(100% + 6px); }
+.menu-popover.place-top { bottom: calc(100% + 6px); }
+.menu-popover.align-start { left: 0; }
+.menu-popover.align-end { right: 0; }
+
+.menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--ui-gray-700);
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.menu-item:hover, .menu-item:focus-visible { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+.menu-item > span { display: flex; min-width: 0; flex-direction: column; }
+.menu-item strong { font-size: 14px; font-weight: 500; }
+.menu-item small { color: var(--ui-gray-500); font-size: 12px; }
+
+
+/* ==========================================================================
+   Ceremonies: a readable list, with add and edit as separate modal actions.
+   Previously every ceremony was a live form, all expanded at once, and "Add"
+   appended a new blank form to the very bottom of the page with no indication
+   anything had happened.
+   ========================================================================== */
+.ui-page.ceremonies-page .page-header { align-items: flex-start; }
+.ui-page.ceremonies-page .header-actions { align-items: center; gap: 16px; }
+.ui-page .ceremony-summary { display: block; min-width: 0; padding: 0; border: 0; color: var(--ui-gray-600); font-size: 14px; white-space: nowrap; }
+
+.ui-page .ceremony-list { display: flex; flex-direction: column; gap: 12px; }
+
+.ui-page .ceremony-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 2.2fr) auto;
+  align-items: center;
+  gap: 24px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 12px;
+  padding: 18px 20px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-page .ceremony-row:hover { border-color: var(--ui-gray-300); background: var(--ui-gray-25); }
+
+.ui-page .ceremony-row-title { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ui-page .ceremony-row-title h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.ui-page .ceremony-status { border: 1px solid; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+
+.ui-page .ceremony-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; }
+.ui-page .ceremony-facts > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.ui-page .ceremony-facts dt { display: flex; align-items: center; gap: 6px; color: var(--ui-gray-500); font-size: 12px; }
+.ui-page .ceremony-facts dd { margin: 0; overflow: hidden; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+
+.ui-page .ceremony-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+
+.ui-page .ceremony-empty {
+  display: grid;
+  min-height: 320px;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+}
+.ui-page .ceremony-empty h2 { font-size: 20px; font-weight: 600; }
+.ui-page .ceremony-empty p { max-width: 380px; color: var(--ui-gray-600); font-size: 14px; }
+.ui-page .ceremony-empty .button { margin-top: 12px; }
+
+/* ---- Ceremony modal ---- */
+.ceremony-form { display: flex; flex-direction: column; gap: 24px; }
+.ceremony-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ceremony-form-grid .field-wide { grid-column: 1 / -1; }
+
+.ceremony-segments { border-top: 1px solid var(--ui-gray-200); padding-top: 20px; }
+.ceremony-segments-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.ceremony-segments-head h3 { font-size: 15px; font-weight: 600; }
+.ceremony-segments-empty { color: var(--ui-gray-500); font-size: 14px; }
+.ceremony-segment-list { display: flex; flex-direction: column; gap: 8px; }
+.ceremony-segment-row { display: grid; grid-template-columns: minmax(0, 1fr) 132px 36px; align-items: center; gap: 8px; }
+.ui-modal-panel .plain-icon-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .plain-icon-button:hover { color: #b42318; background: var(--ui-error-50); }
+.ui-modal-panel .button.compact { min-height: 32px; padding: 0 10px; font-size: 13px; }
+
+@media (max-width: 1000px) {
+  .ui-page .ceremony-row { grid-template-columns: 1fr; gap: 16px; }
+  .ui-page .ceremony-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ui-page .ceremony-row-actions { justify-content: flex-end; }
+}
+
+@media (max-width: 700px) {
+  .ceremony-form-grid { grid-template-columns: 1fr; }
+  .ui-page.ceremonies-page .header-actions { flex-wrap: wrap; }
+}

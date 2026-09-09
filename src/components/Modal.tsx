@@ -75,9 +75,9 @@ export function Modal({ open, title, description, onClose, children, footer, siz
   if (!open) return null
 
   return createPortal(
-    <div className="modal-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <div className="ui-modal-layer" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
       <div
-        className={`modal-panel${size === 'wide' ? ' is-wide' : ''}`}
+        className={`ui-modal-panel${size === 'wide' ? ' is-wide' : ''}`}
         ref={panelRef}
         role="dialog"
         aria-modal="true"
@@ -85,15 +85,15 @@ export function Modal({ open, title, description, onClose, children, footer, siz
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
       >
-        <header className="modal-header">
+        <header className="ui-modal-header">
           <div>
             <h2 id={titleId}>{title}</h2>
             {description && <p id={descriptionId}>{description}</p>}
           </div>
-          <button className="modal-close" type="button" onClick={onClose} aria-label={closeLabel}><X size={18} /></button>
+          <button className="ui-modal-close" type="button" onClick={onClose} aria-label={closeLabel}><X size={18} /></button>
         </header>
-        <div className="modal-body">{children}</div>
-        {footer && <footer className="modal-footer">{footer}</footer>}
+        <div className="ui-modal-body">{children}</div>
+        {footer && <footer className="ui-modal-footer">{footer}</footer>}
       </div>
     </div>,
     document.body,

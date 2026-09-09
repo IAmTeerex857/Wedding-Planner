@@ -123,7 +123,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 @media (pointer: coarse) { .fsb { display: none; } }
 
 /* ---- Shared modal -------------------------------------------------------- */
-.modal-layer {
+.ui-modal-layer {
   position: fixed;
   inset: 0;
   z-index: 150;
@@ -135,7 +135,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   animation: overlay-in var(--dur) var(--ease-out);
 }
 
-.modal-panel {
+.ui-modal-panel {
   display: flex;
   width: min(560px, 100%);
   max-height: min(84vh, 760px);
@@ -147,15 +147,15 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   animation: panel-in var(--dur) var(--ease-out);
 }
 
-.modal-panel.is-wide { width: min(880px, 100%); }
-.modal-panel:focus { outline: none; }
-.modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 0; }
-.modal-header h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
-.modal-header p { margin-top: 4px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
-.modal-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; transition: color var(--dur-fast) ease, background var(--dur-fast) ease; }
-.modal-close:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
-.modal-body { overflow-y: auto; padding: 20px; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
+.ui-modal-panel.is-wide { width: min(880px, 100%); }
+.ui-modal-panel:focus { outline: none; }
+.ui-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 0; }
+.ui-modal-header h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.ui-modal-header p { margin-top: 4px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
+.ui-modal-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; transition: color var(--dur-fast) ease, background var(--dur-fast) ease; }
+.ui-modal-close:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+.ui-modal-body { overflow-y: auto; padding: 20px; }
+.ui-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
 
 .confirm-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.42); backdrop-filter: blur(3px); animation: overlay-in var(--dur) var(--ease-out); }
 .confirm-dialog { width: min(430px, 100%); border: 1px solid var(--ink); padding: 22px; background: var(--paper); box-shadow: 0 24px 80px rgba(0,0,0,.2); animation: panel-in var(--dur) var(--ease-out); }
@@ -468,7 +468,7 @@ h1, h2, p { margin: 0; }
    blanket .01ms kill flattened those into invisible instant swaps. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
-  .modal-panel, .confirm-dialog { animation: overlay-in var(--dur-fast) ease; }
+  .ui-modal-panel, .confirm-dialog { animation: overlay-in var(--dur-fast) ease; }
   .ido-ai-panel { transition: visibility var(--dur-fast); }
   .ido-ai-page-slot { transition: none; }
   .loading-line::after, .route-loading span, .ido-ai-spinner, .ido-ai-thinking-bubble span { animation-duration: 1.4s !important; }

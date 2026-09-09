@@ -9,6 +9,7 @@ import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, up
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, useWorkspace } from '../lib/workspace-context'
 import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
 import { HoneymoonPage } from './HoneymoonPage'
 import './registry.css'
 
@@ -88,6 +89,7 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const persistent = isRegistryTitle(title) && !isPreview
   const [previewRecords, setPreviewRecords] = useState<RegistryRecord[]>([])
   const [adding, setAdding] = useState(false)
+  useCreateParam(() => setAdding(true))
   const [editing, setEditing] = useState<RegistryRecord | null>(null)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')

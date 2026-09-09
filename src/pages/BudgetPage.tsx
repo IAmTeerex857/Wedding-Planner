@@ -18,6 +18,7 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import { fetchNgnRate } from '../lib/exchange-rates'
 import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
 
 type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR'
 type ExpenseStatus = 'planned' | 'due' | 'paid'
@@ -116,6 +117,7 @@ export function BudgetPage() {
   const [entries, setEntries] = useState<LedgerEntry[]>([])
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null)
+  useCreateParam(() => setFormMode('expense'))
   const [query, setQuery] = useState('')
   const [kindFilter, setKindFilter] = useState<'all' | EntryKind>('all')
   const [allocationFilter, setAllocationFilter] = useState('all')

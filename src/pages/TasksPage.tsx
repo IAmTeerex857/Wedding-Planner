@@ -1,8 +1,8 @@
 import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../components/KoboyoIcon'
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { useCreateParam } from '../lib/use-create-param'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
@@ -47,12 +47,12 @@ const emptyDraft: TaskDraft = {
 const previewCeremonyOptions = [{ id: 'court', kind: 'court', name: 'Court Wedding' }, { id: 'traditional', kind: 'traditional', name: 'Traditional Wedding' }, { id: 'white', kind: 'white', name: 'White Wedding' }]
 
 export function TasksPage() {
-  const [searchParams] = useSearchParams()
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [tasks, setTasks] = useState<PlanningTask[]>([])
   const [view, setView] = useState<TaskView>('list')
-  const [isAdding, setIsAdding] = useState(() => searchParams.get('new') === '1')
+  const [isAdding, setIsAdding] = useState(false)
+  useCreateParam(() => setIsAdding(true))
   const [editingId, setEditingId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PlanningTask | null>(null)
   const [draft, setDraft] = useState<TaskDraft>(emptyDraft)
@@ -196,8 +196,7 @@ export function TasksPage() {
     <div className="page planning-page tasks-page ui-page">
       <header className="page-header tasks-header">
         <div>
-          <p className="eyebrow">Planning desk / {tasks.filter(({ status }) => status !== 'done').length} open</p>
-          <h1>Tasks</h1>
+                    <h1>Tasks</h1>
           <p className="page-lead">Assign the next action, connect it to a celebration, and keep work moving.</p>
         </div>
         <button className="button primary" type="button" onClick={() => setIsAdding(true)}><Plus size={16} /> Add task</button>

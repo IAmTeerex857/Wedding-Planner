@@ -1,6 +1,9 @@
-import { CalendarDays, MapPin, Plus, Trash2, Users } from '../components/KoboyoIcon'
+import { CalendarDays, Clock3, MapPin, Pencil, Plus, Trash2, Users } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { useEffect, useState } from 'react'
+import { Modal } from '../components/Modal'
+import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
+import { useEffect, useId, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
@@ -43,7 +46,8 @@ export function CeremoniesPage() {
   const { workspace, userId, isPreview } = useWorkspace()
   const queryClient = useQueryClient()
   const [ceremonies, setCeremonies] = useState<Ceremony[]>(initialCeremonies)
-  const [pendingSegmentDelete, setPendingSegmentDelete] = useState<{ ceremonyId: string; segment: CeremonySegment } | null>(null)
+  const [draft, setDraft] = useState<Ceremony | null>(null)
+  const [draftIsNew, setDraftIsNew] = useState(false)
   const [pendingCeremonyDelete, setPendingCeremonyDelete] = useState<Ceremony | null>(null)
   const ceremonyQuery = useQuery({
     queryKey: ['ceremonies', workspace.id],
@@ -111,40 +115,22 @@ export function CeremoniesPage() {
     }))
   }, [ceremonyQuery.data])
 
-  function updateCeremony(id: string, patch: Partial<Ceremony>) {
-    setCeremonies((current) => current.map((ceremony) =>
-      ceremony.id === id ? { ...ceremony, ...patch } : ceremony,
-    ))
+  function startCreate() {
+    setDraft({ id: crypto.randomUUID(), kind: '', name: '', status: 'tentative', date: '', location: '', capacity: null, segments: [] })
+    setDraftIsNew(true)
   }
 
-  function addSegment(ceremonyId: string) {
-    setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
-      ? {
-          ...ceremony,
-          segments: [...ceremony.segments, { id: crypto.randomUUID(), title: '', time: '' }],
-        }
-      : ceremony))
+  useCreateParam(startCreate)
+
+  function startEdit(ceremony: Ceremony) {
+    setDraft({ ...ceremony, segments: ceremony.segments.map((segment) => ({ ...segment })) })
+    setDraftIsNew(false)
   }
 
-  function updateSegment(ceremonyId: string, segmentId: string, patch: Partial<CeremonySegment>) {
-    setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
-      ? {
-          ...ceremony,
-          segments: ceremony.segments.map((segment) =>
-            segment.id === segmentId ? { ...segment, ...patch } : segment,
-          ),
-        }
-      : ceremony))
-  }
-
-  function removeSegment(ceremonyId: string, segmentId: string) {
-    setCeremonies((current) => current.map((ceremony) => ceremony.id === ceremonyId
-      ? { ...ceremony, segments: ceremony.segments.filter((segment) => segment.id !== segmentId) }
-      : ceremony))
-  }
-
-  function addCeremony() {
-    setCeremonies((current) => [...current, { id: crypto.randomUUID(), kind: '', name: '', status: 'tentative', date: '', location: '', capacity: null, segments: [] }])
+  function commitDraft(ceremony: Ceremony) {
+    setCeremonies((current) => draftIsNew ? [...current, ceremony] : current.map((item) => item.id === ceremony.id ? ceremony : item))
+    if (!isPreview) saveMutation.mutate(ceremony)
+    setDraft(null)
   }
 
   function removeCeremony(ceremony: Ceremony) {
@@ -153,125 +139,147 @@ export function CeremoniesPage() {
     setPendingCeremonyDelete(null)
   }
 
+  const confirmedCount = ceremonies.filter(({ status }) => status === 'confirmed').length
+
   return (
     <div className="page planning-page ceremonies-page ui-page">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Celebration plan / {String(ceremonies.length).padStart(2, '0')} ceremonies</p>
           <h1>Ceremonies</h1>
-          <p className="page-lead">Keep the essentials for each celebration together. Save each ceremony after making changes.</p>
+          <p className="page-lead">Keep the essentials for each celebration together.</p>
         </div>
-        <button className="button primary" type="button" onClick={addCeremony}><Plus size={16} /> Add ceremony</button>
-        <div className="ceremony-summary" aria-label="Ceremony status summary">
-          <strong>{ceremonies.filter(({ status }) => status === 'confirmed').length}</strong>
-          <span>dates confirmed</span>
+        <div className="header-actions">
+          <span className="ceremony-summary">{confirmedCount} of {ceremonies.length} dates confirmed</span>
+          <button className="button primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</button>
         </div>
       </header>
 
-      <div className="ceremony-editor-list">
-        {ceremonies.map((ceremony, index) => (
-          <article className="ceremony-editor" key={ceremony.id}>
-            <div className="ceremony-editor-heading">
-              <span className="ceremony-editor-number">0{index + 1}</span>
-              <div>
-                <p className="eyebrow">Celebration</p>
-                <input aria-label={`Ceremony ${index + 1} name`} maxLength={80} value={ceremony.name} placeholder="Ceremony name" onChange={(event) => updateCeremony(ceremony.id, { name: event.target.value })} />
+      {(saveMutation.error || deleteMutation.error) && (
+        <p className="data-error" role="alert">{saveMutation.error?.message ?? deleteMutation.error?.message}</p>
+      )}
+
+      {ceremonies.length === 0 ? (
+        <div className="ceremony-empty">
+          <h2>No ceremonies yet</h2>
+          <p>Add the first celebration to start planning dates, venues and the order of events.</p>
+          <button className="button primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</button>
+        </div>
+      ) : (
+        <div className="ceremony-list">
+          {ceremonies.map((ceremony) => (
+            <article className="ceremony-row" key={ceremony.id}>
+              <div className="ceremony-row-title">
+                <h2>{ceremony.name || 'Untitled ceremony'}</h2>
+                <span className={`ceremony-status ${pillTone(ceremony.status)}`}>{statusOptions.find((option) => option.value === ceremony.status)?.label}</span>
               </div>
-              <button className="plain-icon-button" type="button" aria-label={`Delete ${ceremony.name || 'ceremony'}`} onClick={() => setPendingCeremonyDelete(ceremony)}><Trash2 size={15} /></button>
-              <label className={`status-select status-${ceremony.status}`}>
-                <span className="sr-only">{ceremony.name} status</span>
-                <select
-                  value={ceremony.status}
-                  onChange={(event) => updateCeremony(ceremony.id, { status: event.target.value as CeremonyStatus })}
-                >
-                  {statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-            </div>
+              <dl className="ceremony-facts">
+                <div><dt><CalendarDays size={14} /> Date</dt><dd>{formatCeremonyDate(ceremony.date)}</dd></div>
+                <div><dt><MapPin size={14} /> Location</dt><dd>{ceremony.location || 'Not set'}</dd></div>
+                <div><dt><Users size={14} /> Capacity</dt><dd>{ceremony.capacity ?? 'Not set'}</dd></div>
+                <div><dt><Clock3 size={14} /> Segments</dt><dd>{ceremony.segments.length || 'None'}</dd></div>
+              </dl>
+              <div className="ceremony-row-actions">
+                <button className="button secondary" type="button" onClick={() => startEdit(ceremony)}><Pencil size={15} /> Edit</button>
+                <button className="plain-icon-button" type="button" aria-label={`Delete ${ceremony.name || 'ceremony'}`} onClick={() => setPendingCeremonyDelete(ceremony)}><Trash2 size={15} /></button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
 
-            <div className="ceremony-fields">
-              <label className="planning-field">
-                <span><CalendarDays size={14} /> Date</span>
-                <input
-                  type="date"
-                  value={ceremony.date}
-                  onChange={(event) => updateCeremony(ceremony.id, { date: event.target.value })}
-                />
-              </label>
-              <label className="planning-field field-wide">
-                <span><MapPin size={14} /> Location</span>
-                <input
-                  type="text"
-                  value={ceremony.location}
-                  placeholder="Add a venue or address"
-                  onChange={(event) => updateCeremony(ceremony.id, { location: event.target.value })}
-                />
-              </label>
-              <label className="planning-field">
-                <span><Users size={14} /> Capacity</span>
-                <input
-                  type="number"
-                  min="0"
-                  inputMode="numeric"
-                  value={ceremony.capacity ?? ''}
-                  placeholder="Not set"
-                  onChange={(event) => updateCeremony(ceremony.id, {
-                    capacity: event.target.value === '' ? null : Number(event.target.value),
-                  })}
-                />
-              </label>
-            </div>
-
-            <section className="segments-section" aria-labelledby={`${ceremony.id}-segments`}>
-                <div className="segments-header">
-                  <div>
-                    <p className="eyebrow">Order of events</p>
-                    <h3 id={`${ceremony.id}-segments`}>Segments</h3>
-                  </div>
-                  <button className="button secondary compact" type="button" onClick={() => addSegment(ceremony.id)}>
-                    <Plus size={14} /> Add segment
-                  </button>
-                </div>
-                {ceremony.segments.length === 0 ? (
-                  <button className="segment-empty" type="button" onClick={() => addSegment(ceremony.id)}>
-                    <Plus size={16} />
-                    <span><strong>No segments yet</strong>Add the first part of the {ceremony.name.toLowerCase()} ceremony.</span>
-                  </button>
-                ) : (
-                  <div className="segment-list">
-                    {ceremony.segments.map((segment, segmentIndex) => (
-                      <div className="segment-row" key={segment.id}>
-                        <span className="segment-index">{String(segmentIndex + 1).padStart(2, '0')}</span>
-                        <input
-                          aria-label={`Segment ${segmentIndex + 1} name`}
-                          value={segment.title}
-                          placeholder="Segment name"
-                          onChange={(event) => updateSegment(ceremony.id, segment.id, { title: event.target.value })}
-                        />
-                        <input
-                          aria-label={`Segment ${segmentIndex + 1} time`}
-                          type="time"
-                          value={segment.time}
-                          onChange={(event) => updateSegment(ceremony.id, segment.id, { time: event.target.value })}
-                        />
-                        <button className="plain-icon-button" type="button" aria-label="Remove segment" onClick={() => setPendingSegmentDelete({ ceremonyId: ceremony.id, segment })}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            <div className="ceremony-save-row">
-              {(saveMutation.error || deleteMutation.error) && <span>{saveMutation.error?.message ?? deleteMutation.error?.message}</span>}
-              <button className="button primary" type="button" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate(ceremony)}>{isPreview ? 'Keep preview changes' : saveMutation.isPending ? 'Saving...' : 'Save ceremony'}</button>
-            </div>
-          </article>
-        ))}
-      </div>
-      {pendingSegmentDelete && <ConfirmDialog title={`Remove ${pendingSegmentDelete.segment.title || 'this segment'}?`} description="The segment will be removed when you save this ceremony." onCancel={() => setPendingSegmentDelete(null)} onConfirm={() => { removeSegment(pendingSegmentDelete.ceremonyId, pendingSegmentDelete.segment.id); setPendingSegmentDelete(null) }} />}
+      {draft && (
+        <CeremonyModal
+          key={draft.id}
+          ceremony={draft}
+          isNew={draftIsNew}
+          saving={saveMutation.isPending}
+          onClose={() => setDraft(null)}
+          onSave={commitDraft}
+        />
+      )}
       {pendingCeremonyDelete && <ConfirmDialog title={`Delete ${pendingCeremonyDelete.name || 'this ceremony'}?`} description="This ceremony will move to the recycle bin and disappear from ceremony options." pending={deleteMutation.isPending} onCancel={() => setPendingCeremonyDelete(null)} onConfirm={() => removeCeremony(pendingCeremonyDelete)} />}
     </div>
+  )
+}
+
+function formatCeremonyDate(value: string) {
+  if (!value) return 'Not set'
+  const [year, month, day] = value.split('-').map(Number)
+  return new Intl.DateTimeFormat('en-NG', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(year, month - 1, day))
+}
+
+/**
+ * Add and edit share this form, but they are separate actions: adding opens an
+ * empty one, editing opens a copy of that ceremony. Nothing reaches the list
+ * until Save, so cancelling genuinely discards.
+ */
+function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony: Ceremony; isNew: boolean; saving: boolean; onClose: () => void; onSave: (ceremony: Ceremony) => void }) {
+  const [values, setValues] = useState<Ceremony>(ceremony)
+  const formId = useId()
+  const patch = (next: Partial<Ceremony>) => setValues((current) => ({ ...current, ...next }))
+
+  function patchSegment(id: string, next: Partial<CeremonySegment>) {
+    setValues((current) => ({ ...current, segments: current.segments.map((segment) => segment.id === id ? { ...segment, ...next } : segment) }))
+  }
+
+  return (
+    <Modal
+      open
+      size="wide"
+      title={isNew ? 'Add ceremony' : `Edit ${ceremony.name || 'ceremony'}`}
+      description="Name and date can be changed at any time."
+      onClose={onClose}
+      footer={<>
+        <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+        <button className="button primary" type="submit" form={formId} disabled={saving || !values.name.trim()}>{saving ? 'Saving...' : isNew ? 'Add ceremony' : 'Save changes'}</button>
+      </>}
+    >
+      <form id={formId} className="ceremony-form" onSubmit={(event) => { event.preventDefault(); onSave({ ...values, name: values.name.trim() }) }}>
+        <div className="ceremony-form-grid">
+          <label className="field-wide"><span>Ceremony name</span>
+            <input required maxLength={80} value={values.name} placeholder="Court, Traditional, White..." onChange={(event) => patch({ name: event.target.value })} />
+          </label>
+          <label><span>Status</span>
+            <select value={values.status} onChange={(event) => patch({ status: event.target.value as CeremonyStatus })}>
+              {statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <label><span>Date</span>
+            <input type="date" value={values.date} onChange={(event) => patch({ date: event.target.value })} />
+          </label>
+          <label className="field-wide"><span>Location</span>
+            <input type="text" value={values.location} placeholder="Add a venue or address" onChange={(event) => patch({ location: event.target.value })} />
+          </label>
+          <label><span>Capacity</span>
+            <input type="number" min="0" inputMode="numeric" value={values.capacity ?? ''} placeholder="Not set" onChange={(event) => patch({ capacity: event.target.value === '' ? null : Number(event.target.value) })} />
+          </label>
+        </div>
+
+        <section className="ceremony-segments" aria-labelledby={`${formId}-segments`}>
+          <div className="ceremony-segments-head">
+            <h3 id={`${formId}-segments`}>Order of events</h3>
+            <button className="button secondary compact" type="button" onClick={() => setValues((current) => ({ ...current, segments: [...current.segments, { id: crypto.randomUUID(), title: '', time: '' }] }))}>
+              <Plus size={14} /> Add segment
+            </button>
+          </div>
+          {values.segments.length === 0 ? (
+            <p className="ceremony-segments-empty">No segments yet. Add the parts of the day you want to plan around.</p>
+          ) : (
+            <div className="ceremony-segment-list">
+              {values.segments.map((segment, index) => (
+                <div className="ceremony-segment-row" key={segment.id}>
+                  <input aria-label={`Segment ${index + 1} name`} value={segment.title} placeholder="Segment name" onChange={(event) => patchSegment(segment.id, { title: event.target.value })} />
+                  <input aria-label={`Segment ${index + 1} time`} type="time" value={segment.time} onChange={(event) => patchSegment(segment.id, { time: event.target.value })} />
+                  <button className="plain-icon-button" type="button" aria-label={`Remove segment ${index + 1}`} onClick={() => setValues((current) => ({ ...current, segments: current.segments.filter((item) => item.id !== segment.id) }))}>
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </form>
+    </Modal>
   )
 }
 

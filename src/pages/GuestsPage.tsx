@@ -19,6 +19,7 @@ import {
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
 import {
   GUEST_IMPORT_FIELDS,
   buildGuestImportReview,
@@ -69,6 +70,7 @@ export function GuestsPage() {
   const [rsvpFilter, setRsvpFilter] = useState<'all' | RsvpStatus>('all')
   const [entryOpen, setEntryOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
+  useCreateParam(() => setEntryOpen(true))
   const [pendingDelete, setPendingDelete] = useState<Guest | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase())
