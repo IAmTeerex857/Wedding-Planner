@@ -298,7 +298,6 @@ export function BudgetPage() {
     <div className="page budget-page ui-page">
       <header className="page-header budget-header">
         <div>
-          <p className="eyebrow">Finance / NGN reporting</p>
           <h1>Budget</h1>
           <p className="page-lead">Create spending allocations, connect them to ceremonies, and record every payment and contribution in its original currency.</p>
         </div>

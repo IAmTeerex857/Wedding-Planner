@@ -64,7 +64,7 @@ export function FilesPage() {
   const files = filesQuery.data ?? []
   const filteredFiles = categoryFilter === 'All' ? files : files.filter((file) => file.category === categoryFilter)
 
-  return <div className="page files-page ui-page"><header className="page-header"><div><p className="eyebrow">Private storage</p><h1>Photos & files</h1><p className="page-lead">Keep receipts, contracts, quotes, rate cards, inspiration, invitation assets, and travel documents inside the shared workspace.</p></div><button className="button primary" type="button" onClick={() => setUploading(true)}><Upload size={15} /> Upload file</button></header>
+  return <div className="page files-page ui-page"><header className="page-header"><div><h1>Photos & files</h1><p className="page-lead">Keep receipts, contracts, quotes, rate cards, inspiration, invitation assets, and travel documents inside the shared workspace.</p></div><button className="button primary" type="button" onClick={() => setUploading(true)}><Upload size={15} /> Upload file</button></header>
     {uploading && <UploadForm saving={uploadMutation.isPending} onClose={() => setUploading(false)} onUpload={(payload) => uploadMutation.mutate(payload)} />}
     {(filesQuery.error || uploadMutation.error || deleteMutation.error || analyzeMutation.error) && <p className="data-error">{filesQuery.error?.message ?? uploadMutation.error?.message ?? deleteMutation.error?.message ?? analyzeMutation.error?.message}</p>}
     {analyzeMutation.isSuccess && <p className="data-success">Document analysis is queued in I Do AI.</p>}

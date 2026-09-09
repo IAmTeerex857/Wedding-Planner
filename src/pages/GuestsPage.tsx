@@ -17,6 +17,7 @@ import {
   X,
 } from '../components/KoboyoIcon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { pillTone } from '../lib/pills'
 import {
   GUEST_IMPORT_FIELDS,
@@ -301,7 +302,6 @@ export function GuestsPage() {
     <div className="page guests-page ui-page">
       <header className="page-header guests-header">
         <div>
-          <p className="eyebrow">People & invitations</p>
           <h1>Guest book</h1>
           <p className="page-lead">Keep every guest, invitation, stay, and ceremony response in one considered list.</p>
         </div>
@@ -398,6 +398,7 @@ function RsvpBadge({ label, status, onChange }: { label: string; status: RsvpSta
 function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { initialGuest?: Guest; ceremonies: CeremonyOption[]; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
   const [guest, setGuest] = useState<Omit<Guest, 'id'>>(() => ({ ...(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation } : emptyGuest), rsvps: Object.fromEntries(ceremonies.map((ceremony) => [ceremony.id, initialGuest?.rsvps[ceremony.id] ?? 'pending'])) }))
   const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
+  const formId = useId()
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -406,8 +407,15 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
   }
 
   return (
-    <form className="guest-entry" aria-labelledby="guest-entry-title" onSubmit={submit}>
-      <div className="entry-intro"><p className="eyebrow">{initialGuest ? 'Update record' : 'New record'}</p><h2 id="guest-entry-title">{initialGuest ? 'Edit guest' : 'Add a guest'}</h2><p>Name and one contact method are required.</p></div>
+    <Modal
+      open
+      size="wide"
+      title={initialGuest ? 'Edit guest' : 'Add a guest'}
+      description="Name and one contact method are required."
+      onClose={onClose}
+      footer={<><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" form={formId} disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></>}
+    >
+    <form className="guest-entry in-modal" id={formId} onSubmit={submit}>
       <div className="entry-fields">
         <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
         <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
@@ -423,8 +431,8 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
           <label key={ceremony.id}><span>{ceremonyLabel(ceremony)} RSVP</span><select className={`rsvp-select ${guest.rsvps[ceremony.id]}`} value={guest.rsvps[ceremony.id]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
         ))}
       </div>
-      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>
     </form>
+    </Modal>
   )
 }
 

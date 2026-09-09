@@ -212,7 +212,7 @@ export function SeatingPage() {
 
   return <div className="page seating-page ui-page">
     <header className="page-header">
-      <div><p className="eyebrow">Guest placement</p><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
+      <div><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
       <label className="page-ceremony-filter"><span>Ceremony</span><select value={ceremony?.id ?? ''} onChange={(change) => switchEvent(change.target.value)}><option value="" disabled>Select ceremony</option>{ceremonyOptions.map((item) => <option value={item.id} key={item.id}>{ceremonyLabel(item)}</option>)}</select></label>
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}

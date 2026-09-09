@@ -26,8 +26,23 @@
   box-shadow: 0 8px 24px rgba(16, 24, 40, .2), 0 2px 4px rgba(16, 24, 40, .1);
   cursor: pointer;
 }
+/* Docked into the sidebar footer: it sits in the layout instead of floating over
+   page content, so it can never occlude a toolbar or a primary submit. */
+.ido-ai-launcher.is-docked {
+  position: static;
+  width: 100%;
+  height: 40px;
+  justify-content: center;
+  margin-bottom: 8px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: none;
+}
+
 .ido-ai-launcher svg { width: 22px; height: 22px; }
-.ido-ai-launcher b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 999px; padding: 0 5px; color: #101828; background: #fff; font-size: 10px; }
+.ido-ai-launcher.is-docked svg { width: 18px; height: 18px; }
+.ido-ai-launcher b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 999px; padding: 0 5px; color: #101828; background: #fff; font-size: 12px; }
 .ido-ai-launcher:hover { background: #344054; }
 
 .ido-ai-panel {
@@ -51,6 +66,15 @@
 .ido-ai-panel:focus { outline: none; }
 .ido-ai-backdrop { position: fixed; inset: 0; z-index: 34; display: block; border: 0; background: transparent; }
 
+/* At desktop widths the assistant docks and the page reflows beside it, so the
+   panel never covers page content and no full-screen backdrop swallows clicks.
+   Below 1000px there is no room to reflow, so it stays an overlay. */
+@media (min-width: 1001px) {
+  .ido-ai-page-slot { transition: padding-right 240ms cubic-bezier(.32, .72, 0, 1); }
+  .is-agent-open .ido-ai-page-slot { padding-right: 400px; }
+  .ido-ai-backdrop { display: none; }
+}
+
 .ido-ai-header {
   display: flex;
   min-height: 72px;
@@ -68,11 +92,11 @@
   color: white;
   background: #101828;
 }
-.ido-ai-mark { width: 38px; height: 38px; border-radius: 10px; box-shadow: 0 1px 2px rgba(16, 24, 40, .12); }
+.ido-ai-mark { width: 38px; height: 38px; border-radius: 10px; }
 .ido-ai-mark svg { width: 22px; height: 22px; }
 .ido-ai-identity > span:last-child { display: flex; min-width: 0; flex-direction: column; }
 .ido-ai-identity strong { font-size: 14px; font-weight: 650; line-height: 20px; }
-.ido-ai-identity small { display: flex; align-items: center; gap: 6px; color: #667085; font-size: 11px; }
+.ido-ai-identity small { display: flex; align-items: center; gap: 6px; color: #667085; font-size: 12px; }
 .ido-ai-identity small i { width: 6px; height: 6px; border-radius: 50%; background: #17b26a; box-shadow: 0 0 0 2px #ecfdf3; }
 .ido-ai-header-actions { display: flex; gap: 4px; }
 .ido-ai-header-actions button {
@@ -92,7 +116,7 @@
 .ido-ai-history > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .ido-ai-history > header div { display: flex; flex-direction: column; gap: 3px; }
 .ido-ai-history > header strong { color: #101828; font-size: 16px; }
-.ido-ai-history > header span { color: #667085; font-size: 11px; }
+.ido-ai-history > header span { color: #667085; font-size: 12px; }
 .ido-ai-history > header button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 7px; color: #667085; background: transparent; cursor: pointer; }
 .ido-ai-new-chat { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #101828; border-radius: 8px; color: white; background: #101828; font-size: 12px; font-weight: 650; cursor: pointer; }
 .ido-ai-history-list { display: grid; gap: 7px; margin-top: 14px; overflow-y: auto; }
@@ -100,27 +124,27 @@
 .ido-ai-history-list > button:hover, .ido-ai-history-list > button.is-selected { border-color: #98a2b3; background: #f9fafb; }
 .ido-ai-history-list > button > span:first-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
 .ido-ai-history-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.ido-ai-history-list small { color: #667085; font-size: 9px; }
-.ido-ai-history-list > button > span:last-child { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #667085; background: #f2f4f7; font-size: 8px; text-transform: capitalize; }
-.ido-ai-history-list > p { margin-top: 24px; color: #667085; font-size: 11px; text-align: center; }
+.ido-ai-history-list small { color: #667085; font-size: 12px; }
+.ido-ai-history-list > button > span:last-child { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #667085; background: #f2f4f7; font-size: 12px; text-transform: capitalize; }
+.ido-ai-history-list > p { margin-top: 24px; color: #667085; font-size: 12px; text-align: center; }
 
 .ido-ai-delete-confirm { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #fecdca; background: #fef3f2; }
 .ido-ai-delete-confirm > div { display: flex; flex-direction: column; }
 .ido-ai-delete-confirm strong { color: #b42318; font-size: 12px; }
-.ido-ai-delete-confirm span { color: #912018; font-size: 10px; }
-.ido-ai-delete-confirm button { border: 1px solid #fecdca; border-radius: 6px; padding: 6px 8px; color: #b42318; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-delete-confirm span { color: #912018; font-size: 12px; }
+.ido-ai-delete-confirm button { border: 1px solid #fecdca; border-radius: 6px; padding: 6px 8px; color: #b42318; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-delete-confirm button:last-child { color: white; background: #d92d20; }
 
 .ido-ai-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 28px; background: #fcfcfd; }
-.ido-ai-date { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; color: #98a2b3; font-size: 10px; text-transform: uppercase; }
+.ido-ai-date { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; color: #98a2b3; font-size: 12px; text-transform: uppercase; }
 .ido-ai-date::before, .ido-ai-date::after { height: 1px; flex: 1; background: #eaecf0; content: ""; }
 .ido-ai-message { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 16px; }
 .ido-ai-message.is-user { justify-content: flex-end; }
 .ido-ai-message-mark { width: 26px; height: 26px; margin-top: 1px; border-radius: 7px; }
 .ido-ai-message-mark svg { width: 15px; height: 15px; }
 .ido-ai-message > div { max-width: 82%; }
-.ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 10px; font-weight: 600; }
-.ido-ai-message > div > p, .ido-ai-message-body { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 12px; font-weight: 600; }
+.ido-ai-message > div > p, .ido-ai-message-body { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; }
 .ido-ai-message-body > :first-child { margin-top: 0; }
 .ido-ai-message-body > :last-child { margin-bottom: 0; }
 .ido-ai-message-body p + p, .ido-ai-message-body p + ul, .ido-ai-message-body p + ol, .ido-ai-message-body ul + p, .ido-ai-message-body ol + p { margin-top: 8px; }
@@ -131,8 +155,8 @@
 .ido-ai-message.is-user strong { text-align: right; }
 .ido-ai-message.is-user > div > p { border-color: #101828; border-radius: 12px 4px 12px 12px; color: white; background: #101828; white-space: pre-wrap; }
 .ido-ai-message.is-failed > div > p { border-color: #fda29b; }
-.ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 10px; font-weight: 650; cursor: pointer; }
-.ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 12px; font-weight: 650; cursor: pointer; }
+.ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; }
 .ido-ai-thinking-bubble span { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: linear-gradient(90deg, #eaecf0 20%, #f9fafb 45%, #d0d5dd 70%, #eaecf0 100%); background-size: 240% 100%; animation: ido-ai-shimmer 1.25s ease-in-out infinite; }
 .ido-ai-thinking-bubble span:nth-child(2) { width: 88%; animation-delay: 100ms; }
 .ido-ai-thinking-bubble span:nth-child(3) { width: 58%; animation-delay: 200ms; }
@@ -140,75 +164,75 @@
 .ido-ai-job { display: flex; align-items: center; gap: 10px; margin: 18px 0; border: 1px solid #d1fadf; border-radius: 9px; padding: 10px; background: #f6fef9; }
 .ido-ai-job-icon { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #067647; background: #dcfae6; }
 .ido-ai-job > span:last-child { display: flex; flex-direction: column; }
-.ido-ai-job strong { color: #067647; font-size: 11px; }
-.ido-ai-job small { margin-top: 1px; color: #475467; font-size: 10px; }
+.ido-ai-job strong { color: #067647; font-size: 12px; }
+.ido-ai-job small { margin-top: 1px; color: #475467; font-size: 12px; }
 .ido-ai-spinner { width: 12px; height: 12px; border: 2px solid #a6f4c5; border-top-color: #067647; border-radius: 50%; animation: ido-ai-spin .8s linear infinite; }
 
-.ido-ai-question { margin: 18px 0; border: 1px solid #d0d5dd; border-radius: 12px; padding: 16px; background: white; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
-.ido-ai-question-progress { display: flex; align-items: center; justify-content: space-between; color: #667085; font-size: 10px; font-weight: 600; }
+.ido-ai-question { margin: 18px 0; border: 1px solid #d0d5dd; border-radius: 12px; padding: 16px; background: white; }
+.ido-ai-question-progress { display: flex; align-items: center; justify-content: space-between; color: #667085; font-size: 12px; font-weight: 600; }
 .ido-ai-question-progress span { letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-question-progress strong { color: #475467; }
 .ido-ai-progress-track { height: 4px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: #f2f4f7; }
 .ido-ai-progress-track span { display: block; height: 100%; border-radius: inherit; background: #7f56d9; }
 .ido-ai-question h2 { margin: 18px 0 5px; color: #101828; font-size: 17px; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
-.ido-ai-question > p { color: #667085; font-size: 11px; line-height: 1.5; }
+.ido-ai-question > p { color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-choices { display: grid; gap: 7px; margin-top: 14px; }
-.ido-ai-choices button { display: flex; min-height: 40px; align-items: center; justify-content: space-between; border: 1px solid #d0d5dd; border-radius: 8px; padding: 8px 11px; color: #344054; background: white; font-size: 12px; font-weight: 550; text-align: left; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); cursor: pointer; }
+.ido-ai-choices button { display: flex; min-height: 40px; align-items: center; justify-content: space-between; border: 1px solid #d0d5dd; border-radius: 8px; padding: 8px 11px; color: #344054; background: white; font-size: 12px; font-weight: 550; text-align: left; cursor: pointer; }
 .ido-ai-choices button:hover { border-color: #98a2b3; background: #f9fafb; }
 .ido-ai-choices button span { color: #98a2b3; font-size: 16px; }
 .ido-ai-answer { margin-top: 16px; padding-top: 14px; border-top: 1px solid #eaecf0; }
-.ido-ai-answer label { display: block; margin-bottom: 6px; color: #344054; font-size: 11px; font-weight: 600; }
-.ido-ai-answer textarea, .ido-ai-composer textarea { width: 100%; resize: none; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 10px; color: #101828; background: white; font: inherit; font-size: 12px; line-height: 1.5; box-shadow: 0 1px 2px rgba(16, 24, 40, .05); }
+.ido-ai-answer label { display: block; margin-bottom: 6px; color: #344054; font-size: 12px; font-weight: 600; }
+.ido-ai-answer textarea, .ido-ai-composer textarea { width: 100%; resize: none; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 10px; color: #101828; background: white; font: inherit; font-size: 12px; line-height: 1.5; }
 .ido-ai-answer textarea::placeholder, .ido-ai-composer textarea::placeholder { color: #98a2b3; }
 .ido-ai-answer > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; }
-.ido-ai-answer button, .ido-ai-action-buttons button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 11px; color: #344054; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-answer button, .ido-ai-action-buttons button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 11px; color: #344054; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-answer button[type="submit"], .ido-ai-action-buttons button:last-child { border-color: #101828; color: white; background: #101828; }
 .ido-ai-answer button:disabled, .ido-ai-composer button:disabled { cursor: not-allowed; opacity: .4; }
 
 .ido-ai-batch { margin: 18px 0; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 11px; background: white; }
 .ido-ai-batch-heading { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-bottom: 1px solid #e4e7ec; background: #f9fafb; }
-.ido-ai-batch-heading span { color: #6941c6; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.ido-ai-batch-heading span { color: #6941c6; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-batch-heading strong { color: #101828; font-size: 13px; }
-.ido-ai-batch-heading p { margin-top: 5px; color: #667085; font-size: 10px; line-height: 1.45; }
+.ido-ai-batch-heading p { margin-top: 5px; color: #667085; font-size: 12px; line-height: 1.45; }
 .ido-ai-action { padding: 14px; border-bottom: 1px solid #eaecf0; }
 .ido-ai-action:last-child { border-bottom: 0; }
 .ido-ai-action.is-approved { background: #f6fef9; }
 .ido-ai-action.is-rejected { opacity: .65; background: #f9fafb; }
 .ido-ai-action-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ido-ai-action-top strong { color: #101828; font-size: 12px; line-height: 1.4; }
-.ido-ai-action-top span { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #475467; background: #f2f4f7; font-size: 9px; }
-.ido-ai-action p { margin-top: 5px; color: #667085; font-size: 10px; line-height: 1.5; }
+.ido-ai-action-top span { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #475467; background: #f2f4f7; font-size: 12px; }
+.ido-ai-action p { margin-top: 5px; color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-action-buttons { display: flex; justify-content: flex-end; gap: 7px; margin-top: 11px; }
-.ido-ai-decision { display: flex; align-items: center; gap: 5px; margin-top: 10px; color: #067647; font-size: 10px; font-weight: 600; }
-.ido-ai-decision button { margin-left: auto; border: 0; color: #475467; background: transparent; font-size: 10px; text-decoration: underline; cursor: pointer; }
+.ido-ai-decision { display: flex; align-items: center; gap: 5px; margin-top: 10px; color: #067647; font-size: 12px; font-weight: 600; }
+.ido-ai-decision button { margin-left: auto; border: 0; color: #475467; background: transparent; font-size: 12px; text-decoration: underline; cursor: pointer; }
 .ido-ai-action-error { color: #b42318 !important; }
 .ido-ai-research-progress { display: flex; align-items: center; gap: 10px; border-top: 1px solid #d1fadf; padding: 12px 14px; background: #f6fef9; }
 .ido-ai-research-progress > span:last-child { display: flex; min-width: 0; flex-direction: column; }
-.ido-ai-research-progress strong { color: #067647; font-size: 11px; }
-.ido-ai-research-progress small { margin-top: 2px; color: #475467; font-size: 9px; }
+.ido-ai-research-progress strong { color: #067647; font-size: 12px; }
+.ido-ai-research-progress small { margin-top: 2px; color: #475467; font-size: 12px; }
 .ido-ai-research-progress.is-failed { border-color: #fecdca; background: #fef3f2; }
 .ido-ai-research-progress.is-failed .ido-ai-job-icon, .ido-ai-research-progress.is-failed strong { color: #b42318; }
 .ido-ai-batch-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid #eaecf0; background: #f9fafb; }
-.ido-ai-batch-actions button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 12px; color: #344054; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-batch-actions button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 12px; color: #344054; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-batch-actions button:last-child { border-color: #101828; color: white; background: #101828; }
 .ido-ai-batch-actions button:disabled { cursor: not-allowed; opacity: .45; }
-.ido-ai-error { margin: 10px 0; border: 1px solid #fecdca; border-radius: 8px; padding: 9px 10px; color: #b42318; background: #fef3f2; font-size: 11px; line-height: 1.45; }
+.ido-ai-error { margin: 10px 0; border: 1px solid #fecdca; border-radius: 8px; padding: 9px 10px; color: #b42318; background: #fef3f2; font-size: 12px; line-height: 1.45; }
 .ido-ai-suggestions { margin: 16px 0; overflow: hidden; border: 1px solid #fedf89; border-radius: 11px; background: #fffcf5; }
 .ido-ai-suggestions > header { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-bottom: 1px solid #fedf89; }
-.ido-ai-suggestions > header span { color: #b54708; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.ido-ai-suggestions > header span { color: #b54708; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-suggestions > header strong { color: #7a2e0e; font-size: 12px; }
 .ido-ai-suggestions article { padding: 12px 14px; border-bottom: 1px solid #fef0c7; }
 .ido-ai-suggestions article:last-child { border-bottom: 0; }
 .ido-ai-suggestions article strong { color: #344054; font-size: 12px; }
-.ido-ai-suggestions article p { margin-top: 4px; color: #667085; font-size: 10px; line-height: 1.5; }
+.ido-ai-suggestions article p { margin-top: 4px; color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-suggestions article > div:last-child { display: flex; justify-content: flex-end; gap: 7px; margin-top: 9px; }
-.ido-ai-suggestions button { border: 1px solid #d0d5dd; border-radius: 7px; padding: 6px 9px; color: #344054; background: #fff; font-size: 10px; font-weight: 600; cursor: pointer; }
+.ido-ai-suggestions button { border: 1px solid #d0d5dd; border-radius: 7px; padding: 6px 9px; color: #344054; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-suggestions button:last-child { border-color: #101828; color: #fff; background: #101828; }
 
 .ido-ai-composer { flex: 0 0 auto; padding: 12px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e4e7ec; background: white; }
 .ido-ai-composer textarea { min-height: 22px; max-height: 100px; overflow-y: auto; border: 0; padding: 2px; box-shadow: none; }
 .ido-ai-composer > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.ido-ai-composer span { color: #98a2b3; font-size: 9px; }
+.ido-ai-composer span { color: #98a2b3; font-size: 12px; }
 .ido-ai-composer button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }
 
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }

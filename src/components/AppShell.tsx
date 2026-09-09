@@ -27,6 +27,7 @@ import {
 import { NavLink, Outlet } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { BrandMark } from './BrandMark'
+import { FloatingScrollbar } from './FloatingScrollbar'
 import { useWorkspace } from '../lib/workspace-context'
 import { IdoAiWorkspace } from './ido-ai/IdoAiAssistant'
 
@@ -81,6 +82,7 @@ export function AppShell() {
         <div className="sidebar-brand"><BrandMark /></div>
         <nav className="sidebar-nav" aria-label="Main navigation">{navigation}</nav>
         <div className="sidebar-footer">
+          <div id="ido-ai-launcher-slot" />
           <NavItem to="/settings" label="Settings" icon={Settings} />
           <NavItem to="/recycle-bin" label="Recycle bin" icon={Trash2} />
           <button className="profile-button" type="button">
@@ -131,6 +133,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </IdoAiWorkspace>
+      <FloatingScrollbar />
     </div>
   )
 }
