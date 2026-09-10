@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './planning.css'
+import { Button } from '../components/Button'
 
 export type CeremonyStatus = 'tentative' | 'confirmed' | 'completed' | 'cancelled'
 
@@ -152,7 +153,7 @@ export function CeremoniesPage() {
         </div>
         <div className="header-actions">
           <span className="ceremony-summary">{confirmedCount} of {ceremonies.length} dates confirmed</span>
-          <button className="button primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</button>
+          <Button variant="primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</Button>
         </div>
       </header>
 
@@ -164,7 +165,7 @@ export function CeremoniesPage() {
         <div className="ceremony-empty">
           <h2>No ceremonies yet</h2>
           <p>Add the first celebration to start planning dates, venues and the order of events.</p>
-          <button className="button primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</button>
+          <Button variant="primary" type="button" onClick={startCreate}><Plus size={16} /> Add ceremony</Button>
         </div>
       ) : (
         <div className="ceremony-list">
@@ -181,8 +182,8 @@ export function CeremoniesPage() {
                 <div><dt><Clock3 size={14} /> Segments</dt><dd data-empty={!ceremony.segments.length || undefined}>{ceremony.segments.length || 'None'}</dd></div>
               </dl>
               <div className="ceremony-row-actions">
-                <button className="button secondary" type="button" onClick={() => startEdit(ceremony)}><Pencil size={15} /> Edit</button>
-                <button className="plain-icon-button" type="button" aria-label={`Delete ${ceremony.name || 'ceremony'}`} onClick={() => setPendingCeremonyDelete(ceremony)}><Trash2 size={15} /></button>
+                <Button variant="secondary" type="button" onClick={() => startEdit(ceremony)}><Pencil size={15} /> Edit</Button>
+                <Button variant="ghost" icon type="button" aria-label={`Delete ${ceremony.name || 'ceremony'}`} onClick={() => setPendingCeremonyDelete(ceremony)}><Trash2 size={15} /></Button>
               </div>
             </article>
           ))}
@@ -232,8 +233,8 @@ function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony:
       description="Name and date can be changed at any time."
       onClose={onClose}
       footer={<>
-        <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
-        <button className="button primary" type="submit" form={formId} disabled={saving || !values.name.trim()}>{saving ? 'Saving...' : isNew ? 'Add ceremony' : 'Save changes'}</button>
+        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" type="submit" form={formId} disabled={saving || !values.name.trim()}>{saving ? 'Saving...' : isNew ? 'Add ceremony' : 'Save changes'}</Button>
       </>}
     >
       <form id={formId} className="ceremony-form" onSubmit={(event) => { event.preventDefault(); onSave({ ...values, name: values.name.trim() }) }}>
@@ -258,9 +259,9 @@ function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony:
         <section className="ceremony-segments" aria-labelledby={`${formId}-segments`}>
           <div className="ceremony-segments-head">
             <h3 id={`${formId}-segments`}>Order of events</h3>
-            <button className="button secondary compact" type="button" onClick={() => setValues((current) => ({ ...current, segments: [...current.segments, { id: crypto.randomUUID(), title: '', time: '' }] }))}>
+            <Button variant="secondary" size="sm" type="button" onClick={() => setValues((current) => ({ ...current, segments: [...current.segments, { id: crypto.randomUUID(), title: '', time: '' }] }))}>
               <Plus size={14} /> Add segment
-            </button>
+            </Button>
           </div>
           {values.segments.length === 0 ? (
             <p className="ceremony-segments-empty">No segments yet. Add the parts of the day you want to plan around.</p>
@@ -270,9 +271,9 @@ function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony:
                 <div className="ceremony-segment-row" key={segment.id}>
                   <input aria-label={`Segment ${index + 1} name`} value={segment.title} placeholder="Segment name" onChange={(event) => patchSegment(segment.id, { title: event.target.value })} />
                   <TimeField aria-label={`Segment ${index + 1} time`} value={segment.time} onChange={(next) => patchSegment(segment.id, { time: next })} />
-                  <button className="plain-icon-button" type="button" aria-label={`Remove segment ${index + 1}`} onClick={() => setValues((current) => ({ ...current, segments: current.segments.filter((item) => item.id !== segment.id) }))}>
+                  <Button variant="ghost" icon type="button" aria-label={`Remove segment ${index + 1}`} onClick={() => setValues((current) => ({ ...current, segments: current.segments.filter((item) => item.id !== segment.id) }))}>
                     <Trash2 size={15} />
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>

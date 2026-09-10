@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './logistics.css'
 import { Select } from '../components/Select'
+import { Button } from '../components/Button'
 
 type OrderStatus = 'ordered' | 'fitting' | 'ready' | 'collected'
 type Ceremony = { id: string; kind: string }
@@ -233,7 +234,7 @@ export function AttirePage() {
     <div className="page logistics-page ui-page">
       <header className="page-header">
         <div><h1>Attire & aso-ebi</h1><p className="page-lead">Control every fabric order, outfit, payment, fitting, collection, and distribution without storing body measurements.</p></div>
-        <div className="header-actions"><button className="button secondary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('stock') }}><Boxes size={15} /> Add stock</button><button className="button primary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('order') }}><Plus size={15} /> New order</button></div>
+        <div className="header-actions"><Button variant="secondary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('stock') }}><Boxes size={15} /> Add stock</Button><Button variant="primary" type="button" onClick={() => { attireMutation.reset(); setEditingOrder(null); setEditingStock(null); setForm('order') }}><Plus size={15} /> New order</Button></div>
       </header>
 
       <section className="logistics-summary">
@@ -308,7 +309,7 @@ function StockForm({ initial, groups, saving, onClose, onAdd }: { initial?: Stoc
 }
 
 function EntryPanel({ title, editing = false, saving, onClose, onSubmit, children }: { title: string; editing?: boolean; saving: boolean; onClose: () => void; onSubmit: (event: FormEvent) => void; children: React.ReactNode }) {
-  return <section className="logistics-entry"><header><div><p className="eyebrow">{editing ? 'Edit record' : 'New record'}</p><h2>{title}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={onSubmit}><div className="logistics-fields">{children}</div><footer><button className="button secondary" type="button" disabled={saving} onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : editing ? 'Save changes' : 'Save record'}</button></footer></form></section>
+  return <section className="logistics-entry"><header><div><p className="eyebrow">{editing ? 'Edit record' : 'New record'}</p><h2>{title}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={onSubmit}><div className="logistics-fields">{children}</div><footer><Button variant="secondary" type="button" disabled={saving} onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={saving}>{saving ? 'Saving...' : editing ? 'Save changes' : 'Save record'}</Button></footer></form></section>
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="logistics-field"><span>{label}</span>{children}</label> }

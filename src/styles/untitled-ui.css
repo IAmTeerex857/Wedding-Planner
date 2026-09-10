@@ -516,7 +516,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .task-empty h2 { font-size: 18px; }
 .ui-page .task-empty p { color: var(--ui-gray-500); font-size: 14px; }
 .ui-page .empty-plus { border-color: var(--ui-gray-200); border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-50); }
-.ui-page .text-action { border: 0; border-radius: 8px; padding: 8px 12px; color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 13px; }
 .ui-page .kanban-board { gap: 16px; }
 .ui-page .kanban-column { min-height: 480px; background: var(--ui-gray-50); }
 .ui-page .kanban-heading { min-height: 52px; padding-inline: 16px; border-color: var(--ui-gray-200); }
@@ -1605,3 +1604,179 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 
 /* The filter row above a list: same control, same height, same radius. */
 .ui-page .page-ceremony-filter { display: block; }
+
+
+/* ==========================================================================
+   Button — the single definition
+   Four separate systems used to exist (.text-action, .plain-icon-button,
+   .budget-icon-button, .danger-button) and they drifted in weight, size and
+   radius, so an empty-state button looked nothing like the one beside it.
+   Everything renders through <Button> now. Change it here.
+   ========================================================================== */
+.ui-page .button,
+.ui-shell .button,
+.ui-modal-panel .button,
+.button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.ui-page .button.primary,
+.ui-shell .button.primary,
+.ui-modal-panel .button.primary,
+.button.primary { border-color: var(--ui-gray-900); color: white; background: var(--ui-gray-900); }
+.ui-page .button.primary:hover:not(:disabled),
+.ui-modal-panel .button.primary:hover:not(:disabled),
+.button.primary:hover:not(:disabled) { border-color: var(--ui-gray-700); background: var(--ui-gray-700); }
+
+.ui-page .button.secondary,
+.ui-shell .button.secondary,
+.ui-modal-panel .button.secondary,
+.button.secondary { border-color: var(--ui-gray-300); color: var(--ui-gray-700); background: white; }
+.ui-page .button.secondary:hover:not(:disabled),
+.ui-modal-panel .button.secondary:hover:not(:disabled),
+.button.secondary:hover:not(:disabled) { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+
+.ui-page .button.ghost,
+.ui-modal-panel .button.ghost,
+.button.ghost { border-color: transparent; color: var(--ui-gray-600); background: transparent; }
+.ui-page .button.ghost:hover:not(:disabled),
+.ui-modal-panel .button.ghost:hover:not(:disabled),
+.button.ghost:hover:not(:disabled) { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+
+.ui-page .button.danger,
+.ui-modal-panel .button.danger,
+.button.danger { border-color: #b42318; color: white; background: #b42318; }
+.ui-page .button.danger:hover:not(:disabled),
+.ui-modal-panel .button.danger:hover:not(:disabled),
+.button.danger:hover:not(:disabled) { border-color: #912018; background: #912018; }
+
+/* Sizes and shapes */
+.ui-page .button.compact,
+.ui-modal-panel .button.compact,
+.button.compact { min-height: 34px; padding: 0 10px; font-size: 13px; }
+
+.ui-page .button.is-icon,
+.ui-modal-panel .button.is-icon,
+.button.is-icon { width: 40px; min-width: 40px; padding: 0; }
+.ui-page .button.is-icon.compact,
+.ui-modal-panel .button.is-icon.compact,
+.button.is-icon.compact { width: 34px; min-width: 34px; }
+
+/* A destructive icon button reveals its intent on hover, not at rest. */
+.ui-page .button.ghost.is-icon:hover:not(:disabled),
+.ui-modal-panel .button.ghost.is-icon:hover:not(:disabled) { color: #b42318; background: var(--ui-error-50); }
+
+.ui-page .button.full,
+.ui-modal-panel .button.full,
+.button.full { width: 100%; }
+
+.ui-page .button:disabled,
+.ui-modal-panel .button:disabled,
+.button:disabled { cursor: not-allowed; color: var(--ui-gray-500); border-color: var(--ui-gray-200); background: var(--ui-gray-100); opacity: 1; }
+.ui-page .button.ghost:disabled,
+.button.ghost:disabled { border-color: transparent; background: transparent; }
+
+.ui-page .button:focus-visible,
+.ui-shell .button:focus-visible,
+.ui-modal-panel .button:focus-visible,
+.button:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+
+/* ---- Toggle ------------------------------------------------------------- */
+.ui-toggle-row { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.ui-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: var(--ui-gray-300);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-toggle[aria-checked="true"] { background: var(--ui-gray-900); }
+.ui-toggle:disabled { cursor: not-allowed; opacity: .5; }
+.ui-toggle:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+.ui-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .15);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ui-toggle[aria-checked="true"] .ui-toggle-thumb { transform: translateX(16px); }
+.ui-toggle-text { display: flex; flex-direction: column; }
+.ui-toggle-label { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+.ui-toggle-text small { color: var(--ui-gray-500); font-size: 13px; }
+
+/* Fields that span the full width of a two-column form grid. */
+.entry-span-2 { grid-column: 1 / -1; }
+
+/* The open list matches the control that opened it rather than a fixed floor,
+   so a narrow time field no longer spills a much wider menu. */
+.ui-select-list { min-width: 0; }
+.ui-timelist { text-align: left; }
+
+/* ==========================================================================
+   Empty state — one definition
+   Sections used to write their own markup and layout, so two panels on the same
+   page described the same situation in two different voices.
+   ========================================================================== */
+.ui-empty {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.ui-empty.is-compact { min-height: 160px; padding: 28px 20px; }
+.ui-empty-icon { display: grid; place-items: center; margin-bottom: 6px; color: var(--ui-gray-400); }
+.ui-empty h3 { color: var(--ui-gray-900); font-size: 16px; font-weight: 600; }
+.ui-empty p { max-width: 380px; color: var(--ui-gray-600); font-size: 14px; line-height: 20px; }
+.ui-empty-action { margin-top: 10px; }
+
+/* Both budget panels share one heading and one toolbar shape. */
+.ui-page .budget-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .budget-section-heading h2 { font-size: 16px; font-weight: 600; }
+.ui-page .budget-section-heading p { margin-top: 2px; color: var(--ui-gray-600); font-size: 14px; }
+.ui-page .budget-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .budget-toolbar-note { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+
+.allocation-form { display: flex; flex-direction: column; gap: 16px; }
+.allocation-form .money-input { display: flex; align-items: center; gap: 8px; min-height: 40px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; background: white; }
+.allocation-form .money-input b { color: var(--ui-gray-500); font-size: 14px; font-weight: 500; }
+
+/* A hint sits with its label. `justify-content: space-between` threw it to the
+   far edge of the field, where it read as an unrelated column heading. */
+.ui-page .budget-field > span,
+.ui-page .entry-fields label > span,
+.ui-modal-panel label > span:first-child,
+.planning-field > span { justify-content: flex-start; gap: 8px; }
+
+/* The empty state owns its own type wherever it is nested. */
+.ui-page .ui-empty h3 { font-size: 16px; font-weight: 600; }
+.ui-page .ui-empty p { color: var(--ui-gray-600); font-size: 14px; line-height: 20px; }

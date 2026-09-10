@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase'
 import { WorkspaceContext, type Workspace, type WorkspaceContextValue, type WorkspaceRole } from '../lib/workspace-context'
 import { WorkspaceOnboarding } from '../pages/WorkspaceOnboarding'
 import { BrandMark } from './BrandMark'
+import { Button } from './Button'
 
 export const ACTIVE_WORKSPACE_KEY = 'wedding-planner:active-workspace'
 
@@ -49,7 +50,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       <main className="system-message">
         <BrandMark />
         <div><p className="eyebrow">Connection error</p><h1>We could not open the workspace.</h1><p>{workspaceQuery.error.message}</p></div>
-        <button className="button primary" type="button" onClick={() => workspaceQuery.refetch()}>Try again</button>
+        <Button variant="primary" type="button" onClick={() => workspaceQuery.refetch()}>Try again</Button>
       </main>
     )
   }

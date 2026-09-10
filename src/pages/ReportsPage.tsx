@@ -3,6 +3,7 @@ import { Download, FileText, Printer } from '../components/Icon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './reports.css'
+import { Button } from '../components/Button'
 
 const csvReports = [
   { name: 'Guests & RSVP', file: 'guests', table: 'guests', columns: 'full_name,email,phone,plus_one_allowed,plus_one_name,created_at' },
@@ -39,7 +40,7 @@ export function ReportsPage() {
   }
 
   const counts = summaryQuery.data ?? {}
-  return <div className="page reports-page ui-page"><header className="page-header"><div><h1>Reports</h1><p className="page-lead">Download clean operational data or print the current page as a planning pack.</p></div><button className="button primary" type="button" onClick={() => window.print()}><Printer size={15} /> Print summary</button></header>
+  return <div className="page reports-page ui-page"><header className="page-header"><div><h1>Reports</h1><p className="page-lead">Download clean operational data or print the current page as a planning pack.</p></div><Button variant="primary" type="button" onClick={() => window.print()}><Printer size={15} /> Print summary</Button></header>
     <section className="report-summary"><div><strong>{counts.guests ?? 0}</strong><span>Guests</span></div><div><strong>{counts.tasks ?? 0}</strong><span>Tasks</span></div><div><strong>{counts.vendors ?? 0}</strong><span>Vendors</span></div><div><strong>{counts.expenses ?? 0}</strong><span>Expenses</span></div><div><strong>{counts.attire_orders ?? 0}</strong><span>Attire orders</span></div><div><strong>{counts.traditional_requirements ?? 0}</strong><span>Requirements</span></div></section>
     {summaryQuery.error && <p className="data-error">{summaryQuery.error.message}</p>}
     <section className="report-downloads">{csvReports.map((report) => <article key={report.file}><FileText size={18} /><div><strong>{report.name}</strong><small>Comma-separated data for backup or analysis</small></div><button type="button" disabled={isPreview} onClick={() => void exportCsv(report)}><Download size={14} /> CSV</button></article>)}</section>

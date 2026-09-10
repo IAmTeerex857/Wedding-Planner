@@ -31,7 +31,7 @@ function monthGrid(view: Date) {
 }
 
 function usePopover(open: boolean, triggerRef: React.RefObject<HTMLButtonElement | null>, panelRef: React.RefObject<HTMLDivElement | null>) {
-  const [rect, setRect] = useState<{ top: number; left: number; flip: boolean } | null>(null)
+  const [rect, setRect] = useState<{ top: number; left: number; width: number; flip: boolean } | null>(null)
 
   const position = useCallback(() => {
     const trigger = triggerRef.current
@@ -44,6 +44,7 @@ function usePopover(open: boolean, triggerRef: React.RefObject<HTMLButtonElement
     setRect({
       top: flip ? box.top - GAP : box.bottom + GAP,
       left: Math.min(box.left, window.innerWidth - width - 12),
+      width: box.width,
       flip,
     })
   }, [triggerRef, panelRef])
@@ -229,7 +230,7 @@ export function TimeField({ value, onChange, placeholder = 'Time', disabled, id,
           ref={panelRef}
           role="listbox"
           aria-label="Choose time"
-          style={{ top: rect.flip ? undefined : rect.top, bottom: rect.flip ? window.innerHeight - rect.top : undefined, left: rect.left }}
+          style={{ top: rect.flip ? undefined : rect.top, bottom: rect.flip ? window.innerHeight - rect.top : undefined, left: rect.left, width: rect.width }}
         >
           {times.map((time) => (
             <button

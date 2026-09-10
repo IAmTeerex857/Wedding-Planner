@@ -11,7 +11,6 @@ import {
   Search,
   Tag,
   Upload,
-  UserPlus,
   UserRound,
   Users,
   X,
@@ -39,6 +38,9 @@ import {
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace, type CeremonyOption } from '../lib/workspace-context'
 import './guests.css'
+import { Button } from '../components/Button'
+import { Toggle } from '../components/Toggle'
+import { EmptyState } from '../components/EmptyState'
 
 type Guest = Omit<ImportableGuest, 'rsvps'> & { id: string; rsvps: Record<string, RsvpStatus> }
 type EventName = string
@@ -309,8 +311,8 @@ export function GuestsPage() {
           <p className="page-lead">Keep every guest, invitation, stay, and ceremony response in one considered list.</p>
         </div>
         <div className="header-actions">
-          <button className="button secondary" type="button" onClick={() => setImportOpen(true)}><Upload size={16} /> Import list</button>
-          <button className="button primary" type="button" onClick={() => { setEditingGuest(null); setEntryOpen((open) => !open) }}><Plus size={16} /> Add guest</button>
+          <Button variant="secondary" type="button" onClick={() => setImportOpen(true)}><Upload size={16} /> Import list</Button>
+          <Button variant="primary" type="button" onClick={() => { setEditingGuest(null); setEntryOpen((open) => !open) }}><Plus size={16} /> Add guest</Button>
         </div>
       </header>
 
@@ -362,7 +364,7 @@ export function GuestsPage() {
             {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} ceremonies={ceremonyOptions} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={(id) => setPendingDelete(guests.find((item) => item.id === id) ?? null)} />)}
           </div>
         ) : (
-          <div className="guest-empty"><Users size={22} /><h2>No guests found</h2><p>Try clearing a filter or add someone new.</p></div>
+          <EmptyState icon={<Users size={22} />} title="No guests found" description="Try clearing a filter or add someone new." />
         )}
       </section>
 
@@ -426,7 +428,7 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
       title={initialGuest ? 'Edit guest' : 'Add a guest'}
       description="Name and one contact method are required."
       onClose={onClose}
-      footer={<><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" form={formId} disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></>}
+      footer={<><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" form={formId} disabled={isSaving}>{isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</Button></>}
     >
     <form className="guest-entry in-modal" id={formId} onSubmit={submit}>
       <div className="entry-fields">
@@ -436,11 +438,18 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
         <label><span>Phone</span><input type="tel" required={!guest.email.trim()} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter a valid phone number with 7 to 20 digits and common separators." value={guest.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
         <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
         <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
-        <label className="plus-one-toggle"><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /><span>Plus-one allowed</span></label>
-        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
+        <div className="entry-span-2">
+          <Toggle
+            label="Plus-one allowed"
+            checked={guest.plusOneAllowed}
+            onChange={(next) => setGuest((current) => ({ ...current, plusOneAllowed: next, plusOneName: next ? current.plusOneName : '' }))}
+          />
+        </div>
+        {guest.plusOneAllowed && (
+          <label className="entry-span-2"><span>Plus-one name</span><input maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
+        )}
       </div>
       <div className="entry-rsvp-group">
-      <p className="entry-group-label">Ceremony responses</p>
       <div className="entry-rsvps">
         {ceremonies.map((ceremony) => (
           <label key={ceremony.id}>
@@ -532,7 +541,7 @@ function GuestImport({ guests, onClose, onImport }: { guests: Guest[]; onClose: 
           )}
         </div>
 
-        <footer className="import-footer"><p><b>No automatic sync.</b> Nothing is added until you confirm this review.</p><div>{step > 1 && <button className="button secondary" type="button" onClick={() => setStep((step - 1) as 1 | 2)}>Back</button>}{step === 1 && <button className="button primary" type="button" disabled={!pasted.trim()} onClick={() => stageData(parseGuestData(pasted), 'clipboard')}>Map pasted rows</button>}{step === 2 && <button className="button primary" type="button" onClick={() => setStep(3)}>Review import</button>}{step === 3 && <button className="button primary" type="button" disabled={!readyCount} onClick={() => onImport(review, source)}>Import {readyCount} guests</button>}</div></footer>
+        <footer className="import-footer"><p><b>No automatic sync.</b> Nothing is added until you confirm this review.</p><div>{step > 1 && <Button variant="secondary" type="button" onClick={() => setStep((step - 1) as 1 | 2)}>Back</Button>}{step === 1 && <Button variant="primary" type="button" disabled={!pasted.trim()} onClick={() => stageData(parseGuestData(pasted), 'clipboard')}>Map pasted rows</Button>}{step === 2 && <Button variant="primary" type="button" onClick={() => setStep(3)}>Review import</Button>}{step === 3 && <Button variant="primary" type="button" disabled={!readyCount} onClick={() => onImport(review, source)}>Import {readyCount} guests</Button>}</div></footer>
       </section>
     </div>
   )

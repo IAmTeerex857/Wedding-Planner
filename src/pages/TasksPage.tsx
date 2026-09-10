@@ -8,6 +8,8 @@ import { useCreateParam } from '../lib/use-create-param'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
+import { Button } from '../components/Button'
+import { EmptyState } from '../components/EmptyState'
 
 export type TaskStatus = 'todo' | 'doing' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high'
@@ -201,7 +203,7 @@ export function TasksPage() {
                     <h1>Tasks</h1>
           <p className="page-lead">Assign the next action, connect it to a celebration, and keep work moving.</p>
         </div>
-        <button className="button primary" type="button" onClick={() => setIsAdding(true)}><Plus size={16} /> Add task</button>
+        <Button variant="primary" type="button" onClick={() => setIsAdding(true)}><Plus size={16} /> Add task</Button>
       </header>
 
       <div className="task-toolbar">
@@ -250,7 +252,7 @@ export function TasksPage() {
           <section className="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-form-title">
             <div className="modal-header">
               <div><h2 id="task-form-title">{editingId ? 'Edit task' : 'Add a task'}</h2></div>
-              <button className="plain-icon-button" type="button" aria-label="Close" onClick={closeModal}><X size={18} /></button>
+              <Button variant="ghost" icon type="button" aria-label="Close" onClick={closeModal}><X size={18} /></Button>
             </div>
             <form onSubmit={addTask}>
               <label className="planning-field field-full">
@@ -294,9 +296,9 @@ export function TasksPage() {
                 </label>
               </div>
               <div className="modal-actions">
-                {editingId && <button className="button danger" type="button" disabled={deleteMutation.isPending} onClick={() => setPendingDelete(tasks.find((item) => item.id === editingId) ?? null)}><Trash2 size={14} /> Delete</button>}
-                <button className="button secondary" type="button" onClick={closeModal}>Cancel</button>
-                <button className="button primary" type="submit" disabled={addMutation.isPending || updateMutation.isPending}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</button>
+                {editingId && <Button variant="danger" type="button" disabled={deleteMutation.isPending} onClick={() => setPendingDelete(tasks.find((item) => item.id === editingId) ?? null)}><Trash2 size={14} /> Delete</Button>}
+                <Button variant="secondary" type="button" onClick={closeModal}>Cancel</Button>
+                <Button variant="primary" type="submit" disabled={addMutation.isPending || updateMutation.isPending}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</Button>
               </div>
             </form>
           </section>
@@ -359,10 +361,11 @@ function StatusControl({ task, onMove }: { task: PlanningTask; onMove: (id: stri
 
 function TaskEmpty({ title, detail, onAdd }: { title: string; detail: string; onAdd: () => void }) {
   return (
-    <div className="task-empty">
-      <span className="empty-plus"><Plus size={19} /></span>
-      <h2>{title}</h2><p>{detail}</p>
-      <button className="text-action" type="button" onClick={onAdd}>Create the first task</button>
-    </div>
+    <EmptyState
+      icon={<Plus size={22} />}
+      title={title}
+      description={detail}
+      action={<Button variant="primary" onClick={onAdd}>Create the first task</Button>}
+    />
   )
 }
