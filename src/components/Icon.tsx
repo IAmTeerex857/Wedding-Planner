@@ -5,6 +5,9 @@ import {
   ArrowLeft as PhArrowLeft,
   ArrowUp as PhArrowUp,
   ChatsCircle,
+  ClockCounterClockwise,
+  NotePencil,
+  Waveform as PhWaveform,
   Microphone as PhMicrophone,
   Paperclip as PhPaperclip,
   PushPin as PhPushPin,
@@ -105,6 +108,9 @@ function icon(Component: PhosphorIcon, extraClass = '') {
 export const ArrowLeft = icon(PhArrowLeft)
 export const ArrowUp = icon(PhArrowUp)
 export const Chats = icon(ChatsCircle)
+export const History = icon(ClockCounterClockwise)
+export const NewChat = icon(NotePencil)
+export const Waveform = icon(PhWaveform)
 export const Microphone = icon(PhMicrophone)
 export const Paperclip = icon(PhPaperclip)
 export const PushPin = icon(PhPushPin)
