@@ -4,6 +4,7 @@ import { ArrowUp, Check, History, Microphone, NewChat, Paperclip, Plus, PushPin,
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import { useDictation } from '../../lib/use-dictation'
+import { draftPreviewBatch, previewReply } from '../../lib/ido-ai-preview'
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'motion/react'
 import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
 import { StreamingText } from './StreamingText'
@@ -37,7 +38,9 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const [attachments, setAttachments] = useState<File[]>([])
   // Preview has no backend, so sent messages are held locally. Without this the
   // thread stays empty and the bubbles cannot be seen at all.
-  const [previewMessages, setPreviewMessages] = useState<Array<{ id: string; body: string; createdAt: string }>>([])
+  const [previewMessages, setPreviewMessages] = useState<Array<{ id: string; body: string; createdAt: string; role: 'user' | 'assistant' }>>([])
+  const [previewBatches, setPreviewBatches] = useState<IdoAiBatch[]>([])
+  const [previewThinking, setPreviewThinking] = useState(false)
   // Pinning is a per-person convenience, so it lives with the viewer.
   const [pinned, setPinned] = useState<string[]>(() => {
     try { return JSON.parse(window.localStorage.getItem(`${PANEL_KEY}:pinned`) ?? '[]') as string[] } catch { return [] }
@@ -98,7 +101,20 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
 
 Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
     const content = (onboarding && question ? `Onboarding answer for “${question.prompt}”: ${value}` : value) + referenced
-    if (isPreview) { setPreviewMessages((current) => [...current, { id: crypto.randomUUID(), body: content, createdAt: new Date().toISOString() }]); setComposer(''); setAnswer(''); setAttachments([]); if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 })); return }
+    if (isPreview) {
+      setPreviewMessages((current) => [...current, { id: crypto.randomUUID(), body: content, createdAt: new Date().toISOString(), role: 'user' }])
+      setComposer('')
+      setAnswer('')
+      setAttachments([])
+      if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 }))
+      // Stand in for the agent so the approval dock can actually be exercised.
+      setPreviewThinking(true)
+      window.setTimeout(() => {
+        setPreviewThinking(false)
+        setPreviewBatches((current) => [...current, draftPreviewBatch(content)])
+      }, 900)
+      return
+    }
     const requestId = crypto.randomUUID()
     const conversationId = state.conversationId ?? crypto.randomUUID()
     setSelectedConversationId(conversationId)
@@ -119,6 +135,8 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
 
   function startNewConversation() {
     setPreviewMessages([])
+    setPreviewBatches([])
+    setPreviewThinking(false)
     setSelectedConversationId(null)
     setOptimisticMessage(null)
     setComposer('')
@@ -134,16 +152,17 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
 
   // A decision belongs where you would otherwise be typing, not floating in the
   // scroll above it. While one is open the composer stands down.
-  const pendingBatch = state.batches.find((batch) => batch.status === 'proposed') ?? null
+  const pendingBatch = previewBatches.find((batch) => batch.status === 'proposed') ?? state.batches.find((batch) => batch.status === 'proposed') ?? null
 
   const activeConversation = state.conversations.find((conversation) => conversation.id === state.conversationId)
   const conversationTitle = activeConversation?.title?.trim() || 'New conversation'
 
-  const isThinking = Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
+  const isThinking = previewThinking || Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
   const timeline: TimelineItem[] = [
-    ...previewMessages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message: { id: message.id, role: 'user' as const, body: message.body, createdAt: message.createdAt, runId: null, metadata: {} } as (typeof state.messages)[number] })),
+    ...previewMessages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message: { id: message.id, role: message.role, body: message.body, createdAt: message.createdAt, runId: null, metadata: {} } as (typeof state.messages)[number] })),
     ...state.messages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message })),
-    ...state.batches.filter((batch) => batch.actions.length > 0).map((batch) => {
+    ...previewBatches.filter((batch) => batch.status !== 'proposed').map((batch) => ({ kind: 'batch' as const, id: batch.id, createdAt: batch.createdAt, order: 1, batch })),
+    ...state.batches.filter((batch) => batch.actions.length > 0 && batch.status !== 'proposed').map((batch) => {
       const reply = state.messages.find((message) => message.role === 'assistant' && ((message.runId && message.runId === batch.runId) || message.metadata.vendor_research_batch_id === batch.id))
       return { kind: 'batch' as const, id: batch.id, createdAt: reply?.createdAt ?? batch.createdAt, order: reply ? 1 : 0, batch }
     }),
@@ -206,7 +225,13 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
           instruction={composer}
           onInstruction={setComposer}
           onSendInstruction={() => submitMessage(composer)}
-          onReview={(decision) => reviewMutation.mutate({ batchId: pendingBatch.id, decision })}
+          onReview={(decision) => {
+            if (!isPreview) { reviewMutation.mutate({ batchId: pendingBatch.id, decision }); return }
+            setPreviewBatches((current) => current.map((batch) => batch.id === pendingBatch.id
+              ? { ...batch, status: decision === 'approve' ? 'completed' : 'rejected', actions: batch.actions.map((action) => ({ ...action, status: decision === 'approve' ? 'executed' as const : 'rejected' as const })) }
+              : batch))
+            setPreviewMessages((current) => [...current, { id: crypto.randomUUID(), body: previewReply(pendingBatch, decision), createdAt: new Date().toISOString(), role: 'assistant' }])
+          }}
         />
       ) : (
       <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}>
@@ -342,7 +367,6 @@ function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: 
     <div className="ido-ai-batch-heading"><span>{isResearch ? 'Research request' : 'Proposed actions'}</span><strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>{isResearch && batch.status === 'proposed' && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>
     {batch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && !isResearch && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}{action.error && <p className="ido-ai-action-error">{action.error}</p>}</article>)}
     {isResearch && progress && <div className={`ido-ai-research-progress is-${progress}`} role="status"><span className="ido-ai-job-icon">{progress === 'completed' ? <Check size={14} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{progressCopy}</strong>{sourceLabel && <small>Sources requested: {sourceLabel}</small>}</span></div>}
-    {batch.status === 'proposed' && <p className="ido-ai-batch-await">Waiting on your decision below.</p>}
     {error && <p className="ido-ai-error">{error}</p>}
   </section>
 }
