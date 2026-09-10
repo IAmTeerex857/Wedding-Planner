@@ -496,3 +496,59 @@
 /* The time sits under the message it belongs to. */
 .ido-ai-message-time { display: block; margin-top: 5px; color: var(--ui-gray-400); font-size: 12px; font-variant-numeric: tabular-nums; }
 .ido-ai-message.is-user .ido-ai-message-time { text-align: right; }
+
+/* ==========================================================================
+   Approval dock
+   A proposal that can change the workspace takes the composer's place while it
+   is open, so the decision sits where your hands already are instead of
+   scrolling away up the thread.
+   ========================================================================== */
+.ido-ai-approval {
+  flex: 0 0 auto;
+  padding: 14px;
+  border-top: 1px solid var(--ui-gray-200);
+  background: var(--ui-gray-25);
+}
+
+.ido-ai-approval > header { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 12px; }
+.ido-ai-approval-badge {
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--ui-gray-600);
+  background: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ido-ai-approval > header strong { color: var(--ui-gray-900); font-size: 14px; font-weight: 600; line-height: 1.45; }
+
+.ido-ai-approval-list { display: flex; flex-direction: column; gap: 0; margin: 0 0 12px; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; background: white; }
+.ido-ai-approval-list > div { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 9px 12px; border-bottom: 1px solid var(--ui-gray-200); }
+.ido-ai-approval-list > div:last-child { border-bottom: 0; }
+.ido-ai-approval-list dt { color: var(--ui-gray-500); font-size: 12px; white-space: nowrap; }
+.ido-ai-approval-list dd { margin: 0; color: var(--ui-gray-900); font-size: 13px; font-weight: 500; }
+
+.ido-ai-approval-note { margin-bottom: 12px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
+
+/* Replying and deciding happen in the same place. */
+.ido-ai-approval-reply { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ido-ai-approval-reply input {
+  min-width: 0;
+  flex: 1;
+  min-height: 38px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--ui-gray-900);
+  background: white;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ido-ai-approval-reply input:focus-visible { border-color: var(--ui-focus-border); outline: none; box-shadow: var(--ui-focus-ring); }
+.ido-ai-approval-reply .ido-ai-send { width: 32px; height: 32px; }
+
+.ido-ai-approval-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* The thread keeps the proposal as a record and points at the dock. */
+.ido-ai-batch-await { margin-top: 10px; color: var(--ui-gray-500); font-size: 13px; }

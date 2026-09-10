@@ -7,6 +7,7 @@ import { useDictation } from '../../lib/use-dictation'
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'motion/react'
 import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
 import { StreamingText } from './StreamingText'
+import { Button } from '../Button'
 import './ido-ai.css'
 
 const PANEL_KEY = 'wedding-planner:ido-ai-panel:v2'
@@ -131,6 +132,10 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
   const reduced = useReducedMotion()
   const { supported: canDictate, listening: isListening, error: dictationError, waveRef, toggle: toggleDictation } = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
 
+  // A decision belongs where you would otherwise be typing, not floating in the
+  // scroll above it. While one is open the composer stands down.
+  const pendingBatch = state.batches.find((batch) => batch.status === 'proposed') ?? null
+
   const activeConversation = state.conversations.find((conversation) => conversation.id === state.conversationId)
   const conversationTitle = activeConversation?.title?.trim() || 'New conversation'
 
@@ -183,7 +188,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         <AnimatePresence initial={false}>
         {timeline.map((item) => item.kind === 'message'
           ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit" layout>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div>{item.message.role === 'assistant' && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
-          : <BatchCard key={`batch:${item.id}`} batch={item.batch} pending={reviewMutation.isPending} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} onReview={(decision) => reviewMutation.mutate({ batchId: item.batch.id, decision })} />)}
+          : <BatchCard key={`batch:${item.id}`} batch={item.batch} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} />)}
         </AnimatePresence>
         {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><p>{optimisticMessage.body}</p><time className="ido-ai-message-time">{formatMessageTime(new Date().toISOString())}</time>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
         {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
@@ -193,6 +198,17 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         {state.suggestions.length > 0 && <section className="ido-ai-suggestions"><header><span>Needs attention</span><strong>{state.suggestions.length} planning suggestion{state.suggestions.length === 1 ? '' : 's'}</strong></header>{state.suggestions.map((suggestion) => <article key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.body}</p></div><div><button type="button" onClick={() => suggestionMutation.mutate(suggestion.id)}>Dismiss</button><button type="button" onClick={() => submitMessage(`Help me with this suggestion: ${suggestion.title}. ${suggestion.body}`)}>Discuss</button></div></article>)}</section>}
         {question && <section className="ido-ai-question" aria-labelledby="ido-ai-question-title"><div className="ido-ai-question-progress"><span>{question.eyebrow}</span><strong>{onboardingStep + 1} of {onboardingQuestions.length}</strong></div><div className="ido-ai-progress-track" aria-hidden="true"><span style={{ width: `${((onboardingStep + 1) / onboardingQuestions.length) * 100}%` }} /></div><h2 id="ido-ai-question-title">{question.prompt}</h2><p>{question.helper}</p><div className="ido-ai-choices">{question.options.map((option) => <button type="button" disabled={sendMutation.isPending} key={option} onClick={() => submitMessage(option, true)}>{option}<span aria-hidden="true">→</span></button>)}</div><form className="ido-ai-answer" onSubmit={(event) => { event.preventDefault(); submitMessage(answer, true) }}><label htmlFor="ido-ai-answer">Something else</label><textarea id="ido-ai-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, answer, true)} placeholder="Describe what you have in mind..." rows={3} /><div><button type="button" disabled={onboardingMutation.isPending} onClick={() => advanceOnboarding(null)}>Skip for now</button><button type="submit" disabled={!answer.trim() || sendMutation.isPending}>Continue</button></div></form>{onboardingMutation.error && <p className="ido-ai-error">{onboardingMutation.error.message}</p>}</section>}
       </div>
+      {pendingBatch ? (
+        <ApprovalDock
+          batch={pendingBatch}
+          pending={reviewMutation.isPending}
+          error={reviewMutation.variables?.batchId === pendingBatch.id ? reviewMutation.error?.message : undefined}
+          instruction={composer}
+          onInstruction={setComposer}
+          onSendInstruction={() => submitMessage(composer)}
+          onReview={(decision) => reviewMutation.mutate({ batchId: pendingBatch.id, decision })}
+        />
+      ) : (
       <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}>
         {attachments.length > 0 && (
           <ul className="ido-ai-attachments">
@@ -234,6 +250,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         </div>
         {dictationError && <p className="ido-ai-error" role="alert">{dictationError}</p>}
       </form>
+      )}
     </aside>
   </div></LazyMotion>
 }
@@ -310,7 +327,7 @@ function formatConversationDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 }
 
-function BatchCard({ batch, pending, approving, error, onReview }: { batch: IdoAiBatch; pending: boolean; approving: boolean; error?: string; onReview: (decision: 'approve' | 'reject') => void }) {
+function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: boolean; error?: string }) {
   const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
   const researchAction = isResearch ? batch.actions[0] : null
   const progress = researchAction?.progress ?? (approving ? 'queued' : null)
@@ -325,7 +342,7 @@ function BatchCard({ batch, pending, approving, error, onReview }: { batch: IdoA
     <div className="ido-ai-batch-heading"><span>{isResearch ? 'Research request' : 'Proposed actions'}</span><strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>{isResearch && batch.status === 'proposed' && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>
     {batch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && !isResearch && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}{action.error && <p className="ido-ai-action-error">{action.error}</p>}</article>)}
     {isResearch && progress && <div className={`ido-ai-research-progress is-${progress}`} role="status"><span className="ido-ai-job-icon">{progress === 'completed' ? <Check size={14} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{progressCopy}</strong>{sourceLabel && <small>Sources requested: {sourceLabel}</small>}</span></div>}
-    {batch.status === 'proposed' && <div className="ido-ai-batch-actions"><button type="button" disabled={pending} onClick={() => onReview('reject')}>Not now</button><button type="button" disabled={pending} onClick={() => onReview('approve')}>{isResearch ? 'Start research' : 'Apply changes'}</button></div>}
+    {batch.status === 'proposed' && <p className="ido-ai-batch-await">Waiting on your decision below.</p>}
     {error && <p className="ido-ai-error">{error}</p>}
   </section>
 }
@@ -336,4 +353,65 @@ function formatResearchSource(source: string) {
 
 function SparkleMark() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.75c.3 5.35 3.9 8.95 9.25 9.25-5.35.3-8.95 3.9-9.25 9.25C11.7 15.9 8.1 12.3 2.75 12 8.1 11.7 11.7 8.1 12 2.75Z" fill="currentColor" /><path d="M19 2.5c.08 1.45 1.05 2.42 2.5 2.5-1.45.08-2.42 1.05-2.5 2.5-.08-1.45-1.05-2.42-2.5-2.5 1.45-.08 2.42-1.05 2.5-2.5Z" fill="currentColor" opacity=".65" /></svg>
+}
+
+
+/**
+ * The decision surface, docked where the composer normally sits.
+ *
+ * A proposal that can change the workspace should not be something you scroll
+ * back to find. While one is open this replaces the composer, lists exactly
+ * what would change, and keeps a field for a follow-up instruction so replying
+ * and deciding happen in the same place.
+ */
+function ApprovalDock({ batch, pending, error, instruction, onInstruction, onSendInstruction, onReview }: {
+  batch: IdoAiBatch
+  pending: boolean
+  error?: string
+  instruction: string
+  onInstruction: (value: string) => void
+  onSendInstruction: () => void
+  onReview: (decision: 'approve' | 'reject') => void
+}) {
+  const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
+
+  return (
+    <section className="ido-ai-approval" aria-labelledby={`ido-ai-approval-${batch.id}`}>
+      <header>
+        <span className="ido-ai-approval-badge">{isResearch ? 'Research request' : 'Needs approval'}</span>
+        <strong id={`ido-ai-approval-${batch.id}`}>{batch.summary}</strong>
+      </header>
+
+      <dl className="ido-ai-approval-list">
+        {batch.actions.map((action) => (
+          <div key={action.id}>
+            <dt>{action.destination}</dt>
+            <dd>{action.title}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {isResearch && <p className="ido-ai-approval-note">Approving starts the search only. You will review the results before anything is added.</p>}
+
+      <form
+        className="ido-ai-approval-reply"
+        onSubmit={(event) => { event.preventDefault(); if (instruction.trim()) onSendInstruction() }}
+      >
+        <input
+          value={instruction}
+          placeholder="Add another instruction"
+          aria-label="Add another instruction"
+          onChange={(event) => onInstruction(event.target.value)}
+        />
+        <button className="ido-ai-send" type="submit" disabled={!instruction.trim() || pending} aria-label="Send instruction"><ArrowUp size={17} /></button>
+      </form>
+
+      <div className="ido-ai-approval-actions">
+        <Button variant="ghost" size="sm" disabled={pending} onClick={() => onReview('reject')}>Reject</Button>
+        <Button variant="primary" size="sm" disabled={pending} onClick={() => onReview('approve')}>{pending ? 'Working...' : isResearch ? 'Start research' : 'Approve'}</Button>
+      </div>
+
+      {error && <p className="ido-ai-error" role="alert">{error}</p>}
+    </section>
+  )
 }
