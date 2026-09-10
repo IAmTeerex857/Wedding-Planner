@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
-import { Trash2, X } from './KoboyoIcon'
+import { Trash2, X } from './Icon'
+import { Button } from './Button'
 
 type ConfirmDialogProps = {
   title: string
@@ -25,7 +26,7 @@ export function ConfirmDialog({ title, description, confirmLabel = 'Delete', pen
         <header><span><Trash2 size={18} /></span><button type="button" aria-label="Close confirmation" disabled={pending} onClick={onCancel}><X size={16} /></button></header>
         <h2 id="confirm-title">{title}</h2>
         <p id="confirm-description">{description}</p>
-        <footer><button className="button secondary" type="button" disabled={pending} onClick={onCancel}>Cancel</button><button className="button danger" type="button" disabled={pending} onClick={onConfirm}>{pending ? 'Deleting...' : confirmLabel}</button></footer>
+        <footer><Button variant="secondary" type="button" disabled={pending} onClick={onCancel}>Cancel</Button><Button variant="danger" type="button" disabled={pending} onClick={onConfirm}>{pending ? 'Deleting...' : confirmLabel}</Button></footer>
       </section>
     </div>
   )

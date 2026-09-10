@@ -11,9 +11,10 @@ import {
   HeartHandshake,
   LayoutDashboard,
   MapPin,
-  Menu,
+  Menu as MenuIcon,
   PackageCheck,
   Plane,
+  Plus,
   Settings,
   Shirt,
   Store,
@@ -23,10 +24,12 @@ import {
   Utensils,
   Armchair,
   X,
-} from './KoboyoIcon'
-import { NavLink, Outlet } from 'react-router-dom'
+} from './Icon'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { BrandMark } from './BrandMark'
+import { FloatingScrollbar } from './FloatingScrollbar'
+import { Menu, MenuItem } from './Menu'
 import { useWorkspace } from '../lib/workspace-context'
 import { IdoAiWorkspace } from './ido-ai/IdoAiAssistant'
 
@@ -53,21 +56,34 @@ const planningNavigation = [
   { to: '/reports', label: 'Reports', icon: ChartNoAxesCombined },
 ]
 
+/** Creating a record should never mean navigating to a page and hunting for a button. */
+const createActions = [
+  { to: '/ceremonies?new=1', label: 'Ceremony', icon: HeartHandshake },
+  { to: '/tasks?new=1', label: 'Task', icon: ClipboardCheck },
+  { to: '/guests?new=1', label: 'Guest', icon: Users },
+  { to: '/budget?new=1', label: 'Expense', icon: CircleDollarSign },
+  { to: '/vendors?new=1', label: 'Vendor', icon: Store },
+]
+
 export function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const navigate = useNavigate()
   const { displayName, role } = useWorkspace()
   const initials = displayName.split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 
-  const navigation = (
+  // The desktop rail separates the two groups with a rule rather than a label,
+  // which buys back the height the roomier rows need. The mobile drawer has the
+  // room, so it keeps the group names.
+  const navigation = (labelled: boolean) => (
     <>
       <div className="nav-section">
-        <p className="nav-label">Workspace</p>
+        {labelled && <p className="nav-label">Workspace</p>}
         {primaryNavigation.map((item) => (
           <NavItem key={item.to} {...item} onClick={() => setMenuOpen(false)} />
         ))}
       </div>
       <div className="nav-section">
-        <p className="nav-label">Planning</p>
+        {labelled && <p className="nav-label">Planning</p>}
         {planningNavigation.map((item) => (
           <NavItem key={item.to} {...item} onClick={() => setMenuOpen(false)} />
         ))}
@@ -75,26 +91,51 @@ export function AppShell() {
     </>
   )
 
+  const createMenu = (
+    <Menu
+      label="Create"
+      align="start"
+      buttonClassName="new-button"
+      button={<><Plus size={16} /><span>New</span></>}
+    >
+      {createActions.map((action) => (
+        <MenuItem
+          key={action.to}
+          icon={<action.icon size={16} />}
+          label={action.label}
+          onSelect={() => { navigate(action.to); setMenuOpen(false) }}
+        />
+      ))}
+    </Menu>
+  )
+
   return (
     <div className="app-frame ui-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><BrandMark /></div>
-        <nav className="sidebar-nav" aria-label="Main navigation">{navigation}</nav>
+        <div className="sidebar-actions">{createMenu}</div>
+        <nav className="sidebar-nav" aria-label="Main navigation">{navigation(false)}</nav>
         <div className="sidebar-footer">
-          <NavItem to="/settings" label="Settings" icon={Settings} />
-          <NavItem to="/recycle-bin" label="Recycle bin" icon={Trash2} />
-          <button className="profile-button" type="button">
-            <span className="avatar"><UserRound size={20} /><span className="sr-only">{initials || 'TB'}</span></span>
-            <span><strong>{displayName}</strong><small>{role === 'owner' ? 'Owner' : 'Planner'}</small></span>
-            <ChevronDown size={15} />
-          </button>
+          <Menu
+            label="Account"
+            placement="top"
+            buttonClassName="profile-button"
+            button={<>
+              <span className="avatar"><UserRound size={20} /><span className="sr-only">{initials || 'TB'}</span></span>
+              <span><strong>{displayName}</strong><small>{role === 'owner' ? 'Owner' : 'Planner'}</small></span>
+              <ChevronDown size={15} />
+            </>}
+          >
+            <MenuItem icon={<Settings size={16} />} label="Settings" onSelect={() => navigate('/settings')} />
+            <MenuItem icon={<Trash2 size={16} />} label="Recycle bin" onSelect={() => navigate('/recycle-bin')} />
+          </Menu>
         </div>
       </aside>
 
       <header className="mobile-header">
         <BrandMark compact />
         <button className="icon-button" type="button" onClick={() => setMenuOpen(true)} aria-label="Open navigation">
-          <Menu size={20} />
+          <MenuIcon size={20} />
         </button>
       </header>
 
@@ -109,7 +150,7 @@ export function AppShell() {
               </button>
             </div>
             <nav className="drawer-navigation" aria-label="Mobile navigation">
-              {navigation}
+              {navigation(true)}
               <div className="nav-section">
                 <p className="nav-label">Account</p>
                 <NavItem to="/settings" label="Settings" icon={Settings} onClick={() => setMenuOpen(false)} />
@@ -131,6 +172,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </IdoAiWorkspace>
+      <FloatingScrollbar />
     </div>
   )
 }

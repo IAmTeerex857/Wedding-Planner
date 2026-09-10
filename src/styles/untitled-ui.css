@@ -1,11 +1,6 @@
 /* Untitled UI-inspired application foundation, scoped to migrated pages. */
 :root {
-  --ui-brand-50: #f9f5ff;
-  --ui-brand-100: #f4ebff;
-  --ui-brand-200: #e9d7fe;
-  --ui-brand-500: #9e77ed;
-  --ui-brand-600: #7f56d9;
-  --ui-brand-700: #6941c6;
+  /* No brand hue: this product's accent is its ink. */
   --ui-gray-25: #fcfcfd;
   --ui-gray-50: #f9fafb;
   --ui-gray-100: #f2f4f7;
@@ -22,25 +17,29 @@
   --ui-error-600: #d92d20;
   --ui-warning-50: #fffaeb;
   --ui-warning-600: #dc6803;
-  --ui-shadow-xs: 0 1px 2px rgba(16, 24, 40, .05);
-  --ui-shadow-sm: 0 1px 3px rgba(16, 24, 40, .1), 0 1px 2px -1px rgba(16, 24, 40, .1);
+  /* Cards, inputs, selects and buttons carry a 1px border as their only elevation
+     signal. A transparent no-op keeps the ~55 combined `box-shadow` lists that
+     reference these tokens valid, so the insets alongside them still render.
+     Overlays and drawers keep their own real shadows: they are genuinely raised. */
+  /* Focus ring. The primary action in this product is black, so a purple ring
+     read as borrowed from another system. Both now come from the same ink. */
+  --ui-focus-border: var(--ui-gray-900);
+  --ui-focus-ring: 0 0 0 4px rgba(16, 24, 40, .10);
+  --ui-shadow-xs: 0 0 #0000;
+  --ui-shadow-sm: 0 0 #0000;
 }
 
 .ui-page {
   width: 100%;
-  max-width: 1280px;
+  max-width: var(--page-max);
   color: var(--ui-gray-900);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.ui-page .koboyo-icon {
-  filter: drop-shadow(1.5px 0 0 currentColor) drop-shadow(-1.5px 0 0 currentColor) drop-shadow(0 1.5px 0 currentColor) drop-shadow(0 -1.5px 0 currentColor);
-}
-.ui-page.guests-page .koboyo-icon {
-  filter: drop-shadow(1.75px 0 0 currentColor) drop-shadow(-1.75px 0 0 currentColor) drop-shadow(0 1.75px 0 currentColor) drop-shadow(0 -1.75px 0 currentColor);
-}
 
-.ui-page h2 { font-family: inherit; font-size: 18px; font-weight: 600; line-height: 28px; letter-spacing: -.01em; }
+/* Type scale: 36 / 20 / 16 / 15 / 14 / 12. The page title previously sat at 30px
+   against a 16px lead — a 1.875x step, too tight to read as the page's anchor. */
+.ui-page h2 { font-family: inherit; font-size: 20px; font-weight: 600; line-height: 28px; letter-spacing: -.015em; }
 .ui-page h3 { font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; letter-spacing: 0; }
 .ui-page p { line-height: 1.5; }
 
@@ -63,17 +62,17 @@
   max-width: none;
   color: var(--ui-gray-900);
   font-family: inherit;
-  font-size: 30px;
+  font-size: 36px;
   font-weight: 600;
-  line-height: 38px;
-  letter-spacing: -.02em;
+  line-height: 44px;
+  letter-spacing: -.025em;
 }
 
 .ui-page .page-lead {
-  max-width: 720px;
-  margin-top: 4px;
+  max-width: 640px;
+  margin-top: 6px;
   color: var(--ui-gray-600);
-  font-size: 16px;
+  font-size: 15px;
   line-height: 24px;
 }
 
@@ -139,7 +138,7 @@
 .ui-page .ceremony-card + .ceremony-card { border-left: 1px solid var(--ui-gray-200); }
 .ui-page .ceremony-card:hover { border-color: var(--ui-gray-300); background: white; box-shadow: var(--ui-shadow-sm); }
 .ui-page .ceremony-number { color: var(--ui-gray-500); font-family: inherit; font-size: 12px; font-weight: 600; }
-.ui-page .ceremony-topline .koboyo-icon { color: var(--ui-gray-400); }
+.ui-page .ceremony-topline .app-icon { color: var(--ui-gray-400); }
 .ui-page .ceremony-card h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 20px; font-weight: 600; letter-spacing: 0; }
 .ui-page .ceremony-card p { margin-top: 4px; color: var(--ui-gray-600); font-size: 14px; }
 .ui-page .progress-row { color: var(--ui-gray-600); font-size: 12px; }
@@ -177,11 +176,11 @@
 .ui-page .quiet-badge { border-color: var(--ui-gray-200); color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; font-weight: 500; }
 .ui-page .setup-item { min-height: 64px; grid-template-columns: 36px 1fr auto; padding: 0 24px; border-color: var(--ui-gray-100); }
 .ui-page .setup-item:hover { background: var(--ui-gray-50); }
-.ui-page .setup-index { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--ui-gray-700); background: var(--ui-gray-100); font-family: inherit; font-size: 11px; font-weight: 600; }
+.ui-page .setup-index { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--ui-gray-700); background: var(--ui-gray-100); font-family: inherit; font-size: 12px; font-weight: 600; }
 .ui-page .setup-label { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
 .ui-page .pulse-list { padding: 8px 24px; }
 .ui-page .pulse-row { min-height: 48px; color: var(--ui-gray-600); font-size: 14px; }
-.ui-page .pulse-row .koboyo-icon { color: var(--ui-gray-400); }
+.ui-page .pulse-row .app-icon { color: var(--ui-gray-400); }
 .ui-page .pulse-row strong { color: var(--ui-gray-900); font-weight: 600; }
 .ui-page .empty-note { padding: 16px 24px; border-color: var(--ui-gray-100); color: var(--ui-gray-500); font-size: 12px; }
 
@@ -241,9 +240,9 @@
 .ui-page .contribution-progress b { background: var(--ui-gray-900); }
 .ui-page .ngn-preview span,
 .ui-page .contribution-progress span,
-.ui-page .contribution-progress small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .contribution-progress small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .ngn-preview strong { color: var(--ui-gray-900); font-family: inherit; font-size: 16px; font-weight: 600; }
-.ui-page .ngn-preview small { color: var(--ui-gray-500); font-size: 10px; }
+.ui-page .ngn-preview small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .budget-form-actions { border-color: var(--ui-gray-200); }
 
 .ui-page .allocation-section,
@@ -252,7 +251,6 @@
 .ui-page .budget-section-heading h2 { font-size: 18px; }
 .ui-page .budget-section-heading > span { color: var(--ui-gray-500); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .allocation-entry { padding: 18px 24px; border-color: var(--ui-gray-200); background: var(--ui-gray-50); }
-.ui-page .money-input { border-color: var(--ui-gray-300); border-radius: 8px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .allocation-row { min-height: 76px; padding: 10px 24px; border-color: var(--ui-gray-100); }
 .ui-page .allocation-index { color: var(--ui-gray-500); font-family: inherit; font-size: 12px; }
 .ui-page .allocation-name strong { font-size: 14px; }
@@ -272,28 +270,28 @@
 .ui-page .budget-search input:focus-visible,
 .ui-page .guest-search input:focus-visible { outline: 0; }
 .ui-page .budget-filter { min-width: 156px; height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; background: white; box-shadow: var(--ui-shadow-xs); }
-.ui-page .budget-filter > span { color: var(--ui-gray-500); font-size: 10px; text-transform: none; }
+.ui-page .budget-filter > span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .budget-filter select { font-size: 12px; box-shadow: none; }
 .ui-page .ledger-head,
 .ui-page .ledger-row { padding-inline: 24px; }
-.ui-page .ledger-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 11px; letter-spacing: 0; text-transform: none; }
+.ui-page .ledger-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .ledger-row { min-height: 76px; border-color: var(--ui-gray-100); }
 .ui-page .ledger-record strong,
 .ui-page .ledger-source strong { color: var(--ui-gray-900); font-size: 14px; }
 .ui-page .ledger-record small,
-.ui-page .ledger-source small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .ledger-source small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .ledger-kind { width: 36px; height: 36px; flex-basis: 36px; border: 0; border-radius: 8px; }
 .ui-page .ledger-kind.contribution,
 .ui-page .ledger-kind.expense { color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .ui-page .ledger-allocation { color: var(--ui-gray-700); font-size: 12px; }
-.ui-page .ledger-event { border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 10px; }
+.ui-page .ledger-event { border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; }
 .ui-page .ledger-ngn { font-family: inherit; font-size: 14px; font-weight: 600; }
 .ui-page .ledger-ngn.contribution { color: var(--ui-gray-900); }
-.ui-page .payment-status select { font-size: 10px; }
+.ui-page .payment-status select { font-size: 12px; }
 .ui-page .payment-status.status-paid select { border: 1px solid #a6f4c5; color: #067647 !important; background-color: #ecfdf3 !important; }
 .ui-page .payment-status.status-due select { border: 1px solid #fecdca; color: #b42318 !important; background-color: #fef3f2 !important; }
 .ui-page .payment-status.status-planned select { border: 1px solid #fedf89; color: #b54708 !important; background-color: #fffaeb !important; }
-.ui-page .contribution-status { font-size: 10px; }
+.ui-page .contribution-status { font-size: 12px; }
 .ui-page .budget-empty { color: var(--ui-gray-500); }
 .ui-page .budget-empty h3 { font-size: 18px; }
 .ui-page .budget-empty p { color: var(--ui-gray-500); font-size: 14px; }
@@ -310,7 +308,7 @@
 .vendors-page .registry-form form { padding: 24px; }
 .vendors-page .registry-form form > div { gap: 20px 16px; }
 .vendors-page .registry-form footer { border-color: var(--ui-gray-200); }
-.vendors-page .rate-card-picker > span small { color: var(--ui-gray-500); font-size: 11px; }
+.vendors-page .rate-card-picker > span small { color: var(--ui-gray-500); font-size: 12px; }
 .vendors-page .rate-card-picker > strong { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; color: var(--ui-gray-700); font-size: 13px; box-shadow: var(--ui-shadow-xs); }
 .vendors-page .registry-panel > header { min-height: 72px; padding: 14px 24px; border-color: var(--ui-gray-200); }
 .vendors-page .registry-panel > header label { width: min(420px, 75%); height: 40px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; box-shadow: var(--ui-shadow-xs); }
@@ -323,25 +321,21 @@
 .vendors-page .category-filters { gap: 8px; padding: 12px 24px 16px; }
 .vendors-page .category-filters > button,
 .vendors-page .category-filters > span,
-.vendors-page .category-pill { color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 11px; font-weight: 500; }
+.vendors-page .category-pill { color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 12px; font-weight: 500; }
 .vendors-page .category-filters > button { min-height: 28px; padding: 5px 10px; }
 .vendors-page .category-filters > span > button { min-height: 28px; }
 .vendors-page .category-filters > button.active,
-.vendors-page .category-filters > span.active { color: var(--ui-brand-700); background: var(--ui-brand-50) !important; box-shadow: inset 0 0 0 1px var(--ui-brand-200); }
+.vendors-page .category-filters > span.active { color: var(--ui-gray-900); background: var(--ui-gray-100) !important; box-shadow: inset 0 0 0 1px var(--ui-gray-300); }
 .vendors-page .registry-list article { min-height: 88px; grid-template-columns: minmax(0, 1fr) 150px 72px; padding: 16px 24px; border-color: var(--ui-gray-100); }
 .vendors-page .registry-list article:hover { background: var(--ui-gray-25); }
 .vendors-page .registry-list strong { font-size: 14px; }
 .vendors-page .registry-list small { color: var(--ui-gray-500); font-size: 12px; }
-.vendors-page .registry-list select { height: 32px; font-size: 11px; }
-.vendors-page .registry-list select.pill-tone-yellow { border-color: #f9dbaf; color: #b93815 !important; background-color: #fff4ed !important; }
-.vendors-page .registry-list select.pill-tone-blue { border-color: #b2ddff; color: #175cd3 !important; background-color: #eff8ff !important; }
-.vendors-page .registry-list select.pill-tone-green { border-color: #a6f4c5; color: #067647 !important; background-color: #ecfdf3 !important; }
-.vendors-page .registry-list select.pill-tone-red { border-color: #fcceee; color: #c11574 !important; background-color: #fdf2fa !important; }
+.vendors-page .registry-list select { height: 32px; font-size: 12px; }
 .vendors-page .category-pill { padding: 4px 9px; }
 .vendors-page .vendor-link { color: var(--ui-gray-700); font-size: 12px; }
 .vendors-page .vendor-rate-card { border-color: var(--ui-gray-200); color: var(--ui-gray-700); background: var(--ui-gray-50); }
 .vendors-page .vendor-rate-card button,
-.vendors-page .vendor-rate-card-upload { height: 28px; font-size: 11px; }
+.vendors-page .vendor-rate-card-upload { height: 28px; font-size: 12px; }
 .vendors-page .vendor-rate-card-upload { border-color: var(--ui-gray-300); border-radius: 8px; }
 .vendors-page .registry-actions button { width: 36px; height: 36px; border-radius: 8px; color: var(--ui-gray-500); }
 .vendors-page .registry-actions button:hover { color: var(--ui-gray-700); background: var(--ui-gray-100); }
@@ -399,22 +393,25 @@
 /* Application shell */
 body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-shell .sidebar { width: var(--sidebar); border-color: var(--ui-gray-200); background: white; }
-.ui-shell .sidebar-brand { height: 72px; border-color: var(--ui-gray-200); }
+.ui-shell .sidebar-brand { height: 64px; border-color: var(--ui-gray-200); }
 .ui-shell .brand-monogram { border: 0; border-radius: 8px; color: white; background: var(--ui-gray-900); font-family: inherit; font-weight: 700; box-shadow: var(--ui-shadow-xs); }
 .ui-shell .brand-copy strong { color: var(--ui-gray-900); font-size: 14px; font-weight: 600; }
-.ui-shell .brand-copy small { color: var(--ui-gray-500); font-size: 11px; letter-spacing: 0; text-transform: none; }
-.ui-shell .sidebar-nav { padding: 20px 12px; }
-.ui-shell .nav-section + .nav-section { margin-top: 20px; }
-.ui-shell .nav-label { padding: 0 12px 6px; color: var(--ui-gray-500); font-size: 11px; font-weight: 600; letter-spacing: 0; text-transform: none; }
-.ui-shell .nav-item { min-height: 40px; gap: 12px; margin: 2px 0; padding: 8px 12px; border: 0; border-radius: 6px; color: var(--ui-gray-600); font-size: 14px; font-weight: 500; }
+.ui-shell .brand-copy small { color: var(--ui-gray-500); font-size: 12px; letter-spacing: 0; text-transform: none; }
+.ui-shell .sidebar-nav { padding: 14px 10px; }
+.ui-shell .nav-section + .nav-section { margin-top: 14px; }
+.ui-shell .nav-label { padding: 0 12px 4px; color: var(--ui-gray-500); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+/* 32px fits all 17 destinations on a 900px viewport with nothing below the fold,
+   and stays well above the 24px pointer-target minimum. Narrower viewports still
+   scroll, which is why the rail keeps a permanently visible scrollbar. */
+.ui-shell .nav-item { min-height: 32px; gap: 12px; margin: 1px 0; padding: 6px 12px; border: 0; border-radius: 6px; color: var(--ui-gray-600); font-size: 14px; font-weight: 500; }
 .ui-shell .nav-item:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-shell .nav-item.active { color: var(--ui-gray-900); background: var(--ui-gray-100); box-shadow: none; }
-.ui-shell .nav-item.active .koboyo-icon { color: var(--ui-gray-900); }
+.ui-shell .nav-item.active .app-icon { color: var(--ui-gray-900); }
 .ui-shell .sidebar-footer { border-color: var(--ui-gray-200); }
-.ui-shell .profile-button { min-height: 52px; border-radius: 8px; padding: 8px; }
+.ui-shell .profile-button { min-height: 46px; border-radius: 8px; padding: 8px; }
 .ui-shell .profile-button:hover { background: var(--ui-gray-50); }
 .ui-shell .profile-button strong { font-size: 13px; }
-.ui-shell .profile-button small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-shell .profile-button small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-shell .avatar { width: 32px; height: 32px; border-radius: 50%; color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .ui-shell .main-content { background: white; }
 .ui-shell .setup-banner { min-height: 36px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; }
@@ -438,7 +435,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page textarea:disabled { cursor: not-allowed; color: var(--ui-gray-500); background: var(--ui-gray-50) !important; }
 .ui-page .button:active,
 .ui-page button:active { box-shadow: none; }
-.ui-page .button:disabled { cursor: not-allowed; color: var(--ui-gray-400); border-color: var(--ui-gray-200); background: var(--ui-gray-100); box-shadow: none; }
+.ui-page .button:disabled { cursor: not-allowed; color: var(--ui-gray-500); border-color: var(--ui-gray-300); background: var(--ui-gray-100); box-shadow: none; }
 .ui-page .data-error,
 .ui-page .budget-data-error,
 .ui-page .guest-data-error,
@@ -463,7 +460,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .ceremony-fields { gap: 16px; margin-top: 24px; }
 .ui-page .planning-field { gap: 6px; }
 .ui-page .planning-field > span { color: var(--ui-gray-700); font-size: 12px; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.ui-page .planning-field small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .planning-field small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .planning-field input,
 .ui-page .planning-field select { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; padding-inline: 12px; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .planning-field textarea { min-height: 96px; padding: 10px 12px; font-size: 14px; line-height: 20px; }
@@ -497,12 +494,12 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .kanban-column { overflow: hidden; border: 1px solid var(--ui-gray-200); border-radius: 12px; background: white; box-shadow: var(--ui-shadow-xs); }
 .ui-page .task-list-head,
 .ui-page .task-list-row { padding-inline: 20px; }
-.ui-page .task-list-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 11px; letter-spacing: 0; text-transform: none; }
+.ui-page .task-list-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .task-list-row { min-height: 76px; border-color: var(--ui-gray-100); }
 .ui-page .task-title-cell strong { color: var(--ui-gray-900); font-size: 14px; }
 .ui-page .task-title-cell p { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .event-tag,
-.ui-page .priority-label { border-radius: 999px; font-size: 10px; font-weight: 600; }
+.ui-page .priority-label { border-radius: 999px; font-size: 12px; font-weight: 600; }
 .ui-page .priority-label { width: fit-content; padding: 3px 7px; background: var(--ui-gray-100); letter-spacing: 0; }
 .ui-page .priority-label.priority-high { background: var(--ui-error-50); }
 .ui-page .priority-label.priority-medium { background: var(--ui-warning-50); }
@@ -517,12 +514,11 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .task-empty h2 { font-size: 18px; }
 .ui-page .task-empty p { color: var(--ui-gray-500); font-size: 14px; }
 .ui-page .empty-plus { border-color: var(--ui-gray-200); border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-50); }
-.ui-page .text-action { border: 0; border-radius: 8px; padding: 8px 12px; color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 13px; }
 .ui-page .kanban-board { gap: 16px; }
 .ui-page .kanban-column { min-height: 480px; background: var(--ui-gray-50); }
 .ui-page .kanban-heading { min-height: 52px; padding-inline: 16px; border-color: var(--ui-gray-200); }
 .ui-page .kanban-heading h2 { color: var(--ui-gray-700); font-size: 13px; }
-.ui-page .kanban-heading span { border: 0; color: var(--ui-gray-600); background: var(--ui-gray-200); font-size: 11px; }
+.ui-page .kanban-heading span { border: 0; color: var(--ui-gray-600); background: var(--ui-gray-200); font-size: 12px; }
 .ui-page .column-empty { border-color: var(--ui-gray-300); border-radius: 8px; color: var(--ui-gray-500); }
 .ui-page .task-card { border-color: var(--ui-gray-200); border-radius: 8px; padding: 16px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .task-card h3 { font-size: 15px; }
@@ -567,7 +563,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .guest-summary-item + .guest-summary-item { border-color: var(--ui-gray-200); }
 .ui-page .guest-summary-item > strong { color: var(--ui-gray-900); font-family: inherit; font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
 .ui-page .guest-summary-item span { color: var(--ui-gray-700); font-size: 13px; font-weight: 500; }
-.ui-page .guest-summary-item small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .guest-summary-item small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .guest-entry { gap: 32px; padding: 24px; background: var(--ui-gray-50); }
 .ui-page .entry-intro h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 20px; font-weight: 600; letter-spacing: 0; }
 .ui-page .entry-intro > p:last-child { color: var(--ui-gray-600); font-size: 13px; }
@@ -580,37 +576,29 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .guest-search { height: 40px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .guest-search input { height: 38px; border: 0; font-size: 14px; box-shadow: none; }
 .ui-page .compact-select { min-width: 172px; height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; background: white; box-shadow: var(--ui-shadow-xs); }
-.ui-page .compact-select > span { color: var(--ui-gray-500); font-size: 10px; text-transform: none; }
+.ui-page .compact-select > span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .compact-select select { color: var(--ui-gray-900); font-size: 12px; box-shadow: none; }
-.ui-page .directory-heading { min-height: 44px; padding-inline: 24px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 11px; letter-spacing: 0; text-transform: none; }
+.ui-page .directory-heading { min-height: 44px; padding-inline: 24px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .guest-row { min-height: 112px; padding: 18px 24px; border-color: var(--ui-gray-100); }
 .ui-page .guest-row:hover { background: var(--ui-gray-25); }
-.ui-page .guest-row:hover .guest-avatar .koboyo-icon { transform: none; }
+.ui-page .guest-row:hover .guest-avatar .app-icon { transform: none; }
 .ui-page .guest-avatar { border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .ui-page .guest-identity h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0; }
 .ui-page .guest-contact,
-.ui-page .guest-stay { color: var(--ui-gray-500); font-size: 11px; }
-.ui-page .guest-tag { font-size: 10px; }
+.ui-page .guest-stay { color: var(--ui-gray-500); font-size: 12px; }
+.ui-page .guest-tag { font-size: 12px; }
 .ui-page .guest-tag { font-weight: 700; }
-.ui-page .guest-tag.pill-tone-blue { color: #194185 !important; background-color: #d1e9ff !important; }
-.ui-page .guest-tag.pill-tone-green { color: #05603a !important; background-color: #d1fadf !important; }
-.ui-page .guest-tag.pill-tone-yellow { color: #93370d !important; background-color: #fef0c7 !important; }
-.ui-page .guest-tag.pill-tone-red { color: #912018 !important; background-color: #fee4e2 !important; }
-.ui-page .guest-tag.pill-tone-purple { color: #5925dc !important; background-color: #e9d7fe !important; }
-.ui-page .guest-tag.pill-tone-pink { color: #9e165f !important; background-color: #fce7f6 !important; }
-.ui-page .rsvp-badge { border-color: var(--ui-gray-200); border-radius: 8px; color: var(--ui-gray-500); font-size: 9px; }
+.ui-page .rsvp-badge { border-color: var(--ui-gray-200); border-radius: 8px; color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .rsvp-badge.attending,
 .ui-page .rsvp-badge.pending,
 .ui-page .rsvp-badge.declined { border-color: var(--ui-gray-200); color: var(--ui-gray-500); background: white; }
 .ui-page .rsvp-badge i { display: none; }
 .ui-page .rsvp-badge select,
-.ui-page .rsvp-select { font-weight: 700; }
 .ui-page .rsvp-badge.attending select,
 .ui-page .rsvp-select.attending { border-color: #a6f4c5; color: #067647 !important; background-color: #ecfdf3 !important; }
 .ui-page .rsvp-badge.pending select,
 .ui-page .rsvp-select.pending { border-color: #fedf89; color: #b54708 !important; background-color: #fffaeb !important; }
 .ui-page .rsvp-badge.declined select,
-.ui-page .rsvp-select.declined { border-color: #fcceee; color: #c11574 !important; background-color: #fdf2fa !important; }
 .ui-page .guest-edit,
 .ui-page .guest-remove { width: 36px; height: 36px; border-radius: 8px; color: var(--ui-gray-500); }
 .ui-page .guest-edit:hover,
@@ -661,14 +649,14 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .registry-page .registry-list article:hover { background: var(--ui-gray-25); }
 .registry-page .registry-list strong { font-size: 14px; }
 .registry-page .registry-list small { color: var(--ui-gray-500); font-size: 12px; }
-.registry-page .registry-list select { height: 34px; border: 1px solid var(--ui-gray-300); border-radius: 8px !important; color: var(--ui-gray-900) !important; background-color: white !important; font-size: 11px; box-shadow: var(--ui-shadow-xs); }
+.registry-page .registry-list select { height: 34px; border: 1px solid var(--ui-gray-300); border-radius: 8px !important; color: var(--ui-gray-900) !important; background-color: white !important; font-size: 12px; box-shadow: var(--ui-shadow-xs); }
 .registry-page .registry-actions button { width: 36px; height: 36px; border-radius: 8px; color: var(--ui-gray-500); }
 .registry-page .registry-actions button:hover,
 .registry-page .registry-actions .registry-delete:hover { color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .registry-page .rate-card-upload-status { border-color: var(--ui-gray-200); border-radius: 12px; box-shadow: 0 20px 24px -4px rgba(16, 24, 40, .14); }
 .registry-page .rate-card-upload-status strong { color: var(--ui-gray-900); font-family: inherit; font-size: 14px; font-weight: 600; }
-.registry-page .rate-card-upload-status p { color: var(--ui-gray-500); font-size: 11px; }
-.registry-page .rate-card-upload-percentage { border-color: var(--ui-gray-300); color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 10px; }
+.registry-page .rate-card-upload-status p { color: var(--ui-gray-500); font-size: 12px; }
+.registry-page .rate-card-upload-percentage { border-color: var(--ui-gray-300); color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; }
 .registry-page .rate-card-upload-track { height: 6px; border-radius: 999px; background: var(--ui-gray-100); }
 .registry-page .rate-card-upload-track > span { border-radius: inherit; background: var(--ui-gray-900); }
 .registry-page .rate-card-viewer-layer { background: rgba(16, 24, 40, .64); backdrop-filter: blur(4px); }
@@ -678,7 +666,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .registry-page .rate-card-viewer-actions button { min-height: 36px; border-color: var(--ui-gray-300); border-radius: 8px; color: var(--ui-gray-700); font-size: 12px; font-weight: 600; box-shadow: var(--ui-shadow-xs); }
 .registry-page .rate-card-viewer-actions button:last-child { border-radius: 8px; }
 .registry-page .rate-card-pdf nav { border-color: var(--ui-gray-200); box-shadow: var(--ui-shadow-sm); }
-.registry-page .rate-card-pdf nav button { background: var(--ui-gray-900); font-size: 11px; }
+.registry-page .rate-card-pdf nav button { background: var(--ui-gray-900); font-size: 12px; }
 
 /* Attire and requirements */
 .ui-page .logistics-summary,
@@ -686,7 +674,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .record-table { overflow: hidden; border: 1px solid var(--ui-gray-200); border-radius: 12px; background: white; box-shadow: var(--ui-shadow-xs); }
 .ui-page .logistics-summary > div { min-height: 144px; padding: 20px 24px; }
 .ui-page .logistics-summary > div + div { border-color: var(--ui-gray-200); }
-.ui-page .logistics-summary .koboyo-icon { color: var(--ui-gray-600); }
+.ui-page .logistics-summary .app-icon { color: var(--ui-gray-600); }
 .ui-page .logistics-summary strong { color: var(--ui-gray-900); font-family: inherit; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
 .ui-page .logistics-summary span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .logistics-entry { margin-top: 24px; background: white; }
@@ -705,7 +693,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .record-table { margin-top: 16px; }
 .ui-page .attire-order-head,
 .ui-page .stock-head,
-.ui-page .trad-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 11px; letter-spacing: 0; text-transform: none; }
+.ui-page .trad-head { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .attire-order-row,
 .ui-page .stock-row,
 .ui-page .trad-row { min-height: 76px; border-color: var(--ui-gray-100); font-size: 12px; }
@@ -713,9 +701,9 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .stock-row strong,
 .ui-page .trad-row strong { color: var(--ui-gray-900); font-size: 13px; }
 .ui-page .attire-order-row small,
-.ui-page .trad-row small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .trad-row small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .attire-order-row select,
-.ui-page .trad-row select { height: 34px; border-color: var(--ui-gray-300); border-radius: 8px !important; color: var(--ui-gray-900) !important; background-color: white !important; font-size: 11px; }
+.ui-page .trad-row select { height: 34px; border-color: var(--ui-gray-300); border-radius: 8px !important; color: var(--ui-gray-900) !important; background-color: white !important; font-size: 12px; }
 .ui-page .record-edit { width: 34px; height: 34px; border-color: transparent; border-radius: 8px; color: var(--ui-gray-500); background: transparent; }
 .ui-page .record-edit:hover { border-color: var(--ui-gray-200); color: var(--ui-gray-700); background: var(--ui-gray-50); }
 .ui-page .danger { color: var(--ui-gray-700); }
@@ -742,7 +730,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .seating-table > header { border-color: var(--ui-gray-200); background: var(--ui-gray-50); }
 .ui-page .waiting-list h2,
 .ui-page .seating-table h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 16px; font-weight: 600; }
-.ui-page .waiting-list header span { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .waiting-list header span { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .seat-guest,
 .ui-page .seated-list > * { border-color: var(--ui-gray-100); }
 .ui-page .seating-table.locked { border-color: var(--ui-gray-300); }
@@ -760,7 +748,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .file-upload label { color: var(--ui-gray-700); font-size: 12px; font-weight: 500; text-transform: none; }
 .ui-page .file-upload input,
 .ui-page .file-upload select { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; padding-inline: 12px; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
-.ui-page .file-picker strong { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; color: var(--ui-gray-700); font-size: 13px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .file-upload footer { border-color: var(--ui-gray-200); }
 .ui-page .file-validation-error { grid-column: 1 / -1; margin: 0; }
 .ui-page .file-toolbar { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ui-gray-200); border-radius: 12px; background: white; box-shadow: var(--ui-shadow-xs); }
@@ -772,7 +759,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .file-grid article:hover { border-color: var(--ui-gray-300); box-shadow: var(--ui-shadow-sm); }
 .ui-page .file-icon { width: 40px; height: 40px; border: 0; border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .ui-page .file-grid h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 15px; font-weight: 600; }
-.ui-page .file-grid article span { color: var(--ui-gray-500); font-size: 11px; text-transform: none; }
+.ui-page .file-grid article span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .file-grid footer { border-color: var(--ui-gray-100); }
 .ui-page .file-grid footer { flex-wrap: wrap; gap: 6px; }
 .ui-page .file-grid footer button,
@@ -791,11 +778,11 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .report-summary > div { min-height: 116px; padding: 16px 20px; }
 .ui-page .report-summary > div + div { border-color: var(--ui-gray-200); }
 .ui-page .report-summary strong { color: var(--ui-gray-900); font-family: inherit; font-size: 26px; font-weight: 600; }
-.ui-page .report-summary span { color: var(--ui-gray-500); font-size: 11px; text-transform: none; }
+.ui-page .report-summary span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .report-downloads { gap: 0; margin-top: 24px; }
 .ui-page .report-downloads article { min-height: 88px; border-color: var(--ui-gray-100); padding: 16px 20px; }
 .ui-page .report-downloads strong { color: var(--ui-gray-900); font-size: 14px; }
-.ui-page .report-downloads small { color: var(--ui-gray-500); font-size: 11px; }
+.ui-page .report-downloads small { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .report-downloads button,
 .ui-page .recycle-list button { border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 7px 10px; color: var(--ui-gray-700); background: white; font-size: 12px; font-weight: 600; box-shadow: var(--ui-shadow-xs); }
 .ui-page .settings-section { margin-top: 20px; }
@@ -818,7 +805,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .danger-zone > div > p { color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .recycle-list > header,
 .ui-page .recycle-list article { padding-inline: 20px; }
-.ui-page .recycle-list > header { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 11px; text-transform: none; }
+.ui-page .recycle-list > header { min-height: 44px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; text-transform: none; }
 .ui-page .recycle-list article { min-height: 72px; border-color: var(--ui-gray-100); font-size: 13px; }
 .ui-page .recycle-list article strong { color: var(--ui-gray-900); font-size: 13px; }
 .ui-page .recycle-list article > span,
@@ -892,3 +879,1118 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
   .ui-page .seating-summary { grid-template-columns: 1fr; }
   .ui-page .seating-summary > div + div { border-top: 1px solid var(--ui-gray-200); border-left: 0; }
 }
+
+/* ---- Sticky column headers ----------------------------------------------
+   These rows name the columns underneath them. Previously every one scrolled
+   away, so a long ledger or task list lost the meaning of its own columns.
+   `position: sticky` appeared exactly twice in the codebase before this, both
+   on a PDF page-nav. */
+.ui-page .ledger-head,
+.ui-page .task-list-head,
+.ui-page .attire-order-head,
+.ui-page .stock-head,
+.ui-page .trad-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--ui-gray-50);
+  box-shadow: inset 0 -1px 0 var(--ui-gray-200);
+}
+
+/* The registry form keeps its field styling but sheds the panel chrome it used
+   to draw for itself: the Modal now owns the surface, header and footer. */
+.registry-form.in-modal,
+.ui-page .registry-form.in-modal,
+.vendors-page .registry-form.in-modal,
+.registry-page .registry-form.in-modal { margin: 0; border: 0; background: transparent; }
+.registry-form.in-modal > form,
+.vendors-page .registry-form.in-modal > form,
+.registry-page .registry-form.in-modal > form { padding: 0; }
+.registry-form.in-modal > form > div { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 700px) { .registry-form.in-modal > form > div { grid-template-columns: 1fr; } }
+
+/* Guest entry sheds its inline panel chrome inside the Modal, keeping only the
+   field grid. It previously grew the page by 506px and left focus on the button
+   that opened it. */
+.guest-entry.in-modal,
+.ui-page .guest-entry.in-modal { display: block; margin: 0; border: 0; padding: 0; background: transparent; }
+.guest-entry.in-modal > .entry-fields { margin: 0; }
+
+/* ==========================================================================
+   Form controls — Untitled UI "Input / md"
+   Previously only border, colour and background were set here, and sizing came
+   from whichever page stylesheet happened to define it. Anything rendered
+   outside a page — the shared Modal portals to <body> — therefore got no
+   sizing at all, and date/time inputs were never styled anywhere.
+   ========================================================================== */
+.ui-page input:where(:not([type="file"]),:not([type="checkbox"]),:not([type="radio"])),
+.ui-page select,
+.ui-page textarea,
+.ui-modal-panel input:where(:not([type="file"]),:not([type="checkbox"]),:not([type="radio"])),
+.ui-modal-panel select,
+.ui-modal-panel textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--ui-gray-900);
+  background-color: white;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-page select,
+.ui-modal-panel select { padding-right: 36px; }
+
+.ui-page textarea,
+.ui-modal-panel textarea { min-height: 88px; resize: vertical; }
+
+.ui-page input::placeholder,
+.ui-page textarea::placeholder,
+.ui-modal-panel input::placeholder,
+.ui-modal-panel textarea::placeholder { color: var(--ui-gray-500); }
+
+.ui-page input:hover:not(:disabled),
+.ui-page select:hover:not(:disabled),
+.ui-modal-panel input:hover:not(:disabled),
+.ui-modal-panel select:hover:not(:disabled) { border-color: var(--ui-gray-400); }
+
+/* Focus: a soft ring in the brand hue rather than a hard outline, which is what
+   gives the brand tokens somewhere real to live. */
+.ui-page input:focus-visible,
+.ui-page select:focus-visible,
+.ui-page textarea:focus-visible,
+.ui-modal-panel input:focus-visible,
+.ui-modal-panel select:focus-visible,
+.ui-modal-panel textarea:focus-visible {
+  border-color: var(--ui-focus-border);
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+
+/* Date and time fields were fully native: no sizing, and a browser-default
+   calendar glyph. They now match every other control and open on click. */
+.ui-page input[type="date"],
+.ui-page input[type="time"],
+.ui-page input[type="datetime-local"],
+.ui-modal-panel input[type="date"],
+.ui-modal-panel input[type="time"],
+.ui-modal-panel input[type="datetime-local"] {
+  appearance: none;
+  position: relative;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-page input[type="date"]::-webkit-calendar-picker-indicator,
+.ui-page input[type="time"]::-webkit-calendar-picker-indicator,
+.ui-page input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="date"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="time"]::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  opacity: .6;
+  cursor: pointer;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.ui-page input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.ui-modal-panel input[type="date"]:hover::-webkit-calendar-picker-indicator { opacity: 1; }
+
+.ui-page input[type="number"],
+.ui-modal-panel input[type="number"] { font-variant-numeric: tabular-nums; }
+
+/* Checkboxes were the one control still rendering at the platform default. */
+.ui-page input[type="checkbox"],
+.ui-modal-panel input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ui-gray-900);
+  cursor: pointer;
+}
+
+/* Field labels wrapping a control. */
+.ui-modal-panel label { display: flex; flex-direction: column; gap: 6px; color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+.ui-modal-panel label > span:first-child { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+
+/* ==========================================================================
+   Sidebar: create action, grouped nav with a divider, account menu
+   ========================================================================== */
+.ui-shell .sidebar-actions { padding: 10px; }
+.ui-shell .sidebar-actions:empty { display: none; }
+
+.ui-shell .new-button {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--ui-gray-900);
+  border-radius: 8px;
+  color: white;
+  background: var(--ui-gray-900);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-shell .new-button:hover { background: #000; }
+.ui-shell .new-button > span { flex: 1; text-align: left; }
+
+/* The rule between Workspace and Planning. */
+.ui-shell .sidebar-nav .nav-section + .nav-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+.ui-shell .nav-label { padding: 0 12px 6px; color: var(--ui-gray-500); font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; }
+/* Roomier than the 32px it took to fit everything before Settings and Recycle
+   bin moved into the account menu. */
+.ui-shell .nav-item { min-height: 36px; gap: 12px; margin: 2px 0; padding: 8px 12px; border: 0; border-radius: 6px; color: var(--ui-gray-600); font-size: 14px; font-weight: 500; }
+
+.ui-shell .sidebar-footer { padding: 10px; }
+.ui-shell .profile-button { min-height: 48px; margin-top: 0; border-radius: 8px; padding: 8px; }
+
+/* ---- Menu popover -------------------------------------------------------- */
+.menu-root { position: relative; }
+.menu-popover {
+  position: absolute;
+  z-index: 60;
+  min-width: 208px;
+  padding: 6px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+}
+.menu-popover.place-bottom { top: calc(100% + 6px); }
+.menu-popover.place-top { bottom: calc(100% + 6px); }
+.menu-popover.align-start { left: 0; }
+.menu-popover.align-end { right: 0; }
+
+.menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--ui-gray-700);
+  background: transparent;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.menu-item:hover, .menu-item:focus-visible { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+.menu-item > span { display: flex; min-width: 0; flex-direction: column; }
+.menu-item strong { font-size: 14px; font-weight: 500; }
+.menu-item small { color: var(--ui-gray-500); font-size: 12px; }
+
+
+/* ==========================================================================
+   Ceremonies: a readable list, with add and edit as separate modal actions.
+   Previously every ceremony was a live form, all expanded at once, and "Add"
+   appended a new blank form to the very bottom of the page with no indication
+   anything had happened.
+   ========================================================================== */
+.ui-page.ceremonies-page .page-header { align-items: flex-start; }
+.ui-page.ceremonies-page .header-actions { align-items: center; gap: 16px; }
+.ui-page .ceremony-summary { display: block; min-width: 0; padding: 0; border: 0; color: var(--ui-gray-600); font-size: 14px; white-space: nowrap; }
+
+.ui-page .ceremony-list { display: flex; flex-direction: column; gap: 12px; }
+
+.ui-page .ceremony-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1fr) auto auto;
+  align-items: center;
+  gap: 32px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 12px;
+  padding: 16px 20px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-page .ceremony-row:hover { border-color: var(--ui-gray-300); background: var(--ui-gray-25); }
+
+/* Name and status read as one thing on one line. Stacking them left the pill
+   stranded under the title and threw the row's vertical balance out. */
+.ui-page .ceremony-row-title { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.ui-page .ceremony-row-title h2 { overflow: hidden; font-size: 16px; font-weight: 600; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+.ui-page .ceremony-status { flex: 0 0 auto; border: 1px solid; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+
+.ui-page .ceremony-facts { display: flex; gap: 32px; margin: 0; }
+.ui-page .ceremony-facts > div { display: flex; min-width: 92px; flex-direction: column; gap: 2px; }
+.ui-page .ceremony-facts dt { display: flex; align-items: center; gap: 6px; color: var(--ui-gray-500); font-size: 12px; }
+.ui-page .ceremony-facts dd { margin: 0; overflow: hidden; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+/* Unset values should recede rather than shout four times per row. */
+.ui-page .ceremony-facts dd[data-empty] { color: var(--ui-gray-400); font-weight: 400; }
+
+.ui-page .ceremony-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.ui-page .ceremony-row-actions .plain-icon-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  color: var(--ui-gray-600);
+  background: white;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-page .ceremony-row-actions .plain-icon-button:hover { border-color: #fecdca; color: #b42318; background: var(--ui-error-50); }
+
+.ui-page .ceremony-empty {
+  display: grid;
+  min-height: 320px;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+}
+.ui-page .ceremony-empty h2 { font-size: 20px; font-weight: 600; }
+.ui-page .ceremony-empty p { max-width: 380px; color: var(--ui-gray-600); font-size: 14px; }
+.ui-page .ceremony-empty .button { margin-top: 12px; }
+
+/* ---- Ceremony modal ---- */
+.ceremony-form { display: flex; flex-direction: column; gap: 24px; }
+.ceremony-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.ceremony-form-grid .field-wide { grid-column: 1 / -1; }
+
+.ceremony-segments { border-top: 1px solid var(--ui-gray-200); padding-top: 20px; }
+.ceremony-segments-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+.ceremony-segments-head h3 { font-size: 15px; font-weight: 600; }
+.ceremony-segments-empty { color: var(--ui-gray-500); font-size: 14px; }
+.ceremony-segment-list { display: flex; flex-direction: column; gap: 8px; }
+.ceremony-segment-row { display: grid; grid-template-columns: minmax(0, 1fr) 132px 36px; align-items: center; gap: 8px; }
+.ui-modal-panel .plain-icon-button {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .plain-icon-button:hover { color: #b42318; background: var(--ui-error-50); }
+.ui-modal-panel .button.compact { min-height: 32px; padding: 0 10px; font-size: 13px; }
+
+@media (max-width: 1180px) {
+  .ui-page .ceremony-row { grid-template-columns: 1fr auto; gap: 16px 20px; }
+  .ui-page .ceremony-facts { order: 3; grid-column: 1 / -1; flex-wrap: wrap; gap: 20px 32px; }
+}
+
+@media (max-width: 700px) {
+  .ceremony-form-grid { grid-template-columns: 1fr; }
+  .ui-page.ceremonies-page .header-actions { flex-wrap: wrap; }
+}
+
+
+/* ==========================================================================
+   Select, date and time controls
+   These replace native <select> and <input type="date|time">, whose open state
+   is drawn by the operating system and cannot be themed.
+   ========================================================================== */
+.ui-select, .ui-datefield { position: relative; min-width: 0; }
+
+.ui-select-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--ui-gray-900);
+  background: white;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-select-trigger:hover:not(:disabled) { border-color: var(--ui-gray-400); }
+.ui-select-trigger:focus-visible {
+  border-color: var(--ui-focus-border);
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+.ui-select-trigger:disabled { cursor: not-allowed; color: var(--ui-gray-500); background: var(--ui-gray-50); }
+
+.ui-select-label { flex: 0 0 auto; color: var(--ui-gray-500); font-size: 14px; }
+.ui-select-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-select-value.is-placeholder { color: var(--ui-gray-500); }
+.ui-select-caret { flex: 0 0 auto; color: var(--ui-gray-500); }
+.ui-select-trigger:disabled .ui-select-caret { color: var(--ui-gray-400); }
+
+/* Filter-bar shape: a pill carrying its own label, used above lists. */
+.ui-select.is-compact .ui-select-trigger {
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+/* ---- The open list ---- */
+.ui-select-list {
+  position: fixed;
+  z-index: 300;
+  max-height: 280px;
+  min-width: 180px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-gray-300) transparent;
+}
+.ui-select-list::-webkit-scrollbar { width: 8px; }
+.ui-select-list::-webkit-scrollbar-track { background: transparent; }
+.ui-select-list::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--ui-gray-300); background-clip: content-box; }
+
+.ui-select-option {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--ui-gray-700);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ui-select-option[data-active="true"], .ui-select-option:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+.ui-select-option[aria-selected="true"] { color: var(--ui-gray-900); font-weight: 500; }
+.ui-select-option[aria-disabled="true"] { color: var(--ui-gray-400); cursor: not-allowed; }
+.ui-select-tick { flex: 0 0 auto; color: var(--ui-gray-900); }
+.ui-timelist { max-height: 260px; }
+
+/* ---- Calendar ---- */
+.ui-picker {
+  position: fixed;
+  z-index: 300;
+  width: 300px;
+  padding: 12px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+}
+
+.ui-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ui-picker-head strong { color: var(--ui-gray-900); font-size: 14px; font-weight: 600; }
+.ui-picker-head button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ui-gray-600);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-picker-head button:hover { background: var(--ui-gray-100); }
+.ui-picker-head .is-flipped { transform: rotate(180deg); }
+
+.ui-picker-weekdays, .ui-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.ui-picker-weekdays { margin-bottom: 4px; }
+.ui-picker-weekdays span { display: grid; height: 28px; place-items: center; color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
+
+.ui-picker-day {
+  display: grid;
+  height: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.ui-picker-day:hover { background: var(--ui-gray-100); }
+.ui-picker-day[data-outside] { color: var(--ui-gray-400); }
+.ui-picker-day[data-today] { border-color: var(--ui-gray-300); font-weight: 600; }
+.ui-picker-day[aria-pressed="true"] { color: white; background: var(--ui-gray-900); border-color: var(--ui-gray-900); }
+.ui-picker-day:disabled { color: var(--ui-gray-300); background: transparent; cursor: not-allowed; }
+
+.ui-picker-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--ui-gray-200); }
+.ui-picker-foot button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--ui-gray-600);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ui-picker-foot button:disabled { color: var(--ui-gray-300); cursor: not-allowed; }
+.ui-picker-foot button:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-select-list, .ui-picker { animation: overlay-in var(--dur-fast) ease; }
+}
+
+.ui-datetime { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 560px) { .ui-datetime { grid-template-columns: 1fr; } }
+
+
+/* ==========================================================================
+   Bare controls inside a decorated wrapper
+   These inputs sit inside an element that already draws the border — a search
+   pill, a currency field, a table cell. The global control layer above would
+   give them a second border and background, which rendered as a box inside a
+   box. The wrapper owns the chrome; the control stays transparent.
+   ========================================================================== */
+.ui-page .guest-search input,
+.ui-page .budget-search input,
+.ui-page .registry-panel > header input,
+.ui-page .seating-tools input,
+.ui-page .allocation-amount input,
+.ui-page .import-paste input {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ui-page .guest-search input:focus-visible,
+.ui-page .budget-search input:focus-visible,
+.ui-page .registry-panel > header input:focus-visible,
+.ui-page .seating-tools input:focus-visible,
+.ui-page .allocation-amount input:focus-visible {
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+/* The wrapper takes the focus ring instead, so the whole control responds. */
+.ui-page .guest-search,
+.ui-page .budget-search,
+.ui-page .registry-panel > header label,
+.ui-page .guest-search:focus-within,
+.ui-page .budget-search:focus-within,
+.ui-page .registry-panel > header label:focus-within,
+
+/* The search pill is a real bordered field rather than a bottom-ruled input. */
+.ui-page .guest-search,
+.ui-page .budget-search {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-gray-300);
+  background: white;
+}
+.ui-page .guest-search input,
+.ui-page .budget-search input { font-size: 14px; }
+.ui-page .guest-search .app-icon,
+.ui-page .budget-search .app-icon { color: var(--ui-gray-500); }
+
+
+/* ==========================================================================
+   Guest modal: ceremony responses
+   This row used to sit in column two of the old inline two-column layout, so
+   inside the modal its three columns lined up with nothing above them. It is
+   now its own labelled group, separated by a rule.
+   ========================================================================== */
+.ui-page .entry-rsvp-group,
+.ui-modal-panel .entry-rsvp-group {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+.ui-page .entry-group-label,
+.ui-modal-panel .entry-group-label {
+  margin-bottom: 12px;
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ui-page .entry-rsvps,
+.ui-modal-panel .entry-rsvps {
+  display: grid;
+  grid-column: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Response tone belongs to the pill set, and "declined" was still magenta.
+   Left unscoped because the modal portals to <body>, outside .ui-page. */
+
+.rsvp-select.attending .ui-select-trigger { border-color: #a6f4c5; color: #067647; background-color: #ecfdf3; }
+.rsvp-select.pending .ui-select-trigger { border-color: #fedf89; color: #b54708; background-color: #fffaeb; }
+.rsvp-select.declined .ui-select-trigger { border-color: #fecdca; color: #b42318; background-color: #fef3f2; }
+.rsvp-select .ui-select-caret { color: currentColor; opacity: .6; }
+
+@media (max-width: 700px) {
+  .ui-modal-panel .entry-rsvps { grid-template-columns: 1fr; }
+}
+
+
+/* ==========================================================================
+   ONE field system
+   Every labelled control in the app uses these rules. Six page stylesheets
+   used to define their own, with label weights of 650 in uppercase that the
+   inputs then inherited through `font: inherit` — which is why placeholders
+   and values read as bold, and why no two forms matched.
+   Change a field here, not in a page.
+   ========================================================================== */
+.ui-field,
+.planning-field,
+.logistics-field,
+.budget-field,
+.entry-fields label,
+.entry-rsvps label,
+.registry-form label,
+.settings-grid label,
+.honeymoon-form label,
+.honeymoon-detail-form label,
+.allocation-entry > label,
+.mapping-grid label,
+.ceremony-form label,
+.ui-modal-panel label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The label's own text, where a field wraps it in a span alongside a hint. */
+.planning-field > span,
+.budget-field > span,
+.entry-fields label > span,
+.ceremony-form label > span,
+.ui-modal-panel label > span:first-child {
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Optional-style hints sit beside the label and must never look like a label. */
+.planning-field small,
+.budget-field small,
+.entry-fields small,
+.ui-modal-panel label small {
+  color: var(--ui-gray-500);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Controls never inherit a label's weight. */
+.ui-page input,
+.ui-page select,
+.ui-page textarea,
+.ui-modal-panel input,
+.ui-modal-panel select,
+.ui-modal-panel textarea,
+.ui-select-trigger {
+  font-weight: 400;
+}
+
+/* Placeholders must read as prompts, not as entered values. */
+.ui-page input::placeholder,
+.ui-page textarea::placeholder,
+.ui-modal-panel input::placeholder,
+.ui-modal-panel textarea::placeholder,
+.ui-select-value.is-placeholder {
+  color: var(--ui-gray-500);
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* A group divider inside a form. */
+.ui-field-divider {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+
+/* ==========================================================================
+   Corrections to the base controls
+   ========================================================================== */
+
+/* Filter pills used a 999px radius while every other control used 8px. There
+   was no reason for it; the radius now matches the rest of the system. */
+.ui-select.is-compact .ui-select-trigger { border-radius: 8px; }
+
+/* The New menu list matches the width of the button that opens it. */
+.menu-popover { min-width: 100%; }
+
+/* A response is a value, not an alert. Tinting these amber made a neutral
+   default look like a warning, and put three orange blocks in one form. */
+.rsvp-select .ui-select-trigger,
+.rsvp-select.attending .ui-select-trigger,
+.rsvp-select.pending .ui-select-trigger,
+.rsvp-select.declined .ui-select-trigger {
+  border-color: var(--ui-gray-300);
+  color: var(--ui-gray-900);
+  background-color: white;
+}
+.rsvp-select .ui-select-caret { color: var(--ui-gray-500); opacity: 1; }
+
+/* A checkbox reads as one control row with its own text, not as a label with a
+   box stranded underneath it. */
+.entry-fields .plus-one-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  align-self: end;
+  min-height: 40px;
+}
+.entry-fields .plus-one-toggle input { width: 18px; height: 18px; margin: 0; }
+.entry-fields .plus-one-toggle > span { font-size: 14px; font-weight: 500; }
+
+/* The filter row above a list: same control, same height, same radius. */
+.ui-page .page-ceremony-filter { display: block; }
+
+
+/* ==========================================================================
+   Button — the single definition
+   Four separate systems used to exist (.text-action, .plain-icon-button,
+   .budget-icon-button, .danger-button) and they drifted in weight, size and
+   radius, so an empty-state button looked nothing like the one beside it.
+   Everything renders through <Button> now. Change it here.
+   ========================================================================== */
+.ui-page .button,
+.ui-shell .button,
+.ui-modal-panel .button,
+.button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.ui-page .button.primary,
+.ui-shell .button.primary,
+.ui-modal-panel .button.primary,
+.button.primary { border-color: var(--ui-gray-900); color: white; background: var(--ui-gray-900); }
+.ui-page .button.primary:hover:not(:disabled),
+.ui-modal-panel .button.primary:hover:not(:disabled),
+.button.primary:hover:not(:disabled) { border-color: var(--ui-gray-700); background: var(--ui-gray-700); }
+
+.ui-page .button.secondary,
+.ui-shell .button.secondary,
+.ui-modal-panel .button.secondary,
+.button.secondary { border-color: var(--ui-gray-300); color: var(--ui-gray-700); background: white; }
+.ui-page .button.secondary:hover:not(:disabled),
+.ui-modal-panel .button.secondary:hover:not(:disabled),
+.button.secondary:hover:not(:disabled) { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+
+.ui-page .button.ghost,
+.ui-modal-panel .button.ghost,
+.button.ghost { border-color: transparent; color: var(--ui-gray-600); background: transparent; }
+.ui-page .button.ghost:hover:not(:disabled),
+.ui-modal-panel .button.ghost:hover:not(:disabled),
+.button.ghost:hover:not(:disabled) { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+
+.ui-page .button.danger,
+.ui-modal-panel .button.danger,
+.button.danger { border-color: #b42318; color: white; background: #b42318; }
+.ui-page .button.danger:hover:not(:disabled),
+.ui-modal-panel .button.danger:hover:not(:disabled),
+.button.danger:hover:not(:disabled) { border-color: #912018; background: #912018; }
+
+/* Sizes and shapes */
+.ui-page .button.compact,
+.ui-modal-panel .button.compact,
+.button.compact { min-height: 34px; padding: 0 10px; font-size: 13px; }
+
+.ui-page .button.is-icon,
+.ui-modal-panel .button.is-icon,
+.button.is-icon { width: 40px; min-width: 40px; padding: 0; }
+.ui-page .button.is-icon.compact,
+.ui-modal-panel .button.is-icon.compact,
+.button.is-icon.compact { width: 34px; min-width: 34px; }
+
+/* A destructive icon button reveals its intent on hover, not at rest. */
+.ui-page .button.ghost.is-icon:hover:not(:disabled),
+.ui-modal-panel .button.ghost.is-icon:hover:not(:disabled) { color: #b42318; background: var(--ui-error-50); }
+
+.ui-page .button.full,
+.ui-modal-panel .button.full,
+.button.full { width: 100%; }
+
+.ui-page .button:disabled,
+.ui-modal-panel .button:disabled,
+.button:disabled { cursor: not-allowed; color: var(--ui-gray-500); border-color: var(--ui-gray-200); background: var(--ui-gray-100); opacity: 1; }
+.ui-page .button.ghost:disabled,
+.button.ghost:disabled { border-color: transparent; background: transparent; }
+
+.ui-page .button:focus-visible,
+.ui-shell .button:focus-visible,
+.ui-modal-panel .button:focus-visible,
+.button:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+
+/* ---- Toggle ------------------------------------------------------------- */
+.ui-toggle-row { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.ui-toggle {
+  position: relative;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0;
+  background: var(--ui-gray-300);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-toggle[aria-checked="true"] { background: var(--ui-gray-900); }
+.ui-toggle:disabled { cursor: not-allowed; opacity: .5; }
+.ui-toggle:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+.ui-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .15);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.ui-toggle[aria-checked="true"] .ui-toggle-thumb { transform: translateX(16px); }
+.ui-toggle-text { display: flex; flex-direction: column; }
+.ui-toggle-label { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
+.ui-toggle-text small { color: var(--ui-gray-500); font-size: 13px; }
+
+/* Fields that span the full width of a two-column form grid. */
+.entry-span-2 { grid-column: 1 / -1; }
+
+/* The open list matches the control that opened it rather than a fixed floor,
+   so a narrow time field no longer spills a much wider menu. */
+.ui-select-list { min-width: 0; }
+.ui-timelist { text-align: left; }
+
+/* ==========================================================================
+   Empty state — one definition
+   Sections used to write their own markup and layout, so two panels on the same
+   page described the same situation in two different voices.
+   ========================================================================== */
+.ui-empty {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  justify-items: center;
+  gap: 6px;
+  padding: 40px 24px;
+  text-align: center;
+}
+.ui-empty.is-compact { min-height: 160px; padding: 28px 20px; }
+.ui-empty-icon { display: grid; place-items: center; margin-bottom: 6px; color: var(--ui-gray-400); }
+.ui-empty h3 { color: var(--ui-gray-900); font-size: 16px; font-weight: 600; }
+.ui-empty p { max-width: 380px; color: var(--ui-gray-600); font-size: 14px; line-height: 20px; }
+.ui-empty-action { margin-top: 10px; }
+
+/* Both budget panels share one heading and one toolbar shape. */
+.ui-page .budget-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .budget-section-heading h2 { font-size: 16px; font-weight: 600; }
+.ui-page .budget-section-heading p { margin-top: 2px; color: var(--ui-gray-600); font-size: 14px; }
+.ui-page .budget-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .budget-toolbar-note { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+
+.allocation-form { display: flex; flex-direction: column; gap: 16px; }
+
+/* A hint sits with its label. `justify-content: space-between` threw it to the
+   far edge of the field, where it read as an unrelated column heading. */
+.ui-page .budget-field > span,
+.ui-page .entry-fields label > span,
+.ui-modal-panel label > span:first-child,
+.planning-field > span { justify-content: flex-start; gap: 8px; }
+
+/* The empty state owns its own type wherever it is nested. */
+.ui-page .ui-empty h3 { font-size: 16px; font-weight: 600; }
+.ui-page .ui-empty p { color: var(--ui-gray-600); font-size: 14px; line-height: 20px; }
+
+/* ==========================================================================
+   Empty state and modal form rhythm
+   ========================================================================== */
+/* Wide enough that a one-sentence description stays on one line. */
+.ui-page .ui-empty p,
+.ui-empty p { max-width: 60ch; }
+.ui-page .ui-empty,
+.ui-empty { gap: 4px; }
+.ui-page .ui-empty-action,
+.ui-empty-action { margin-top: 14px; }
+
+/* ---- One modal form layout ----------------------------------------------
+   Fields sit two to a row at most: three and four columns made a modal wide
+   and hard to scan, and every form used a different gap. Space between
+   fields is larger than the space inside one, so a label reads as belonging
+   to the control under it. */
+.ui-modal-panel .ui-form,
+.ui-modal-panel form > .ui-form-grid,
+.ui-modal-panel .budget-form-grid,
+.ui-modal-panel .task-form-grid,
+.ui-modal-panel .ceremony-form-grid,
+.ui-modal-panel .entry-fields,
+.ui-modal-panel .registry-form.in-modal > form > div,
+.ui-modal-panel .logistics-fields,
+.ui-modal-panel .seating-table-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+
+.ui-modal-panel .field-span-2,
+.ui-modal-panel .field-full,
+.ui-modal-panel .field-wide,
+.ui-modal-panel .entry-span-2 { grid-column: 1 / -1; }
+
+.ui-modal-panel .ngn-preview { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .ui-modal-panel .ui-form,
+  .ui-modal-panel .budget-form-grid,
+  .ui-modal-panel .task-form-grid,
+  .ui-modal-panel .entry-fields,
+  .ui-modal-panel .registry-form.in-modal > form > div,
+  .ui-modal-panel .logistics-fields,
+  .ui-modal-panel .seating-table-form { grid-template-columns: 1fr; }
+}
+
+/* A revealed field grows in rather than appearing instantly. */
+@keyframes field-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.ui-modal-panel .is-revealed { animation: field-reveal var(--dur) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-panel .is-revealed { animation: overlay-in var(--dur-fast) ease; }
+}
+
+/* The card grows and shrinks with its content. Without this the panel jumped
+   to its new size while the revealed field faded in, which read as instant. */
+.ui-modal-body[data-animate] { transition: height var(--dur) var(--ease-out); }
+.ui-modal-body { overflow-x: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-body[data-animate] { transition: none; }
+}
+
+
+/* A plus-one is part of who the guest is, so it sits with the name. */
+.ui-page .guest-plus-one {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+/* The rate-card picker gave no sign it accepted a file. */
+.ui-page .rate-card-picker strong,
+.ui-modal-panel .rate-card-picker strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--ui-gray-700);
+  background: var(--ui-gray-25);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .rate-card-picker strong:hover { border-color: var(--ui-gray-400); background: var(--ui-gray-50); }
+
+/* The RSVP controls now carry the ceremony name as well as the response, so the
+   column needs real width. At 1.4fr with a 5px gap the value was clipped to
+   "Court P...", which hid the one thing the control exists to show. */
+.ui-page .guest-row { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(430px, auto) 60px; }
+.ui-page .rsvp-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ui-page .rsvp-list .ui-select-trigger { padding-inline: 10px; gap: 6px; }
+.ui-page .rsvp-list .ui-select-label { flex: 0 0 auto; font-size: 13px; }
+.ui-page .rsvp-list .ui-select-value { font-size: 13px; }
+
+@media (max-width: 1240px) {
+  .ui-page .guest-row { grid-template-columns: minmax(0, 1fr) minmax(300px, auto) 60px; }
+  .ui-page .guest-notes { grid-column: 1; }
+  .ui-page .rsvp-list { grid-column: 2; }
+}
+@media (max-width: 900px) {
+  .ui-page .guest-row { grid-template-columns: 1fr; }
+  .ui-page .guest-notes, .ui-page .rsvp-list { grid-column: 1; }
+}
+
+/* Seating: the waiting list is a companion to the floor plan, not a peer panel.
+   A fixed, narrower rail leaves the tables area the room it actually needs. */
+.ui-page .seating-workspace { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ui-page .waiting-list > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 16px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .waiting-list > header h2 { font-size: 15px; font-weight: 600; }
+.ui-page .waiting-list > header span { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+.ui-page .waiting-list { position: sticky; top: 20px; border: 1px solid var(--ui-gray-200); border-radius: 12px; overflow: hidden; }
+.ui-page .table-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+@media (max-width: 1000px) {
+  .ui-page .seating-workspace { grid-template-columns: 1fr; }
+  .ui-page .waiting-list { position: static; }
+}
+
+
+/* An empty state inside a multi-column grid must span it, or it sits in the
+   first column and reads as left-aligned. */
+.ui-empty { grid-column: 1 / -1; }
+
+/* The file picker is the point of the modal, so it looks like a drop target. */
+.ui-page .file-picker,
+.ui-modal-panel .file-picker { position: relative; display: block; cursor: pointer; }
+.ui-modal-panel .file-picker input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ui-modal-panel .file-picker-drop {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 12px;
+  background: var(--ui-gray-25);
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .file-picker:hover .file-picker-drop { border-color: var(--ui-gray-400); background: var(--ui-gray-50); }
+.ui-modal-panel .file-picker input:focus-visible + .file-picker-drop { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
+.ui-modal-panel .file-picker-drop .app-icon { color: var(--ui-gray-500); }
+.ui-modal-panel .file-picker-drop strong,
+.ui-page .file-picker-drop strong { height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; box-shadow: none; }
+.ui-modal-panel .file-picker-drop small { color: var(--ui-gray-500); font-size: 13px; }
+
+/* ---- Category manager ---------------------------------------------------- */
+.category-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 16px; }
+.category-manage-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; }
+.category-manage-list li { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--ui-gray-200); }
+.category-manage-list li:last-child { border-bottom: 0; }
+.category-manage-name { flex: 1; min-width: 0; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; }
+.category-manage-count { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+.category-manage-list li input { flex: 1; min-width: 0; }
+
+
+/* ==========================================================================
+   Input group — a control with leading or trailing text
+   The group owns the border and the focus ring; the input inside is
+   transparent. Previously both drew their own, so focusing a money field lit a
+   ring around the number and left the currency outside it.
+   ========================================================================== */
+.ui-input-group {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-input-group:hover:not(:focus-within) { border-color: var(--ui-gray-400); }
+.ui-input-group:focus-within { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
+
+/* A hairline separates the addon, so it reads as attached to the field rather
+   than as text someone typed into it. */
+.ui-input-group-addon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ui-input-group-addon.is-prefix { border-right: 1px solid var(--ui-gray-200); }
+.ui-input-group-addon.is-suffix { border-left: 1px solid var(--ui-gray-200); }
+
+/* The inner control never draws chrome of its own. */
+.ui-page .ui-input-group > input,
+.ui-modal-panel .ui-input-group > input,
+.ui-input-group > input {
+  min-width: 0;
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 12px;
+  background: transparent;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+.ui-page .ui-input-group > input:focus-visible,
+.ui-modal-panel .ui-input-group > input:focus-visible,
+.ui-input-group > input:focus-visible { border-color: transparent; outline: none; box-shadow: none; }
+
+.ui-input-group:has(> input:disabled) { background: var(--ui-gray-50); }

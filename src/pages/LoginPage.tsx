@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight } from '../components/KoboyoIcon'
+import { ArrowRight } from '../components/Icon'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/BrandMark'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { Button } from '../components/Button'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -71,10 +72,10 @@ export function LoginPage() {
           </label>
           {error && <p className="form-error">{error}</p>}
           {notice && <p className="form-success">{notice}</p>}
-          <button className="button primary full" type="submit" disabled={loading}>
+          <Button variant="primary" fullWidth type="submit" disabled={loading}>
             {loading ? creatingAccount ? 'Creating account...' : 'Signing in...' : creatingAccount ? 'Create account' : 'Continue'} <ArrowRight size={16} />
-          </button>
-          <button className="button secondary full" type="button" disabled={loading} onClick={() => { setCreatingAccount((current) => !current); setError(''); setNotice('') }}>{creatingAccount ? 'I already have an account' : 'Create a planner account'}</button>
+          </Button>
+          <Button variant="secondary" fullWidth type="button" disabled={loading} onClick={() => { setCreatingAccount((current) => !current); setError(''); setNotice('') }}>{creatingAccount ? 'I already have an account' : 'Create a planner account'}</Button>
         </form>
       </section>
     </main>

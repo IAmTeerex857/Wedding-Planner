@@ -11,13 +11,15 @@ import {
   Search,
   Tag,
   Upload,
-  UserPlus,
   UserRound,
   Users,
   X,
-} from '../components/KoboyoIcon'
+} from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
+import { Select } from '../components/Select'
 import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
 import {
   GUEST_IMPORT_FIELDS,
   buildGuestImportReview,
@@ -36,6 +38,9 @@ import {
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace, type CeremonyOption } from '../lib/workspace-context'
 import './guests.css'
+import { Button } from '../components/Button'
+import { Toggle } from '../components/Toggle'
+import { EmptyState } from '../components/EmptyState'
 
 type Guest = Omit<ImportableGuest, 'rsvps'> & { id: string; rsvps: Record<string, RsvpStatus> }
 type EventName = string
@@ -68,6 +73,7 @@ export function GuestsPage() {
   const [rsvpFilter, setRsvpFilter] = useState<'all' | RsvpStatus>('all')
   const [entryOpen, setEntryOpen] = useState(false)
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
+  useCreateParam(() => setEntryOpen(true))
   const [pendingDelete, setPendingDelete] = useState<Guest | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const deferredQuery = useDeferredValue(query.trim().toLocaleLowerCase())
@@ -301,13 +307,12 @@ export function GuestsPage() {
     <div className="page guests-page ui-page">
       <header className="page-header guests-header">
         <div>
-          <p className="eyebrow">People & invitations</p>
           <h1>Guest book</h1>
           <p className="page-lead">Keep every guest, invitation, stay, and ceremony response in one considered list.</p>
         </div>
         <div className="header-actions">
-          <button className="button secondary" type="button" onClick={() => setImportOpen(true)}><Upload size={16} /> Import list</button>
-          <button className="button primary" type="button" onClick={() => { setEditingGuest(null); setEntryOpen((open) => !open) }}><Plus size={16} /> Add guest</button>
+          <Button variant="secondary" type="button" onClick={() => setImportOpen(true)}><Upload size={16} /> Import list</Button>
+          <Button variant="primary" type="button" onClick={() => { setEditingGuest(null); setEntryOpen((open) => !open) }}><Plus size={16} /> Add guest</Button>
         </div>
       </header>
 
@@ -330,16 +335,22 @@ export function GuestsPage() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, contact, tag, or hotel" />
           </label>
           <div className="guest-filters">
-            <SelectFilter label="Event" value={eventFilter} onChange={(value) => setEventFilter(value as typeof eventFilter)}>
-              <option value="all">All events</option>
-              {ceremonyOptions.map((ceremony) => <option key={ceremony.id} value={ceremony.id}>{ceremonyLabel(ceremony)}</option>)}
-            </SelectFilter>
-            <SelectFilter label="Response" value={rsvpFilter} onChange={(value) => setRsvpFilter(value as typeof rsvpFilter)}>
-              <option value="all">All responses</option>
-              <option value="attending">Attending</option>
-              <option value="pending">Pending</option>
-              <option value="declined">Declined</option>
-            </SelectFilter>
+            <Select
+              compact
+              label="Event"
+              aria-label="Filter by event"
+              value={eventFilter}
+              onChange={(value) => setEventFilter(value as typeof eventFilter)}
+              options={[{ value: 'all', label: 'All events' }, ...ceremonyOptions.map((ceremony) => ({ value: ceremony.id, label: ceremonyLabel(ceremony) }))]}
+            />
+            <Select
+              compact
+              label="Response"
+              aria-label="Filter by response"
+              value={rsvpFilter}
+              onChange={(value) => setRsvpFilter(value as typeof rsvpFilter)}
+              options={[{ value: 'all', label: 'All responses' }, { value: 'attending', label: 'Attending' }, { value: 'pending', label: 'Pending' }, { value: 'declined', label: 'Declined' }]}
+            />
           </div>
         </div>
 
@@ -353,7 +364,7 @@ export function GuestsPage() {
             {filteredGuests.map((guest) => <GuestRow key={guest.id} guest={guest} ceremonies={ceremonyOptions} onRsvp={updateRsvp} onEdit={setEditingGuest} onRemove={(id) => setPendingDelete(guests.find((item) => item.id === id) ?? null)} />)}
           </div>
         ) : (
-          <div className="guest-empty"><Users size={22} /><h2>No guests found</h2><p>Try clearing a filter or add someone new.</p></div>
+          <EmptyState icon={<Users size={22} />} title="No guests found" description="Try clearing a filter or add someone new." />
         )}
       </section>
 
@@ -367,18 +378,10 @@ function Summary({ value, label, detail }: { value: number; label: string; detai
   return <div className="guest-summary-item"><strong>{value}</strong><div><span>{label}</span><small>{detail}</small></div></div>
 }
 
-function SelectFilter({ label, value, onChange, children }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode
-}) {
-  return (
-    <label className="compact-select"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>
-  )
-}
-
 function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Guest; ceremonies: CeremonyOption[]; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
   return (
     <article className="guest-row">
-      <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
+      <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}{guest.plusOneAllowed && <span className="guest-plus-one" title={guest.plusOneName || 'Plus-one allowed'}>+1</span>}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
       <div className="guest-notes">
         <div className="tag-list">{guest.tags.map((tag) => <span className={`guest-tag ${pillTone(tag)}`} key={tag}><Tag size={10} />{tag}</span>)}</div>
         {guest.accommodation && <span className="guest-stay"><BedDouble size={13} />{guest.accommodation}</span>}
@@ -392,12 +395,28 @@ function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Gues
 }
 
 function RsvpBadge({ label, status, onChange }: { label: string; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
-  return <label className={`rsvp-badge ${status}`}><i />{label}<select aria-label={`${label} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+  // The ceremony name rides inside the control. Three unlabelled "Pending"
+  // boxes in a row said nothing about which ceremony each one answered.
+  return (
+    <Select
+      compact
+      className="rsvp-select"
+      label={label}
+      aria-label={`${label} RSVP`}
+      value={status}
+      onChange={(next) => onChange(next as RsvpStatus)}
+      options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
+    />
+  )
 }
 
 function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { initialGuest?: Guest; ceremonies: CeremonyOption[]; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
   const [guest, setGuest] = useState<Omit<Guest, 'id'>>(() => ({ ...(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation } : emptyGuest), rsvps: Object.fromEntries(ceremonies.map((ceremony) => [ceremony.id, initialGuest?.rsvps[ceremony.id] ?? 'pending'])) }))
   const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
+  const formId = useId()
+  // A name and one way to reach them: the same rule the form already enforced
+  // on submit, surfaced on the button so the state is visible before clicking.
+  const canSubmit = Boolean((guest.firstName.trim() || guest.lastName.trim()) && (guest.email.trim() || guest.phone.trim()))
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -406,25 +425,51 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
   }
 
   return (
-    <form className="guest-entry" aria-labelledby="guest-entry-title" onSubmit={submit}>
-      <div className="entry-intro"><p className="eyebrow">{initialGuest ? 'Update record' : 'New record'}</p><h2 id="guest-entry-title">{initialGuest ? 'Edit guest' : 'Add a guest'}</h2><p>Name and one contact method are required.</p></div>
+    <Modal
+      open
+      size="wide"
+      title={initialGuest ? 'Edit guest' : 'Add a guest'}
+      description="Name and one contact method are required."
+      onClose={onClose}
+      footer={<><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" form={formId} disabled={isSaving || !canSubmit}>{isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</Button></>}
+    >
+    <form className="guest-entry in-modal" id={formId} onSubmit={submit}>
       <div className="entry-fields">
-        <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
-        <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
+        <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} placeholder="Ada" onChange={(event) => setField('firstName', event.target.value)} /></label>
+        <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} placeholder="Okafor" onChange={(event) => setField('lastName', event.target.value)} /></label>
         <label><span>Email</span><input type="email" required={!guest.phone.trim()} maxLength={254} value={guest.email} onChange={(event) => setField('email', event.target.value)} placeholder="name@example.com" /></label>
         <label><span>Phone</span><input type="tel" required={!guest.email.trim()} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter a valid phone number with 7 to 20 digits and common separators." value={guest.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
-        <label className="plus-one-toggle"><span>Plus-one allowed</span><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /></label>
-        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
         <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
         <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
+        <div className="entry-span-2">
+          <Toggle
+            label="Plus-one allowed"
+            checked={guest.plusOneAllowed}
+            onChange={(next) => setGuest((current) => ({ ...current, plusOneAllowed: next, plusOneName: next ? current.plusOneName : '' }))}
+          />
+        </div>
+        {guest.plusOneAllowed && (
+          <label className="entry-span-2 is-revealed"><span>Plus-one name</span><input maxLength={160} value={guest.plusOneName} placeholder="Name of their guest" onChange={(event) => setField('plusOneName', event.target.value)} /></label>
+        )}
       </div>
+      <div className="entry-rsvp-group">
       <div className="entry-rsvps">
         {ceremonies.map((ceremony) => (
-          <label key={ceremony.id}><span>{ceremonyLabel(ceremony)} RSVP</span><select className={`rsvp-select ${guest.rsvps[ceremony.id]}`} value={guest.rsvps[ceremony.id]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+          <label key={ceremony.id}>
+            <span>{ceremonyLabel(ceremony)} RSVP</span>
+            <Select
+              className={`rsvp-select ${guest.rsvps[ceremony.id]}`}
+              aria-label={`${ceremonyLabel(ceremony)} RSVP`}
+              value={guest.rsvps[ceremony.id]}
+              onChange={(next) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: next as RsvpStatus } }))}
+              options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
+            />
+          </label>
         ))}
       </div>
-      <div className="entry-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={isSaving}>{initialGuest ? <Pencil size={15} /> : <UserPlus size={15} />} {isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</button></div>
+      </div>
     </form>
+    </Modal>
   )
 }
 
@@ -481,7 +526,7 @@ function GuestImport({ guests, onClose, onImport }: { guests: Guest[]; onClose: 
               <div className="stage-note"><div><strong>Match your columns</strong><span>{parsed.rows.length} rows found in {parsed.headers.length} columns</span></div><p>Review each suggested match. Unmapped fields stay blank.</p></div>
               <div className="mapping-grid">
                 {GUEST_IMPORT_FIELDS.map((field) => (
-                  <label key={field}><span>{FIELD_LABELS[field]}{field === 'firstName' || field === 'lastName' ? <small>Name</small> : null}</span><select value={mapping[field] ?? ''} onChange={(event) => setMapping((current) => ({ ...current, [field]: event.target.value || undefined }))}><option value="">Do not import</option>{parsed.headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>
+                  <label key={field}><span>{FIELD_LABELS[field]}{field === 'firstName' || field === 'lastName' ? <small>Name</small> : null}</span><Select aria-label={`Column for ${FIELD_LABELS[field]}`} value={mapping[field] ?? ''} onChange={(next) => setMapping((current) => ({ ...current, [field]: next || undefined }))} options={[{ value: '', label: 'Do not import' }, ...parsed.headers.map((header) => ({ value: header, label: header }))]} /></label>
                 ))}
               </div>
               <div className="mapping-preview"><span>Source preview</span><div>{parsed.headers.map((header) => <code key={header}>{header}: {parsed.rows[0]?.[header] || '—'}</code>)}</div></div>
@@ -499,7 +544,7 @@ function GuestImport({ guests, onClose, onImport }: { guests: Guest[]; onClose: 
           )}
         </div>
 
-        <footer className="import-footer"><p><b>No automatic sync.</b> Nothing is added until you confirm this review.</p><div>{step > 1 && <button className="button secondary" type="button" onClick={() => setStep((step - 1) as 1 | 2)}>Back</button>}{step === 1 && <button className="button primary" type="button" disabled={!pasted.trim()} onClick={() => stageData(parseGuestData(pasted), 'clipboard')}>Map pasted rows</button>}{step === 2 && <button className="button primary" type="button" onClick={() => setStep(3)}>Review import</button>}{step === 3 && <button className="button primary" type="button" disabled={!readyCount} onClick={() => onImport(review, source)}>Import {readyCount} guests</button>}</div></footer>
+        <footer className="import-footer"><p><b>No automatic sync.</b> Nothing is added until you confirm this review.</p><div>{step > 1 && <Button variant="secondary" type="button" onClick={() => setStep((step - 1) as 1 | 2)}>Back</Button>}{step === 1 && <Button variant="primary" type="button" disabled={!pasted.trim()} onClick={() => stageData(parseGuestData(pasted), 'clipboard')}>Map pasted rows</Button>}{step === 2 && <Button variant="primary" type="button" onClick={() => setStep(3)}>Review import</Button>}{step === 3 && <Button variant="primary" type="button" disabled={!readyCount} onClick={() => onImport(review, source)}>Import {readyCount} guests</Button>}</div></footer>
       </section>
     </div>
   )

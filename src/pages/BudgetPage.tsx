@@ -10,14 +10,20 @@ import {
   Search,
   Trash2,
   WalletCards,
-  X,
-} from '../components/KoboyoIcon'
+} from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import './budget.css'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import { fetchNgnRate } from '../lib/exchange-rates'
 import { pillTone } from '../lib/pills'
+import { Select } from '../components/Select'
+import { Modal } from '../components/Modal'
+import { EmptyState } from '../components/EmptyState'
+import { useCreateParam } from '../lib/use-create-param'
+import { DateField } from '../components/DateField'
+import { Button } from '../components/Button'
+import { MoneyInput } from '../components/MoneyInput'
 
 type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR'
 type ExpenseStatus = 'planned' | 'due' | 'paid'
@@ -116,6 +122,9 @@ export function BudgetPage() {
   const [entries, setEntries] = useState<LedgerEntry[]>([])
   const [formMode, setFormMode] = useState<FormMode>(null)
   const [editingEntry, setEditingEntry] = useState<LedgerEntry | null>(null)
+  const [allocationOpen, setAllocationOpen] = useState(false)
+  const [allocationQuery, setAllocationQuery] = useState('')
+  useCreateParam(() => setFormMode('expense'))
   const [query, setQuery] = useState('')
   const [kindFilter, setKindFilter] = useState<'all' | EntryKind>('all')
   const [allocationFilter, setAllocationFilter] = useState('all')
@@ -224,6 +233,7 @@ export function BudgetPage() {
   const ceremonies = (financeQuery.data?.ceremonies ?? []).map((ceremony) => ({ id: ceremony.id, name: ceremony.name.replace(/ Wedding$/i, '') }))
   const matchesCeremony = (ceremonyId: string) => ceremonyFilter === 'all' || (ceremonyFilter === 'general' ? !ceremonyId : ceremonyId === ceremonyFilter)
   const visibleAllocations = allocations.filter((allocation) => matchesCeremony(allocation.ceremonyId))
+  const searchedAllocations = visibleAllocations.filter((allocation) => `${allocation.name} ${allocation.ceremony}`.toLocaleLowerCase().includes(allocationQuery.trim().toLocaleLowerCase()))
   const visibleEntries = entries.filter((entry) => matchesCeremony(entry.ceremonyId))
   const allocated = visibleAllocations.reduce((total, item) => total + item.amountNgn, 0)
   const expenses = entries.filter((entry): entry is Expense => entry.kind === 'expense')
@@ -298,14 +308,13 @@ export function BudgetPage() {
     <div className="page budget-page ui-page">
       <header className="page-header budget-header">
         <div>
-          <p className="eyebrow">Finance / NGN reporting</p>
           <h1>Budget</h1>
           <p className="page-lead">Create spending allocations, connect them to ceremonies, and record every payment and contribution in its original currency.</p>
         </div>
         <div className="header-actions">
-          <label className="page-ceremony-filter"><span>Ceremony</span><select value={ceremonyFilter} onChange={(event) => setCeremonyFilter(event.target.value)}><option value="all">All ceremonies</option><option value="general">General / shared</option>{ceremonies.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremony.name}</option>)}</select></label>
-          <button className="button secondary" type="button" onClick={() => openForm('contribution')}><ArrowDownLeft size={15} /> Add contribution</button>
-          <button className="button primary" type="button" onClick={() => openForm('expense')}><Plus size={15} /> Add expense</button>
+          <div className="page-ceremony-filter"><Select compact label="Ceremony" aria-label="Filter by ceremony" value={ceremonyFilter} onChange={setCeremonyFilter} options={[{ value: 'all', label: 'All ceremonies' }, { value: 'general', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></div>
+          <Button variant="secondary" type="button" onClick={() => openForm('contribution')}><ArrowDownLeft size={15} /> Add contribution</Button>
+          <Button variant="primary" type="button" onClick={() => openForm('expense')}><Plus size={15} /> Add expense</Button>
         </div>
       </header>
 
@@ -322,13 +331,16 @@ export function BudgetPage() {
 
       <section className="allocation-section" aria-labelledby="allocation-title">
         <div className="budget-section-heading">
-          <div><p className="eyebrow">Spending plan</p><h2 id="allocation-title">Allocations</h2></div>
-          <span>All figures in NGN</span>
+          <div><h2 id="allocation-title">Allocations</h2><p>What each part of the wedding should cost.</p></div>
+          <Button variant="primary" size="sm" onClick={() => setAllocationOpen(true)}><Plus size={15} /> Add allocation</Button>
         </div>
-        <AllocationEntry onAdd={addAllocation} allocations={allocations} ceremonies={ceremonies} />
-        {visibleAllocations.length > 0 ? (
+        <div className="budget-toolbar">
+          <label className="budget-search"><Search size={16} /><span className="sr-only">Search allocations</span><input value={allocationQuery} onChange={(event) => setAllocationQuery(event.target.value)} placeholder="Search allocation or ceremony" /></label>
+          <span className="budget-toolbar-note">All figures in NGN</span>
+        </div>
+        {searchedAllocations.length > 0 ? (
           <div className="allocation-list">
-            {visibleAllocations.map((allocation, index) => {
+            {searchedAllocations.map((allocation, index) => {
               const allocationCommitted = visibleExpenses.filter((expense) => expense.allocationId === allocation.id && expense.status !== 'planned').reduce((total, entry) => total + entry.amountNgn, 0)
               const percentage = allocation.amountNgn ? (allocationCommitted / allocation.amountNgn) * 100 : 0
               return (
@@ -336,28 +348,32 @@ export function BudgetPage() {
                   <span className="allocation-index">{String(index + 1).padStart(2, '0')}</span>
                   <div className="allocation-name"><strong>{allocation.name}</strong><span>{allocation.ceremony} / {formatNgn(allocationCommitted)} committed</span></div>
                   <div className="allocation-progress" aria-label={`${Math.round(percentage)} percent used`}><span style={{ width: `${Math.min(percentage, 100)}%` }} /></div>
-                   <label className="allocation-amount"><span>NGN</span><input aria-label={`${allocation.name} allocation`} type="number" min="0" step="1000" value={allocation.amountNgn || ''} onChange={(event) => updateAllocation(allocation.id, toAmount(event.target.value))} onBlur={() => { if (!isPreview) financeMutation.mutate({ type: 'allocation-save', id: allocation.id, amount: allocation.amountNgn }) }} /></label>
-                    <button className="budget-icon-button" type="button" aria-label={`Remove ${allocation.name} allocation`} onClick={() => setPendingDelete({ type: 'allocation', id: allocation.id, label: allocation.name })}><Trash2 size={14} /></button>
+                   <label className="allocation-amount"><span>NGN</span><MoneyInput aria-label={`${allocation.name} allocation`} value={allocation.amountNgn || ''} onChange={(next) => updateAllocation(allocation.id, toAmount(next))} onBlur={() => { if (!isPreview) financeMutation.mutate({ type: 'allocation-save', id: allocation.id, amount: allocation.amountNgn }) }} /></label>
+                    <Button variant="ghost" icon type="button" aria-label={`Remove ${allocation.name} allocation`} onClick={() => setPendingDelete({ type: 'allocation', id: allocation.id, label: allocation.name })}><Trash2 size={14} /></Button>
                 </article>
               )
             })}
           </div>
         ) : (
-          <div className="budget-empty compact"><WalletCards size={19} /><div><strong>No allocations found</strong><span>Add a spending allocation or change the ceremony filter.</span></div></div>
+          <EmptyState
+            icon={<WalletCards size={22} />}
+            title={allocations.length ? 'No matching allocations' : 'No allocations yet'}
+            description={allocations.length ? 'Adjust the ceremony filter to see more.' : 'Add a spending allocation to plan what each part of the wedding should cost.'}
+          />
         )}
       </section>
 
       <section className="ledger-section" aria-labelledby="ledger-title">
         <div className="budget-section-heading">
-          <div><p className="eyebrow">Cash flow</p><h2 id="ledger-title">Combined ledger</h2></div>
+          <div><h2 id="ledger-title">Combined ledger</h2><p>Every expense and contribution, as it actually happened.</p></div>
           <span>{filteredEntries.length} of {entries.length} records</span>
         </div>
         <div className="budget-tools">
           <label className="budget-search"><Search size={15} /><span className="sr-only">Search ledger</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search record, allocation, ceremony, or currency" /></label>
           <div className="budget-filters">
-            <Filter value={kindFilter} label="Type" onChange={(value) => setKindFilter(value as typeof kindFilter)}><option value="all">All records</option><option value="expense">Expenses</option><option value="contribution">Contributions</option></Filter>
-            <Filter value={allocationFilter} label="Allocation" onChange={setAllocationFilter}><option value="all">All allocations</option>{allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.name}</option>)}</Filter>
-            <Filter value={statusFilter} label="Status" onChange={(value) => setStatusFilter(value as typeof statusFilter)}><option value="all">All statuses</option><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option><option value="pledged">Pledged</option><option value="partial">Partially received</option><option value="received">Received</option></Filter>
+            <Filter value={kindFilter} label="Type" onChange={(value) => setKindFilter(value as typeof kindFilter)} options={[{ value: 'all', label: 'All records' }, { value: 'expense', label: 'Expenses' }, { value: 'contribution', label: 'Contributions' }]} />
+            <Filter value={allocationFilter} label="Allocation" onChange={setAllocationFilter} options={[{ value: 'all', label: 'All allocations' }, ...allocations.map((allocation) => ({ value: allocation.id, label: allocation.name }))]} />
+            <Filter value={statusFilter} label="Status" onChange={(value) => setStatusFilter(value as typeof statusFilter)} options={[{ value: 'all', label: 'All statuses' }, { value: 'planned', label: 'Planned' }, { value: 'due', label: 'Due' }, { value: 'paid', label: 'Paid' }, { value: 'pledged', label: 'Pledged' }, { value: 'partial', label: 'Partially received' }, { value: 'received', label: 'Received' }]} />
           </div>
         </div>
 
@@ -367,9 +383,21 @@ export function BudgetPage() {
             {filteredEntries.map((entry) => <LedgerRow entry={entry} key={entry.id} onEdit={editEntry} onDelete={(item) => setPendingDelete({ type: item.kind, id: item.id, label: item.kind === 'expense' ? item.description : item.contributor })} onStatusChange={updateEntryStatus} />)}
           </div>
         ) : (
-          <div className="budget-empty"><ReceiptText size={22} /><h3>{entries.length ? 'No matching records' : 'Your ledger is empty'}</h3><p>{entries.length ? 'Adjust the search or filters to see more records.' : 'Add an expense or contribution. Every entry will report here in NGN.'}</p></div>
+          <EmptyState
+            icon={<ReceiptText size={22} />}
+            title={entries.length ? 'No matching records' : 'Your ledger is empty'}
+            description={entries.length ? 'Adjust the search or filters to see more records.' : 'Add an expense or contribution. Every entry will report here in NGN.'}
+          />
         )}
       </section>
+      {allocationOpen && (
+        <AllocationModal
+          allocations={allocations}
+          ceremonies={ceremonies}
+          onClose={() => setAllocationOpen(false)}
+          onAdd={(name, amount, ceremonyId) => { addAllocation(name, amount, ceremonyId); setAllocationOpen(false) }}
+        />
+      )}
       {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.label}?`} description={pendingDelete.type === 'allocation' ? 'This allocation will be removed from the budget. Expenses linked to it will remain in the ledger as unallocated.' : 'This ledger entry will move to the recycle bin and can be restored later.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     </div>
   )
@@ -379,11 +407,11 @@ function SummaryCard({ label, value, detail, icon }: { label: string; value: num
   return <article className="budget-summary-card"><div className="budget-summary-label"><span>{icon}</span>{label}</div><strong className={value < 0 ? 'negative' : ''}>{formatNgn(value)}</strong><small>{detail}</small></article>
 }
 
-function Filter({ value, label, onChange, children }: { value: string; label: string; onChange: (value: string) => void; children: React.ReactNode }) {
-  return <label className="budget-filter"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>
+function Filter({ value, label, onChange, options }: { value: string; label: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }> }) {
+  return <Select compact label={label} aria-label={label} value={value} onChange={onChange} options={options} />
 }
 
-function AllocationEntry({ onAdd, allocations, ceremonies }: { onAdd: (name: string, amount: number, ceremonyId: string) => void; allocations: Allocation[]; ceremonies: Ceremony[] }) {
+function AllocationModal({ onAdd, onClose, allocations, ceremonies }: { onAdd: (name: string, amount: number, ceremonyId: string) => void; onClose: () => void; allocations: Allocation[]; ceremonies: Ceremony[] }) {
   const [name, setName] = useState('')
   const [ceremonyId, setCeremonyId] = useState('')
   const [amount, setAmount] = useState('')
@@ -398,12 +426,22 @@ function AllocationEntry({ onAdd, allocations, ceremonies }: { onAdd: (name: str
   }
 
   return (
-    <form className="allocation-entry" onSubmit={submit}>
-      <label><span>Allocation name</span><input value={name} onChange={(change) => setName(change.target.value)} placeholder="e.g. Venue, attire or transport" /></label>
-      <label><span>Ceremony</span><select value={ceremonyId} onChange={(change) => setCeremonyId(change.target.value)}><option value="">General / shared</option>{ceremonies.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremony.name}</option>)}</select></label>
-      <label><span>Allocation</span><div className="money-input"><b>NGN</b><input type="number" min="0" step="1000" value={amount} onChange={(change) => setAmount(change.target.value)} placeholder="0" /></div></label>
-      <button className="button secondary" type="submit" disabled={!canAdd}><Plus size={14} /> Add allocation</button>
-    </form>
+    <Modal
+      open
+      title="Add allocation"
+      description="Plan what a part of the wedding should cost, then record spending against it."
+      onClose={onClose}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" type="submit" form="allocation-form" disabled={!canAdd}>Add allocation</Button>
+      </>}
+    >
+      <form className="allocation-form" id="allocation-form" onSubmit={submit}>
+        <label><span>Allocation name</span><input autoFocus value={name} onChange={(change) => setName(change.target.value)} placeholder="e.g. Venue, attire or transport" /></label>
+        <label><span>Ceremony</span><Select aria-label="Ceremony" value={ceremonyId} onChange={setCeremonyId} options={[{ value: '', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></label>
+        <label><span>Amount</span><MoneyInput prefix="NGN" value={amount} onChange={setAmount} placeholder="0" /></label>
+      </form>
+    </Modal>
   )
 }
 
@@ -432,13 +470,13 @@ function ExpenseForm({ allocations, ceremonies, initial, onSave, onClose }: { al
 
   async function lookup(nextCurrency: Currency, nextDate = date) { setCurrency(nextCurrency); if (nextCurrency === 'NGN') { setRate('1'); setRateSource('native'); return } if (isPreview || !nextDate) { setRateSource('manual'); return } try { const result = await fetchNgnRate(workspace.id, nextCurrency, nextDate); setRate(String(result.rate)); setRateSource(result.source) } catch { setRateSource('manual') } }
 
-  return <MoneyForm title={initial ? 'Edit expense' : 'Add an expense'} eyebrow={initial ? 'Update outgoing record' : 'New outgoing record'} submitLabel={initial ? 'Save changes' : 'Add expense'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
+  return <MoneyForm title={initial ? 'Edit expense' : 'Add an expense'} submitLabel={initial ? 'Save changes' : 'Add expense'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
     <label className="budget-field field-span-2"><span>Description</span><input autoFocus value={description} onChange={(change) => setDescription(change.target.value)} placeholder="What is this expense for?" /></label>
     <label className="budget-field"><span>Category</span><input value={category} onChange={(change) => setCategory(change.target.value)} placeholder="e.g. Venue or attire" /></label>
     <AllocationField value={allocationId} allocations={allocations} onChange={setAllocationId} />
     <CeremonyField value={ceremonyId} ceremonies={ceremonies} onChange={setCeremonyId} />
-    <label className="budget-field"><span>Payment status</span><select value={status} onChange={(change) => setStatus(change.target.value as ExpenseStatus)}><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option></select></label>
-    <label className="budget-field"><span>Transaction date</span><input type="date" required value={date} onChange={(change) => { setDate(change.target.value); void lookup(currency, change.target.value) }} /></label>
+    <label className="budget-field"><span>Payment status</span><Select aria-label="Status" value={status} onChange={(next) => setStatus(next as ExpenseStatus)} options={[{ value: 'planned', label: 'Planned' }, { value: 'due', label: 'Due' }, { value: 'paid', label: 'Paid' }]} /></label>
+    <label className="budget-field"><span>Transaction date</span><DateField required aria-label="Date" value={date} onChange={(next) => { setDate(next); void lookup(currency, next) }} /></label>
   </MoneyForm>
 }
 
@@ -467,26 +505,27 @@ function ContributionForm({ ceremonies, initial, onSave, onClose }: { ceremonies
 
   async function lookup(nextCurrency: Currency, nextDate = date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date())) { setCurrency(nextCurrency); if (nextCurrency === 'NGN') { setRate('1'); setRateSource('native'); return } if (isPreview) { setRateSource('manual'); return } try { const result = await fetchNgnRate(workspace.id, nextCurrency, nextDate); setRate(String(result.rate)); setRateSource(result.source) } catch { setRateSource('manual') } }
 
-  return <MoneyForm title={initial ? 'Edit contribution' : 'Add a contribution'} eyebrow={initial ? 'Update incoming record' : 'New incoming record'} submitLabel={initial ? 'Save changes' : 'Add contribution'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
+  return <MoneyForm title={initial ? 'Edit contribution' : 'Add a contribution'} submitLabel={initial ? 'Save changes' : 'Add contribution'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
     <label className="budget-field field-span-2"><span>Contributor or source</span><input autoFocus value={contributor} onChange={(change) => setContributor(change.target.value)} placeholder="Name or funding source" /></label>
     <CeremonyField value={ceremonyId} ceremonies={ceremonies} onChange={setCeremonyId} />
     <label className="budget-field"><span>Percentage received</span><input type="number" min="0" max="100" step="1" value={receivedPercent} onChange={(change) => setReceivedPercent(change.target.value)} /></label>
-    <label className="budget-field"><span>Received date <small>{percent > 0 ? 'required' : 'optional'}</small></span><input type="date" required={percent > 0} value={date} onChange={(change) => { setDate(change.target.value); void lookup(currency, change.target.value) }} /></label>
-    <div className="contribution-progress field-span-2"><span>{percent}% received</span><strong>{formatNgn(receivedNgn)} received</strong><small>{formatNgn(Math.max(amountNgn - receivedNgn, 0))} balance</small><i><b style={{ width: `${percent}%` }} /></i></div>
+    <label className="budget-field"><span>Received date <small>{percent > 0 ? 'required' : 'optional'}</small></span><DateField required={percent > 0} aria-label="Date" value={date} onChange={(next) => { setDate(next); void lookup(currency, next) }} /></label>
+    {percent > 0 && (
+      <div className="contribution-progress field-span-2"><span>{percent}% received</span><strong>{formatNgn(receivedNgn)} received</strong><small>{formatNgn(Math.max(amountNgn - receivedNgn, 0))} balance</small><i><b style={{ width: `${percent}%` }} /></i></div>
+    )}
   </MoneyForm>
 }
 
 function AllocationField({ value, allocations, onChange }: { value: string; allocations: Allocation[]; onChange: (value: string) => void }) {
-  return <label className="budget-field"><span>Allocation</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">Unallocated</option>{allocations.map((allocation) => <option value={allocation.id} key={allocation.id}>{allocation.name}</option>)}</select></label>
+  return <label className="budget-field"><span>Allocation</span><Select aria-label="Allocation" value={value} onChange={onChange} options={[{ value: '', label: 'Unallocated' }, ...allocations.map((allocation) => ({ value: allocation.id, label: allocation.name }))]} /></label>
 }
 
 function CeremonyField({ value, ceremonies, onChange }: { value: string; ceremonies: Ceremony[]; onChange: (value: string) => void }) {
-  return <label className="budget-field"><span>Ceremony</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="">General / shared</option>{ceremonies.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremony.name}</option>)}</select></label>
+  return <label className="budget-field"><span>Ceremony</span><Select aria-label="Ceremony" value={value} onChange={onChange} options={[{ value: '', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></label>
 }
 
 interface MoneyFormProps {
   title: string
-  eyebrow: string
   submitLabel: string
   canSubmit: boolean
   currency: Currency
@@ -502,24 +541,38 @@ interface MoneyFormProps {
   children: React.ReactNode
 }
 
-function MoneyForm({ title, eyebrow, submitLabel, canSubmit, currency, amount, rate, rateSource, amountNgn, onCurrency, onAmount, onRate, onClose, onSubmit, children }: MoneyFormProps) {
+function MoneyForm({ title, submitLabel, canSubmit, currency, amount, rate, rateSource, amountNgn, onCurrency, onAmount, onRate, onClose, onSubmit, children }: MoneyFormProps) {
   function changeCurrency(next: Currency) {
     onCurrency(next)
   }
 
+  const formId = 'money-form'
+
   return (
-    <section className="budget-entry-panel" aria-labelledby="money-form-title">
-      <div className="budget-entry-intro"><div><p className="eyebrow">{eyebrow}</p><h2 id="money-form-title">{title}</h2><p>Source values remain visible; reporting uses the NGN equivalent.</p></div><button className="budget-icon-button" type="button" onClick={onClose} aria-label="Close form"><X size={17} /></button></div>
-      <form onSubmit={onSubmit}>
+    <Modal
+      open
+      size="wide"
+      title={title}
+      description="Source values remain visible; reporting uses the NGN equivalent."
+      onClose={onClose}
+      footer={<>
+        <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" type="submit" form={formId} disabled={!canSubmit}>{submitLabel}</Button>
+      </>}
+    >
+      <form id={formId} onSubmit={onSubmit}>
         <div className="budget-form-grid">{children}
-          <label className="budget-field"><span>Original currency</span><select value={currency} onChange={(event) => changeCurrency(event.target.value as Currency)}>{CURRENCIES.map((item) => <option key={item}>{item}</option>)}</select></label>
-          <label className="budget-field"><span>Original amount</span><input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(event) => onAmount(event.target.value)} placeholder="0.00" /></label>
-          <label className="budget-field"><span>NGN per {currency}</span><input type="number" min="0" step="0.01" inputMode="decimal" disabled={currency === 'NGN'} value={currency === 'NGN' ? '1' : rate} onChange={(event) => onRate(event.target.value)} /></label>
-          <div className="ngn-preview"><span>NGN equivalent</span><strong>{formatNgn(amountNgn)}</strong><small>{currency === 'NGN' ? 'No conversion required' : `${currency} 1 × NGN ${numberFormatter.format(toAmount(rate))} / ${rateSource}`}</small></div>
+          <label className="budget-field"><span>Original currency</span><Select aria-label="Currency" value={currency} onChange={(next) => changeCurrency(next as Currency)} options={CURRENCIES.map((item) => ({ value: item, label: item }))} /></label>
+          <label className="budget-field"><span>Original amount</span><MoneyInput value={amount} onChange={onAmount} placeholder="0.00" /></label>
+          {currency !== 'NGN' && (
+          <label className="budget-field"><span>NGN per {currency}</span><MoneyInput value={rate} onChange={onRate} placeholder="0.00" /></label>
+          )}
+          {currency !== 'NGN' && (
+          <div className="ngn-preview"><span>NGN equivalent</span><strong>{formatNgn(amountNgn)}</strong><small>{`${currency} 1 \u2248 NGN ${numberFormatter.format(toAmount(rate))} / ${rateSource}`}</small></div>
+          )}
         </div>
-        <div className="budget-form-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={!canSubmit}>{submitLabel}</button></div>
       </form>
-    </section>
+    </Modal>
   )
 }
 
@@ -532,8 +585,8 @@ function LedgerRow({ entry, onEdit, onDelete, onStatusChange }: { entry: LedgerE
       <div className="ledger-scope">{entry.kind === 'expense' && <span className="ledger-allocation">{entry.allocation}</span>}<span className="ledger-event">{entry.ceremony}</span></div>
       <div className="ledger-source"><strong>{formatOriginal(entry)}</strong><small>{entry.kind === 'contribution' ? `${entry.receivedPercent}% received · ${formatNgn(entry.amountNgn - entry.receivedNgn)} balance` : `Rate: NGN ${numberFormatter.format(entry.exchangeRate)}`}</small></div>
       <strong className={`ledger-ngn ${entry.kind}`}>{entry.kind === 'expense' ? '−' : '+'}{formatNgn(entry.kind === 'contribution' ? entry.receivedNgn : entry.amountNgn)}</strong>
-      {entry.kind === 'expense' ? <label className={`payment-status status-${entry.status}`}><span className="sr-only">Update status for {title}</span><select value={entry.status} onChange={(event) => onStatusChange(entry.id, event.target.value as EntryStatus)}><option value="planned">Planned</option><option value="due">Due</option><option value="paid">Paid</option></select></label> : <span className={`contribution-status ${pillTone(entry.status)}`}>{entry.status === 'partial' ? `${Math.round(entry.receivedPercent)}% received` : entry.status}</span>}
-      <div className="ledger-actions"><button className="budget-icon-button ledger-edit" type="button" aria-label={`Edit ${title}`} onClick={() => onEdit(entry)}><Pencil size={13} /></button><button className="budget-icon-button ledger-delete" type="button" aria-label={`Delete ${title}`} onClick={() => onDelete(entry)}><Trash2 size={13} /></button></div>
+      {entry.kind === 'expense' ? <label className={`payment-status status-${entry.status}`}><span className="sr-only">Update status for {title}</span><Select compact aria-label="Status" value={entry.status} onChange={(next) => onStatusChange(entry.id, next as EntryStatus)} options={[{ value: 'planned', label: 'Planned' }, { value: 'due', label: 'Due' }, { value: 'paid', label: 'Paid' }]} /></label> : <span className={`contribution-status ${pillTone(entry.status)}`}>{entry.status === 'partial' ? `${Math.round(entry.receivedPercent)}% received` : entry.status}</span>}
+      <div className="ledger-actions"><Button variant="ghost" icon className="ledger-edit" type="button" aria-label={`Edit ${title}`} onClick={() => onEdit(entry)}><Pencil size={13} /></Button><Button variant="ghost" icon className="ledger-delete" type="button" aria-label={`Delete ${title}`} onClick={() => onDelete(entry)}><Trash2 size={13} /></Button></div>
     </article>
   )
 }

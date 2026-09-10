@@ -7,12 +7,17 @@
   -webkit-font-smoothing: antialiased;
   --ink: #111;
   --muted: #6b6b67;
-  --faint: #969690;
+  /* Was #969690 at 2.97:1 on white, which failed AA at every size and was the
+     single source of every measured text-contrast failure in the app. This is
+     --ui-gray-500 (4.97:1), keeping a tonal step below --ui-gray-600. */
+  --faint: #667085;
   --line: #deded9;
   --soft-line: #eaeae6;
   --paper: #fff;
   --wash: #f7f7f5;
   --sidebar: 248px;
+  /* One content width for every page. */
+  --page-max: 1380px;
 }
 
 * { box-sizing: border-box; }
@@ -37,20 +42,17 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-.koboyo-icon {
+/* Phosphor icons are real SVG: they take colour from currentColor and need no
+   mask or faux-weight drop-shadows. */
+.app-icon {
   display: inline-block;
   flex: 0 0 auto;
-  background: currentColor;
-  -webkit-mask: var(--koboyo-icon) center / contain no-repeat;
-  mask: var(--koboyo-icon) center / contain no-repeat;
-  filter: drop-shadow(1px 0 0 currentColor) drop-shadow(-1px 0 0 currentColor) drop-shadow(0 1px 0 currentColor) drop-shadow(0 -1px 0 currentColor);
+  vertical-align: middle;
   transition: opacity 100ms ease;
 }
 
-.koboyo-icon-pencil { scale: 1.3; }
-
-button:hover .koboyo-icon,
-a:hover .koboyo-icon { opacity: .82; }
+button:hover .app-icon,
+a:hover .app-icon { opacity: .82; }
 
 select {
   appearance: none !important;
@@ -68,25 +70,108 @@ select {
   text-align-last: left;
 }
 
-.pill-tone-blue { color: #315f78 !important; background-color: #e8f1f5 !important; }
-.pill-tone-green { color: #356044 !important; background-color: #e9f3ec !important; }
-.pill-tone-yellow { color: #7b5b20 !important; background-color: #f7efd9 !important; }
-.pill-tone-red { color: #85443f !important; background-color: #f8e9e7 !important; }
-.pill-tone-purple { color: #665081 !important; background-color: #f0eaf6 !important; }
-.pill-tone-pink { color: #8a4b68 !important; background-color: #f7e9ef !important; }
+/* One semantic tone set, defined once. Previously each of these was redeclared
+   per page with different values, so `red` rendered magenta on Vendors and
+   `green` had four separate definitions. */
+.pill-tone-success { border-color: #a6f4c5; color: #067647; background-color: #ecfdf3; }
+.pill-tone-warning { border-color: #fedf89; color: #b54708; background-color: #fffaeb; }
+.pill-tone-error { border-color: #fecdca; color: #b42318; background-color: #fef3f2; }
+.pill-tone-info { border-color: #b2ddff; color: #175cd3; background-color: #eff8ff; }
+.pill-tone-neutral { border-color: var(--ui-gray-200); color: var(--ui-gray-600); background-color: var(--ui-gray-100); }
 .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; margin: -1px !important; padding: 0 !important; overflow: hidden !important; clip: rect(0, 0, 0, 0) !important; clip-path: inset(50%) !important; white-space: nowrap !important; border: 0 !important; }
 
-.confirm-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.42); backdrop-filter: blur(3px); }
-.confirm-dialog { width: min(430px, 100%); border: 1px solid var(--ink); padding: 22px; background: var(--paper); box-shadow: 0 24px 80px rgba(0,0,0,.2); }
+/* ---- Motion -------------------------------------------------------------
+   One authored easing. `--ease-out` is an exponential-feeling ease used for
+   anything entering; overlays scale up from an already-visible 96% rather than
+   from nothing, so nothing pops into being. */
+:root {
+  --ease-out: cubic-bezier(.32, .72, 0, 1);
+  --dur-fast: 120ms;
+  --dur: 200ms;
+}
+
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes panel-in { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* ---- Floating scrollbar -------------------------------------------------
+   The document's own scrollbar is replaced by <FloatingScrollbar />. Inner
+   scroll containers (the nav rail, the assistant panel) keep real, styled bars,
+   so only html/body are suppressed here. */
+html { scrollbar-width: none; }
+html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+
+.fsb {
+  position: fixed;
+  top: 50%;
+  right: 27px;
+  z-index: 25;
+  width: 14px;
+  height: 200px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 320ms ease;
+  touch-action: none;
+  user-select: none;
+}
+
+.fsb::before { position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; border-radius: 2px; background: var(--line); content: ""; }
+.fsb-thumb { position: absolute; top: 0; left: 6px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .55; transition: width 200ms var(--ease-out), opacity 200ms ease; will-change: transform; }
+.fsb.active { opacity: 1; }
+.fsb:hover::before, .fsb:hover .fsb-thumb { left: 5px; width: 4px; }
+.fsb:hover .fsb-thumb { opacity: 1; }
+@media (pointer: coarse) { .fsb { display: none; } }
+
+/* ---- Shared modal -------------------------------------------------------- */
+.ui-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(16, 24, 40, .48);
+  backdrop-filter: blur(3px);
+  animation: overlay-in var(--dur) var(--ease-out);
+}
+
+.ui-modal-panel {
+  display: flex;
+  width: min(560px, 100%);
+  max-height: min(84vh, 760px);
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 0 24px 48px -12px rgba(16, 24, 40, .18);
+  animation: panel-in var(--dur) var(--ease-out);
+}
+
+.ui-modal-panel.is-wide { width: min(880px, 100%); }
+.ui-modal-panel:focus { outline: none; }
+.ui-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 0; }
+.ui-modal-header h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.ui-modal-header p { margin-top: 4px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
+.ui-modal-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; transition: color var(--dur-fast) ease, background var(--dur-fast) ease; }
+.ui-modal-close:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+/* Padding lives on the inner wrapper so the measured content height equals the
+   height the body needs, with no border-box discrepancy. */
+.ui-modal-body { overflow-y: auto; }
+.ui-modal-body > * { padding: 20px; }
+.ui-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
+
+.confirm-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.42); backdrop-filter: blur(3px); animation: overlay-in var(--dur) var(--ease-out); }
+.confirm-dialog { width: min(430px, 100%); border: 1px solid var(--ink); padding: 22px; background: var(--paper); box-shadow: 0 24px 80px rgba(0,0,0,.2); animation: panel-in var(--dur) var(--ease-out); }
 .confirm-dialog > header { display: flex; align-items: center; justify-content: space-between; }
 .confirm-dialog > header > span, .confirm-dialog > header button { display: grid; width: 34px; height: 34px; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: #85443f; background: #f8e9e7; }
 .confirm-dialog > header button { color: var(--muted); background: white; cursor: pointer; }
-.confirm-dialog h2 { margin-top: 24px; font-family: Georgia, "Times New Roman", serif; font-size: 28px; font-weight: 400; letter-spacing: -.035em; }
+.confirm-dialog h2 { margin-top: 24px; font-size: 28px; font-weight: 400; letter-spacing: -.035em; }
 .confirm-dialog > p { margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .confirm-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 26px; }
 .button.danger { border-color: #85443f; color: white; background: #85443f; }
 
-h1, h2, p { margin: 0; }
+/* h3-h6 were missing here, so every heading below h2 carried a browser margin
+   that reads as an accidental gap. */
+h1, h2, h3, h4, h5, h6, p { margin: 0; }
 
 .app-frame { min-height: 100vh; }
 
@@ -103,7 +188,7 @@ h1, h2, p { margin: 0; }
 
 .sidebar-brand {
   display: flex;
-  height: 80px;
+  height: 64px;
   align-items: center;
   padding: 0 22px;
   border-bottom: 1px solid var(--line);
@@ -119,25 +204,41 @@ h1, h2, p { margin: 0; }
   place-items: center;
   border: 1px solid var(--ink);
   border-radius: 50%;
-  font-family: Georgia, "Times New Roman", serif;
   font-size: 12px;
   letter-spacing: -0.04em;
 }
 
 .brand-copy { display: flex; min-width: 0; flex-direction: column; line-height: 1.25; }
 .brand-copy strong { font-size: 13px; font-weight: 650; letter-spacing: -0.02em; }
-.brand-copy small { color: var(--muted); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.brand-copy small { color: var(--muted); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
 
-.sidebar-nav { flex: 1; overflow-y: auto; padding: 20px 12px; }
-.nav-section + .nav-section { margin-top: 24px; }
-.nav-label { padding: 0 10px 8px; color: var(--faint); font-size: 10px; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
+/* This list is taller than the rail on a 900px viewport, so it must say so.
+   A permanently visible thin scrollbar plus a stable gutter is the affordance;
+   without it the last few destinations were silently unreachable. */
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 12px;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #c3c3bc transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 8px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: #c3c3bc; background-clip: content-box; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: #a3a39b; background-clip: content-box; }
+
+.nav-section + .nav-section { margin-top: 18px; }
+.nav-label { padding: 0 10px 6px; color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
 
 .nav-item {
   display: flex;
-  min-height: 38px;
+  min-height: 36px;
   align-items: center;
   gap: 10px;
-  margin: 2px 0;
+  margin: 1px 0;
   padding: 0 10px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -170,8 +271,8 @@ h1, h2, p { margin: 0; }
 .profile-button:hover { background: rgba(255,255,255,.7); }
 .profile-button > span:nth-child(2) { display: flex; min-width: 0; flex-direction: column; }
 .profile-button strong { overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.profile-button small { color: var(--faint); font-size: 10px; }
-.avatar { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; color: white; background: var(--ink); font-size: 10px; }
+.profile-button small { color: var(--faint); font-size: 12px; }
+.avatar { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; color: white; background: var(--ink); font-size: 12px; }
 
 .mobile-header { display: none; }
 .mobile-drawer { display: none; }
@@ -187,12 +288,12 @@ h1, h2, p { margin: 0; }
   border-bottom: 1px solid #e3e3de;
   color: #5f5f5a;
   background: #f5f5f2;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #999; }
 
-.page { width: min(1260px, 100%); margin: 0 auto; padding: 52px 56px 72px; }
+.page { width: 100%; max-width: var(--page-max); margin: 0 auto; padding: 52px 56px 72px; }
 
 .page-header {
   display: flex;
@@ -202,8 +303,8 @@ h1, h2, p { margin: 0; }
   margin-bottom: 42px;
 }
 
-.eyebrow { margin-bottom: 10px; color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; }
-.page-header h1 { max-width: 780px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(38px, 5vw, 66px); font-weight: 400; line-height: .98; letter-spacing: -.055em; }
+.eyebrow { margin-bottom: 10px; color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: .13em; text-transform: uppercase; }
+.page-header h1 { max-width: 780px; font-size: clamp(38px, 5vw, 66px); font-weight: 400; line-height: .98; letter-spacing: -.055em; }
 .page-lead { max-width: 580px; margin-top: 15px; color: var(--muted); font-size: 14px; line-height: 1.55; }
 .header-actions { display: flex; flex: 0 0 auto; gap: 8px; }
 
@@ -219,14 +320,17 @@ h1, h2, p { margin: 0; }
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 120ms ease, background 120ms ease;
+  transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
-.button:hover { transform: translateY(-1px); }
+/* Lift-on-hover belongs to marketing cards, not to a data-entry toolbar. Buttons
+   here respond with tone instead, which reads as precise rather than springy. */
+.button.primary:hover { background: #000; }
+.button.secondary:hover { border-color: var(--ui-gray-300); background: var(--ui-gray-50); }
 .button.primary { color: white; background: var(--ink); }
 .button.secondary { border-color: var(--line); color: var(--ink); background: var(--paper); }
 .button.full { width: 100%; }
-.button:disabled { cursor: wait; opacity: .6; }
+.button:disabled { cursor: not-allowed; opacity: .6; }
 
 .ceremony-strip { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--ink); }
 
@@ -243,10 +347,10 @@ h1, h2, p { margin: 0; }
 .ceremony-card + .ceremony-card { border-left: 1px solid var(--ink); }
 .ceremony-card:hover { background: #f7f7f4; }
 .ceremony-topline { display: flex; align-items: center; justify-content: space-between; }
-.ceremony-number { color: var(--faint); font-family: ui-monospace, monospace; font-size: 10px; }
-.ceremony-card h2 { font-family: Georgia, "Times New Roman", serif; font-size: 31px; font-weight: 400; letter-spacing: -.04em; }
+.ceremony-number { color: var(--faint); font-family: ui-monospace, monospace; font-size: 12px; }
+.ceremony-card h2 { font-size: 31px; font-weight: 400; letter-spacing: -.04em; }
 .ceremony-card p { margin-top: 5px; color: var(--muted); font-size: 12px; }
-.progress-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.progress-row { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; }
 .progress-row strong { color: var(--ink); font-weight: 600; }
 .progress-track { height: 2px; margin-top: 8px; overflow: hidden; background: var(--soft-line); }
 .progress-track span { display: block; height: 100%; background: var(--ink); }
@@ -256,48 +360,48 @@ h1, h2, p { margin: 0; }
 .metric-card + .metric-card { border-left: 1px solid var(--line); }
 .metric-card:hover { background: #fafaf8; }
 .metric-icon { display: grid; width: 28px; height: 28px; place-items: center; border: 1px solid var(--line); border-radius: 50%; }
-.metric-card p { margin-top: 18px; color: var(--muted); font-size: 11px; }
-.metric-card > strong { display: block; margin-top: 4px; font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; letter-spacing: -.035em; }
-.metric-card > span { color: var(--faint); font-size: 10px; }
+.metric-card p { margin-top: 18px; color: var(--muted); font-size: 12px; }
+.metric-card > strong { display: block; margin-top: 4px; font-size: 24px; font-weight: 400; letter-spacing: -.035em; }
+.metric-card > span { color: var(--faint); font-size: 12px; }
 
 .dashboard-columns { display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px; margin-top: 28px; }
 .panel { border: 1px solid var(--line); }
 .panel-header { display: flex; min-height: 86px; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 .panel-header .eyebrow { margin-bottom: 5px; }
-.panel-header h2 { font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 400; letter-spacing: -.025em; }
-.quiet-badge { padding: 5px 8px; border: 1px solid var(--line); border-radius: 100px; color: var(--muted); font-size: 10px; }
+.panel-header h2 { font-size: 22px; font-weight: 400; letter-spacing: -.025em; }
+.quiet-badge { padding: 5px 8px; border: 1px solid var(--line); border-radius: 100px; color: var(--muted); font-size: 12px; }
 .setup-item { display: grid; min-height: 58px; grid-template-columns: 34px 1fr auto; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--soft-line); }
 .setup-item:last-child { border-bottom: 0; }
 .setup-item:hover { background: #fafaf8; }
-.setup-index { color: var(--faint); font-family: ui-monospace, monospace; font-size: 10px; }
+.setup-index { color: var(--faint); font-family: ui-monospace, monospace; font-size: 12px; }
 .setup-label { font-size: 12px; font-weight: 550; }
 .pulse-list { padding: 8px 20px; }
-.pulse-row { display: grid; min-height: 43px; grid-template-columns: 26px 1fr auto; align-items: center; color: var(--muted); font-size: 11px; }
+.pulse-row { display: grid; min-height: 43px; grid-template-columns: 26px 1fr auto; align-items: center; color: var(--muted); font-size: 12px; }
 .pulse-row strong { color: var(--ink); }
-.empty-note { padding: 15px 20px; border-top: 1px solid var(--soft-line); color: var(--faint); font-size: 10px; line-height: 1.5; }
+.empty-note { padding: 15px 20px; border-top: 1px solid var(--soft-line); color: var(--faint); font-size: 12px; line-height: 1.5; }
 
 .module-page { min-height: 100vh; }
 .module-empty { display: flex; min-height: 460px; flex-direction: column; justify-content: space-between; padding: 24px; border: 1px solid var(--ink); }
-.module-code { color: var(--faint); font-family: ui-monospace, monospace; font-size: 10px; letter-spacing: .08em; }
+.module-code { color: var(--faint); font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .08em; }
 .module-empty > div { max-width: 520px; }
-.module-empty h2 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(32px, 4vw, 48px); font-weight: 400; letter-spacing: -.045em; }
+.module-empty h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 400; letter-spacing: -.045em; }
 .module-empty p { margin-top: 12px; color: var(--muted); font-size: 13px; line-height: 1.6; }
-.text-link { display: inline-flex; width: fit-content; align-items: center; gap: 7px; border-bottom: 1px solid var(--ink); padding-bottom: 3px; font-size: 11px; font-weight: 600; }
+.text-link { display: inline-flex; width: fit-content; align-items: center; gap: 7px; border-bottom: 1px solid var(--ink); padding-bottom: 3px; font-size: 12px; font-weight: 600; }
 
 .login-page { display: grid; min-height: 100vh; grid-template-columns: 1.1fr .9fr; background: var(--paper); }
 .login-intro { display: flex; flex-direction: column; justify-content: space-between; padding: 48px; border-right: 1px solid var(--ink); background: #f1f1ee; }
 .login-intro > div { max-width: 650px; }
-.login-intro h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(48px, 7vw, 92px); font-weight: 400; line-height: .94; letter-spacing: -.06em; }
+.login-intro h1 { font-size: clamp(48px, 7vw, 92px); font-weight: 400; line-height: .94; letter-spacing: -.06em; }
 .login-intro > div > p:last-child { max-width: 440px; margin-top: 24px; color: var(--muted); font-size: 14px; line-height: 1.6; }
 .login-panel { display: grid; place-items: center; padding: 36px; }
 .login-form { display: flex; width: min(380px, 100%); flex-direction: column; gap: 20px; }
-.login-form h2 { font-family: Georgia, "Times New Roman", serif; font-size: 42px; font-weight: 400; letter-spacing: -.04em; }
+.login-form h2 { font-size: 42px; font-weight: 400; letter-spacing: -.04em; }
 .login-form > div > p:last-child { margin-top: 8px; color: var(--muted); font-size: 12px; }
-.login-form label { display: flex; flex-direction: column; gap: 7px; color: #494945; font-size: 11px; font-weight: 600; }
+.login-form label { display: flex; flex-direction: column; gap: 7px; color: #494945; font-size: 12px; font-weight: 600; }
 .login-form input { width: 100%; height: 42px; border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; color: var(--ink); background: white; font-size: 13px; }
 .login-form input:focus { border-color: var(--ink); outline: 0; }
-.form-error { padding: 9px 11px; border: 1px solid #c7a6a6; color: #7d2424; background: #fff7f7; font-size: 11px; }
-.form-success { padding: 9px 11px; border: 1px solid #a6d8bd; color: #176b43; background: #f3fbf6; font-size: 11px; }
+.form-error { padding: 9px 11px; border: 1px solid #c7a6a6; color: #7d2424; background: #fff7f7; font-size: 12px; }
+.form-success { padding: 9px 11px; border: 1px solid #a6d8bd; color: #176b43; background: #f3fbf6; font-size: 12px; }
 
 .loading-screen { display: grid; min-height: 100vh; place-content: center; gap: 28px; background: var(--paper); }
 .route-loading { display: grid; min-height: 100vh; place-items: center; background: var(--paper); }
@@ -309,14 +413,14 @@ h1, h2, p { margin: 0; }
 
 .system-message { display: flex; min-height: 100vh; flex-direction: column; align-items: flex-start; justify-content: center; gap: 34px; padding: 8vw; background: var(--paper); }
 .system-message > div { max-width: 600px; }
-.system-message h1, .onboarding-page h1 { font-family: Georgia, "Times New Roman", serif; font-size: clamp(42px, 6vw, 76px); font-weight: 400; line-height: .96; letter-spacing: -.055em; }
+.system-message h1, .onboarding-page h1 { font-size: clamp(42px, 6vw, 76px); font-weight: 400; line-height: .96; letter-spacing: -.055em; }
 .system-message > div > p:last-child { margin-top: 16px; color: var(--muted); font-size: 13px; }
 .onboarding-page { min-height: 100vh; padding: 32px; background: #f1f1ee; }
 .onboarding-page > header { display: flex; align-items: center; justify-content: space-between; }
-.onboarding-page > header > span { color: var(--faint); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.onboarding-page > header > span { color: var(--faint); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; }
 .onboarding-page form { display: flex; width: min(720px, 100%); min-height: calc(100vh - 100px); flex-direction: column; align-items: flex-start; justify-content: center; margin: 0 auto; }
 .onboarding-page form > p:nth-of-type(2) { max-width: 510px; margin-top: 22px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-.onboarding-page label { display: flex; width: min(430px, 100%); flex-direction: column; gap: 8px; margin-top: 34px; color: var(--muted); font-size: 10px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
+.onboarding-page label { display: flex; width: min(430px, 100%); flex-direction: column; gap: 8px; margin-top: 34px; color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
 .onboarding-page input { height: 46px; border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; color: var(--ink); background: white; font-size: 13px; text-transform: none; }
 .onboarding-page label + .button, .onboarding-page .form-error + .button { margin-top: 14px; }
 
@@ -363,6 +467,13 @@ h1, h2, p { margin: 0; }
   .metric-card + .metric-card { border-top: 1px solid var(--line); border-left: 0; }
 }
 
+/* Reduced motion removes travel, not feedback. Overlays still cross-fade so the
+   change of state stays legible, and hover/focus tone changes are untouched — a
+   blanket .01ms kill flattened those into invisible instant swaps. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+  .ui-modal-panel, .confirm-dialog { animation: overlay-in var(--dur-fast) ease; }
+  .ido-ai-panel { transition: visibility var(--dur-fast); }
+  .ido-ai-page-slot { transition: none; }
+  .loading-line::after, .route-loading span, .ido-ai-spinner, .ido-ai-thinking-bubble span { animation-duration: 1.4s !important; }
 }

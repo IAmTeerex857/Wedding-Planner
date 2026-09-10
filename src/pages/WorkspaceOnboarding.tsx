@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight } from '../components/KoboyoIcon'
+import { ArrowRight } from '../components/Icon'
 import { BrandMark } from '../components/BrandMark'
+import { Button } from '../components/Button'
 
 export function WorkspaceOnboarding({ loading, error, onCreate }: {
   loading: boolean
@@ -26,9 +27,9 @@ export function WorkspaceOnboarding({ loading, error, onCreate }: {
           <input autoFocus value={name} minLength={2} maxLength={120} onChange={(event) => setName(event.target.value)} required />
         </label>
         {error && <p className="form-error">{error}</p>}
-        <button className="button primary" type="submit" disabled={loading || !name.trim()}>
+        <Button variant="primary" type="submit" disabled={loading || !name.trim()}>
           {loading ? 'Creating workspace...' : 'Create workspace'} <ArrowRight size={16} />
-        </button>
+        </Button>
       </form>
     </main>
   )

@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/KoboyoIcon'
+import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
+import { Select } from '../components/Select'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './seating.css'
+import { Button } from '../components/Button'
+import { EmptyState } from '../components/EmptyState'
 
 type SeatGuest = { id: string; name: string; tags: string[]; tableId: string | null }
 type Table = { id: string; name: string; capacity: number; locked: boolean }
@@ -28,6 +32,7 @@ export function SeatingPage() {
   const [tableName, setTableName] = useState('')
   const [capacity, setCapacity] = useState('10')
   const [operationError, setOperationError] = useState('')
+  const [addTableOpen, setAddTableOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Table | null>(null)
 
   const ceremoniesQuery = useQuery({
@@ -135,9 +140,10 @@ export function SeatingPage() {
     if (isPreview) {
       setPreviewTables((current) => ({ ...current, [activeEvent]: [...(current[activeEvent] ?? []), { id: crypto.randomUUID(), name, capacity: tableCapacity, locked: false }] }))
       setTableName('')
+      setAddTableOpen(false)
       return
     }
-    persistMutation.mutate({ type: 'add-table', name, capacity: tableCapacity }, { onSuccess: () => setTableName('') })
+    persistMutation.mutate({ type: 'add-table', name, capacity: tableCapacity }, { onSuccess: () => { setTableName(''); setAddTableOpen(false) } })
   }
 
   function setLock(table: Table) {
@@ -212,17 +218,41 @@ export function SeatingPage() {
 
   return <div className="page seating-page ui-page">
     <header className="page-header">
-      <div><p className="eyebrow">Guest placement</p><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
-      <label className="page-ceremony-filter"><span>Ceremony</span><select value={ceremony?.id ?? ''} onChange={(change) => switchEvent(change.target.value)}><option value="" disabled>Select ceremony</option>{ceremonyOptions.map((item) => <option value={item.id} key={item.id}>{ceremonyLabel(item)}</option>)}</select></label>
+      <div><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
+      <div className="header-actions">
+        <div className="page-ceremony-filter"><Select compact label="Ceremony" aria-label="Ceremony" placeholder="Select ceremony" value={ceremony?.id ?? ''} onChange={switchEvent} options={ceremonyOptions.map((item) => ({ value: item.id, label: ceremonyLabel(item) }))} /></div>
+        <Button variant="primary" disabled={!isPreview && !ceremony} onClick={() => setAddTableOpen(true)}><Plus size={15} /> Add table</Button>
+      </div>
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}
     <section className="seating-summary"><div><strong>{guests.length}</strong><span>Confirmed guests</span></div><div><strong>{guests.length - waiting.length}</strong><span>Seated</span></div><div><strong>{waiting.length}</strong><span>Waiting</span></div><div><strong>{tables.length}</strong><span>Tables</span></div></section>
-    <div className="seating-tools"><form onSubmit={addTable}><Armchair size={15} /><input required minLength={2} maxLength={100} value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="Table name" /><input type="number" required min="1" max="1000" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} aria-label="Capacity" /><button type="submit" disabled={busy || (!isPreview && !ceremony)}>{busy ? 'Saving...' : 'Add table'}</button></form></div>
+    {addTableOpen && (
+      <Modal
+        open
+        title="Add table"
+        description="Name the table and set how many guests it seats."
+        onClose={() => setAddTableOpen(false)}
+        footer={<>
+          <Button variant="secondary" type="button" onClick={() => setAddTableOpen(false)}>Cancel</Button>
+          <Button variant="primary" type="submit" form="add-table-form" disabled={busy || !tableName.trim()}>{busy ? 'Saving...' : 'Add table'}</Button>
+        </>}
+      >
+        <form className="seating-table-form" id="add-table-form" onSubmit={addTable}>
+          <label><span>Table name</span><input required minLength={2} maxLength={100} value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="e.g. Table 1, Family table" /></label>
+          <label><span>Capacity</span><input type="number" required min="1" max="1000" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} /></label>
+        </form>
+      </Modal>
+    )}
     <div className="seating-workspace">
       <aside className="waiting-list">
-        <header><div><p className="eyebrow">Waiting list</p><h2>Unseated guests</h2></div><span>{selected.length} selected</span></header>
+        <header><h2>Unseated guests</h2><span>{selected.length} selected</span></header>
         {waitingTags.length > 0 && <div className="tag-actions">{waitingTags.map((tag) => <button type="button" key={tag} onClick={() => selectTag(tag)}>Select {tag}</button>)}</div>}
-        <div>{waiting.length ? waiting.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>) : <div className="seat-empty"><Users size={19} /><p>{seatingQuery.isLoading ? 'Loading accepted guests...' : 'Accepted guests from the Guest List will appear here.'}</p></div>}</div>
+        <div>{waiting.length ? waiting.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>) : <EmptyState
+              compact
+              icon={<Users size={22} />}
+              title={seatingQuery.isLoading ? 'Loading guests' : 'No one waiting'}
+              description={seatingQuery.isLoading ? undefined : 'Guests who accept in the Guest book appear here.'}
+            />}</div>
       </aside>
       <section className="table-grid">{tables.length ? tables.map((table) => {
         const seated = guests.filter((guest) => guest.tableId === table.id)
@@ -232,9 +262,13 @@ export function SeatingPage() {
           <div className="seated-list">{seated.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" disabled={table.locked} checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>)}{!seated.length && <p>No guests assigned.</p>}</div>
           <button className="assign-button" type="button" disabled={!selected.length || busy || full || table.locked} onClick={() => assign(table.id)}><Plus size={13} /> Assign selected</button>
         </article>
-      }) : <div className="tables-empty"><Armchair size={24} /><h2>No {ceremonyName.toLocaleLowerCase()} tables</h2><p>{!ceremony ? 'Set up a ceremony first.' : 'Create the first table above, then select waiting guests to assign them.'}</p></div>}</section>
+      }) : <EmptyState
+                icon={<Armchair size={22} />}
+                title={`No ${ceremonyName.toLocaleLowerCase()} tables`}
+                description={!ceremony ? 'Set up a ceremony first.' : 'Add a table, then select waiting guests to assign them.'}
+              />}</section>
     </div>
-    {selected.some((id) => guests.find((guest) => guest.id === id)?.tableId) && <button className="button secondary unseat-button" type="button" disabled={busy} onClick={() => assign(null)}>Move selected to waiting list</button>}
+    {selected.some((id) => guests.find((guest) => guest.id === id)?.tableId) && <Button variant="secondary" className="unseat-button" type="button" disabled={busy} onClick={() => assign(null)}>Move selected to waiting list</Button>}
     {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.name}?`} description="Guests assigned to this table will return to the waiting list. The table will move to the recycle bin." pending={busy} onCancel={() => setPendingDelete(null)} onConfirm={deleteTable} />}
   </div>
 }

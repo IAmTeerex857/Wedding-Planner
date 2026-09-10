@@ -1,17 +1,24 @@
-import { useDeferredValue, useState, type FormEvent } from 'react'
+import { useDeferredValue, useId, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload as TusUpload } from 'tus-js-client'
-import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/KoboyoIcon'
+import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Tag, Trash2, Upload, X } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
+import { Select } from '../components/Select'
+import { MoneyInput } from '../components/MoneyInput'
+import { DateField, TimeField } from '../components/DateField'
 import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
 import { addRegistryRecord, loadCeremonies, loadRegistry, softDeleteRegistry, updateRegistryRecord, updateRegistryStatus, type RegistryRecord, type RegistryTitle } from '../lib/registry-persistence'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, useWorkspace } from '../lib/workspace-context'
 import { pillTone } from '../lib/pills'
+import { useCreateParam } from '../lib/use-create-param'
 import { HoneymoonPage } from './HoneymoonPage'
 import './registry.css'
+import { Button } from '../components/Button'
+import { EmptyState } from '../components/EmptyState'
 
-type Field = { key: string; label: string; type?: 'text' | 'tel' | 'url' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number; step?: number }
+type Field = { key: string; label: string; type?: 'text' | 'tel' | 'url' | 'date' | 'time' | 'number' | 'file'; options?: string[]; placeholder?: string; required?: boolean; min?: number; step?: number; money?: boolean }
 type Definition = { eyebrow: string; description: string; noun: string; fields: Field[]; statuses: string[]; primaryKey?: string }
 type VendorCategory = { id: string; name: string; position: number }
 
@@ -54,16 +61,16 @@ const defaultVendorCategories = ['Hall', 'Cars', 'Hotels', 'Tailor', 'Food', 'Dr
 const vendorStatusPriority: Record<string, number> = { selected: 0, shortlisted: 1, considering: 2, declined: 3 }
 
 const definitions: Record<string, Definition> = {
-  Calendar: { eyebrow: 'Schedule', description: 'See ceremonies, appointments, payments, and planning deadlines together.', noun: 'calendar entry', fields: [{ key: 'title', label: 'Entry title', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'type', label: 'Type', options: ['Task', 'Appointment', 'Payment', 'Personal'] }, eventField], statuses: ['Scheduled', 'Complete', 'Cancelled'] },
-  Itineraries: { eyebrow: 'Run of show', description: 'Build ordered schedules for every part of each celebration.', noun: 'itinerary item', fields: [{ key: 'activity', label: 'Activity', required: true }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'location', label: 'Location' }, { key: 'owner', label: 'Person responsible' }, requiredEventField], statuses: ['Planned', 'Confirmed', 'Complete'] },
-  Seating: { eyebrow: 'Guest placement', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section' }, eventField], statuses: ['Open', 'Locked'] },
-  Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true }, { key: 'category', label: 'Category', required: true, options: defaultVendorCategories }, { key: 'link', label: 'Portfolio / social link', type: 'url', placeholder: 'https://...' }, { key: 'contact', label: 'Contact person' }, { key: 'phone', label: 'Phone', type: 'tel' }, { key: 'quote', label: 'Quote / package' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
-  Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true }, { key: 'location', label: 'Location' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
-  'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01 }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
-  'Wedding party': { eyebrow: 'People & roles', description: 'Coordinate roles, ceremony participation, responsibilities, and outfits.', noun: 'party member', fields: [{ key: 'name', label: 'Name', required: true }, { key: 'role', label: 'Role', required: true }, { key: 'phone', label: 'Phone', type: 'tel' }, { key: 'order', label: 'Processional order', type: 'number' }, { key: 'responsibility', label: 'Responsibility' }, eventField], statuses: ['Invited', 'Confirmed', 'Ready'] },
-  Packing: { eyebrow: 'Packing lists', description: 'Prepare ceremony, wedding-weekend, and honeymoon packing lists.', noun: 'packing item', fields: [{ key: 'item', label: 'Item', required: true }, { key: 'category', label: 'Category', required: true }, { key: 'quantity', label: 'Quantity', type: 'number', min: 1 }, { key: 'owner', label: 'Person responsible' }, eventField], statuses: ['Not packed', 'Packed'] },
-  Gifts: { eyebrow: 'Gifts & thanks', description: 'Record gifts, cash amounts, ceremony links, and thank-you progress.', noun: 'gift', primaryKey: 'description', fields: [{ key: 'guest', label: 'Guest' }, { key: 'description', label: 'Gift description', required: true }, { key: 'type', label: 'Type', options: ['Gift', 'Cash'] }, { key: 'amount', label: 'Cash amount', type: 'number', step: 0.01 }, { key: 'currency', label: 'Currency', options: ['NGN', 'GBP', 'USD', 'EUR'] }, eventField], statuses: ['Received', 'Thank-you due', 'Thank-you sent'] },
-  'Photos & files': { eyebrow: 'Private library', description: 'Keep inspiration, receipts, contracts, images, and wedding documents private.', noun: 'file', fields: [{ key: 'name', label: 'Title' }, { key: 'category', label: 'Category', options: ['Photo', 'Inspiration', 'Receipt', 'Contract', 'Quote', 'Invitation', 'Travel'] }, { key: 'file', label: 'Choose file', type: 'file' }, eventField], statuses: ['Active', 'Archived'] },
+  Calendar: { eyebrow: 'Schedule', description: 'See ceremonies, appointments, payments, and planning deadlines together.', noun: 'calendar entry', fields: [{ key: 'title', label: 'Entry title', required: true, placeholder: 'e.g. Cake tasting' }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'type', label: 'Type', options: ['Task', 'Appointment', 'Payment', 'Personal'] }, eventField], statuses: ['Scheduled', 'Complete', 'Cancelled'] },
+  Itineraries: { eyebrow: 'Run of show', description: 'Build ordered schedules for every part of each celebration.', noun: 'itinerary item', fields: [{ key: 'activity', label: 'Activity', required: true, placeholder: 'e.g. Bridal party arrives' }, { key: 'date', label: 'Date', type: 'date', required: true }, { key: 'time', label: 'Time', type: 'time' }, { key: 'location', label: 'Location', placeholder: 'Venue or address' }, { key: 'owner', label: 'Person responsible', placeholder: 'Who is handling this' }, requiredEventField], statuses: ['Planned', 'Confirmed', 'Complete'] },
+  Seating: { eyebrow: 'Guest placement', description: 'Create tables and capacities before assigning confirmed guests.', noun: 'table', fields: [{ key: 'name', label: 'Table name', placeholder: 'e.g. Table 1, Family table' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'area', label: 'Area or section', placeholder: 'e.g. Main hall' }, eventField], statuses: ['Open', 'Locked'] },
+  Vendors: { eyebrow: 'Supplier directory', description: 'Compare suppliers, packages, contacts, contracts, and balances.', noun: 'vendor', fields: [{ key: 'name', label: 'Company name', required: true, placeholder: 'e.g. Bella Bridal Studio' }, { key: 'category', label: 'Category', required: true, options: defaultVendorCategories }, { key: 'link', label: 'Portfolio / social link', type: 'url', placeholder: 'https://...' }, { key: 'contact', label: 'Contact person', placeholder: 'Who you speak to' }, { key: 'phone', label: 'Phone', type: 'tel', placeholder: '+234 800 000 0000' }, { key: 'quote', label: 'Quote / package', placeholder: 'What was quoted' }, eventField], statuses: ['Considering', 'Shortlisted', 'Selected', 'Declined'] },
+  Venues: { eyebrow: 'Location shortlist', description: 'Compare capacity, availability, inclusions, costs, and selection status.', noun: 'venue', fields: [{ key: 'name', label: 'Venue name', required: true, placeholder: 'e.g. Eko Convention Centre' }, { key: 'location', label: 'Location', placeholder: 'Area or address' }, { key: 'capacity', label: 'Capacity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01, money: true }, { key: 'availability', label: 'Available date', type: 'date' }, eventField], statuses: ['Considering', 'Viewing booked', 'Shortlisted', 'Selected'] },
+  'Food & drinks': { eyebrow: 'Menu planning', description: 'Plan menus, drinks, quantities, caterers, tastings, and package costs.', noun: 'menu item', fields: [{ key: 'name', label: 'Item or package', required: true, placeholder: 'e.g. Jollof and small chops' }, { key: 'category', label: 'Category', options: ['Food', 'Drink', 'Cake', 'Service'] }, { key: 'vendor', label: 'Caterer / bartender', placeholder: 'Who is supplying it' }, { key: 'quantity', label: 'Quantity', type: 'number' }, { key: 'cost', label: 'Estimated cost', type: 'number', step: 0.01, money: true }, requiredEventField], statuses: ['Idea', 'Tasting', 'Approved', 'Ordered'] },
+  'Wedding party': { eyebrow: 'People & roles', description: 'Coordinate roles, ceremony participation, responsibilities, and outfits.', noun: 'party member', fields: [{ key: 'name', label: 'Name', required: true, placeholder: 'Full name' }, { key: 'role', label: 'Role', required: true, placeholder: 'e.g. Chief bridesmaid' }, { key: 'phone', label: 'Phone', type: 'tel' }, { key: 'order', label: 'Processional order', type: 'number' }, { key: 'responsibility', label: 'Responsibility', placeholder: 'What they are looking after' }, eventField], statuses: ['Invited', 'Confirmed', 'Ready'] },
+  Packing: { eyebrow: 'Packing lists', description: 'Prepare ceremony, wedding-weekend, and honeymoon packing lists.', noun: 'packing item', fields: [{ key: 'item', label: 'Item', required: true, placeholder: 'What to pack' }, { key: 'category', label: 'Category', required: true, placeholder: 'e.g. Ceremony, Honeymoon' }, { key: 'quantity', label: 'Quantity', type: 'number', min: 1 }, { key: 'owner', label: 'Person responsible', placeholder: 'Who is packing it' }, eventField], statuses: ['Not packed', 'Packed'] },
+  Gifts: { eyebrow: 'Gifts & thanks', description: 'Record gifts, cash amounts, ceremony links, and thank-you progress.', noun: 'gift', primaryKey: 'description', fields: [{ key: 'guest', label: 'Guest', placeholder: 'Who it came from' }, { key: 'description', label: 'Gift description', required: true, placeholder: 'What was given' }, { key: 'type', label: 'Type', options: ['Gift', 'Cash'] }, { key: 'amount', label: 'Cash amount', type: 'number', step: 0.01, money: true, placeholder: '0.00' }, { key: 'currency', label: 'Currency', options: ['NGN', 'GBP', 'USD', 'EUR'] }, eventField], statuses: ['Received', 'Thank-you due', 'Thank-you sent'] },
+  'Photos & files': { eyebrow: 'Private library', description: 'Keep inspiration, receipts, contracts, images, and wedding documents private.', noun: 'file', fields: [{ key: 'name', label: 'Title', placeholder: 'Name this file' }, { key: 'category', label: 'Category', options: ['Photo', 'Inspiration', 'Receipt', 'Contract', 'Quote', 'Invitation', 'Travel'] }, { key: 'file', label: 'Choose file', type: 'file' }, eventField], statuses: ['Active', 'Archived'] },
 }
 
 const persistedTitles = new Set<RegistryTitle>(['Calendar', 'Itineraries', 'Vendors', 'Venues', 'Food & drinks', 'Wedding party', 'Packing', 'Gifts'])
@@ -87,10 +94,11 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const persistent = isRegistryTitle(title) && !isPreview
   const [previewRecords, setPreviewRecords] = useState<RegistryRecord[]>([])
   const [adding, setAdding] = useState(false)
+  const [managingCategories, setManagingCategories] = useState(false)
+  useCreateParam(() => setAdding(true))
   const [editing, setEditing] = useState<RegistryRecord | null>(null)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
-  const [newCategory, setNewCategory] = useState('')
   const [previewCategories, setPreviewCategories] = useState<VendorCategory[]>(() => defaultVendorCategories.map((name, position) => ({ id: crypto.randomUUID(), name, position })))
   const [pendingDelete, setPendingDelete] = useState<{ kind: 'record'; record: RegistryRecord; label: string } | { kind: 'category'; category: VendorCategory } | { kind: 'rate-card'; file: VendorRateCard } | null>(null)
   const [viewingRateCard, setViewingRateCard] = useState<VendorRateCard | null>(null)
@@ -175,7 +183,21 @@ function Registry({ title, definition }: { title: string; definition: Definition
       const { error } = await supabase!.from('vendor_categories').insert({ workspace_id: workspace.id, name, position, created_by: userId, updated_by: userId })
       if (error) throw error
     },
-    onSuccess: async () => { setNewCategory(''); await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+  })
+  const renameCategoryMutation = useMutation({
+    mutationFn: async ({ category, name }: { category: VendorCategory; name: string }) => {
+      const { error } = await supabase!.from('vendor_categories').update({ name, updated_by: userId }).eq('workspace_id', workspace.id).eq('id', category.id)
+      if (error) throw error
+      // Vendors store the category by name, so they move with it.
+      const { error: recordError } = await supabase!.from('vendors').update({ category: name, updated_by: userId }).eq('workspace_id', workspace.id).eq('category', category.name)
+      if (recordError) throw recordError
+    },
+    onSuccess: async (_, { category, name }) => {
+      if (categoryFilter === category.name) setCategoryFilter(name)
+      await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] })
+      await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] })
+    },
   })
   const removeCategoryMutation = useMutation({
     mutationFn: async (category: VendorCategory) => {
@@ -233,12 +255,17 @@ function Registry({ title, definition }: { title: string; definition: Definition
     else deleteMutation.mutate(record)
   }
 
-  function addCategory(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const name = newCategory.trim()
-    if (!name || categories.some((category) => category.toLocaleLowerCase() === name.toLocaleLowerCase())) return
-    if (categoryPersistent) addCategoryMutation.mutate(name)
-    else { setPreviewCategories((current) => [...current, { id: crypto.randomUUID(), name, position: current.length }]); setNewCategory('') }
+
+  function renameCategory(category: VendorCategory, next: string) {
+    const name = next.trim()
+    if (!name || name === category.name) return
+    if (categories.some((item) => item.toLocaleLowerCase() === name.toLocaleLowerCase())) return
+    if (categoryPersistent) renameCategoryMutation.mutate({ category, name })
+    else {
+      setPreviewCategories((current) => current.map((item) => item.id === category.id ? { ...item, name } : item))
+      setPreviewRecords((current) => current.map((record) => record.values.category === category.name ? { ...record, values: { ...record.values, category: name } } : record))
+      if (categoryFilter === category.name) setCategoryFilter(name)
+    }
   }
 
   function removeCategory(category: VendorCategory) {
@@ -256,17 +283,31 @@ function Registry({ title, definition }: { title: string; definition: Definition
   }
 
   return <div className={`page registry-page ui-page${title === 'Vendors' ? ' vendors-page' : ''}`}>
-    <header className="page-header"><div><p className="eyebrow">{definition.eyebrow}</p><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><button className="button primary" type="button" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</button></header>
+    <header className="page-header"><div><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><div className="header-actions">
+      {title === 'Vendors' && <Button variant="secondary" onClick={() => setManagingCategories(true)}><Tag size={15} /> Manage categories</Button>}
+      <Button variant="primary" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</Button>
+    </div></header>
     {adding && <RegistryForm definition={formDefinition} allowRateCards={title === 'Vendors'} saving={addMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
     {editing && <RegistryForm key={editing.id} definition={formDefinition} initialValues={editing.values} allowRateCards={title === 'Vendors'} saving={updateMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
     {error && <p className="data-error">{error.message}</p>}
     <section className="registry-panel">
-      <header><div className="registry-search-controls"><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label>{title === 'Vendors' && <label className="vendor-category-select"><span className="sr-only">Filter vendors by category</span><select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option>All</option>{categories.map((category) => <option key={category}>{category}</option>)}</select></label>}</div><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
-      {title === 'Vendors' && <div className="category-tools"><form onSubmit={addCategory}><input value={newCategory} maxLength={100} placeholder="New category" aria-label="New vendor category" onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" disabled={!newCategory.trim() || addCategoryMutation.isPending}><Plus size={12} /> Add</button></form><div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => { const categoryRecord = categoryRecords.find((item) => item.name === category); const inUse = records.some((record) => record.values.category.toLocaleLowerCase() === category.toLocaleLowerCase()); const canRemove = Boolean(categoryRecord && (!categoryPersistent || categoryQuery.data)); const isLast = categoryRecords.length === 1; return <span className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} key={category}><button type="button" onClick={() => setCategoryFilter(category)}>{category}</button>{canRemove && <button className="category-remove" type="button" disabled={inUse || isLast || removeCategoryMutation.isPending} title={inUse ? 'Reassign vendors before removing this category' : isLast ? 'Keep at least one vendor category' : `Remove ${category}`} aria-label={`Remove ${category}`} onClick={() => categoryRecord && setPendingDelete({ kind: 'category', category: categoryRecord })}><X size={9} /></button>}</span> })}</div></div>}
-      {recordsQuery.isLoading && persistent ? <div className="registry-empty"><p>Loading records...</p></div> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; const rateCards = title === 'Vendors' ? (rateCardsQuery.data ?? []).filter((file) => file.vendor_id === record.id) : []; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small>{title === 'Vendors' && <div className="vendor-rate-cards">{rateCards.map((file) => <span className="vendor-rate-card" key={file.id}><button type="button" title={`View ${file.original_name}`} onClick={() => setViewingRateCard(file)}>{file.mime_type.startsWith('image/') ? <FileImage size={12} /> : <FileText size={12} />}<span>{file.original_name}</span></button><button type="button" aria-label={`Remove ${file.original_name}`} onClick={() => setPendingDelete({ kind: 'rate-card', file })}><X size={10} /></button></span>)}<label className={`vendor-rate-card-upload${uploadRateCardsMutation.isPending ? ' disabled' : ''}`}><Upload size={12} /><span>{rateCards.length ? 'Add another' : 'Add rate card'}</span><input type="file" multiple disabled={uploadRateCardsMutation.isPending} accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) uploadRateCardsMutation.mutate({ vendorId: record.id, files }); event.currentTarget.value = '' }} /></label></div>}</div><select className={pillTone(record.status)} value={record.status} onChange={(event) => changeStatus(record, event.target.value)}>{definition.statuses.map((status) => <option key={status}>{status}</option>)}</select><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <div className="registry-empty"><Plus size={20} /><h2>No {definition.noun}s yet</h2><p>Add the first record when the information is ready.</p></div>}
+      <header><div className="registry-search-controls"><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label>{title === 'Vendors' && <label className="vendor-category-select"><span className="sr-only">Filter vendors by category</span><Select compact label="Category" aria-label="Filter by category" value={categoryFilter} onChange={setCategoryFilter} options={[{ value: 'All', label: 'All' }, ...categories.map((category) => ({ value: category, label: category }))]} /></label>}</div><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
+
+      {recordsQuery.isLoading && persistent ? <EmptyState compact title="Loading records" /> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; const rateCards = title === 'Vendors' ? (rateCardsQuery.data ?? []).filter((file) => file.vendor_id === record.id) : []; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small>{title === 'Vendors' && <div className="vendor-rate-cards">{rateCards.map((file) => <span className="vendor-rate-card" key={file.id}><button type="button" title={`View ${file.original_name}`} onClick={() => setViewingRateCard(file)}>{file.mime_type.startsWith('image/') ? <FileImage size={12} /> : <FileText size={12} />}<span>{file.original_name}</span></button><button type="button" aria-label={`Remove ${file.original_name}`} onClick={() => setPendingDelete({ kind: 'rate-card', file })}><X size={10} /></button></span>)}<label className={`vendor-rate-card-upload${uploadRateCardsMutation.isPending ? ' disabled' : ''}`}><Upload size={12} /><span>{rateCards.length ? 'Add another' : 'Add rate card'}</span><input type="file" multiple disabled={uploadRateCardsMutation.isPending} accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) uploadRateCardsMutation.mutate({ vendorId: record.id, files }); event.currentTarget.value = '' }} /></label></div>}</div><Select compact className={`record-status ${pillTone(record.status)}`} aria-label={`Status for ${label}`} value={record.status} onChange={(next) => changeStatus(record, next)} options={definition.statuses.map((status) => ({ value: status, label: status }))} /><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <EmptyState icon={<Plus size={22} />} title={`No ${definition.noun}s yet`} description="Add the first record when the information is ready." />}
     </section>
     {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : pendingDelete.kind === 'category' ? `Remove ${pendingDelete.category.name}?` : `Remove ${pendingDelete.file.original_name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : pendingDelete.kind === 'category' ? 'This category will be removed from the vendor list. It can only be removed while no vendors use it.' : 'This rate card will move to the recycle bin. Its private file will remain available for recovery.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     {viewingRateCard && <VendorRateCardViewer file={viewingRateCard} onClose={() => setViewingRateCard(null)} />}
+    {managingCategories && (
+      <CategoryManager
+        categories={categoryRecords}
+        usage={records}
+        saving={addCategoryMutation.isPending || renameCategoryMutation.isPending || removeCategoryMutation.isPending}
+        onAdd={(name) => { if (categoryPersistent) addCategoryMutation.mutate(name); else setPreviewCategories((current) => [...current, { id: crypto.randomUUID(), name, position: current.length }]) }}
+        onRename={renameCategory}
+        onRemove={removeCategory}
+        onClose={() => setManagingCategories(false)}
+      />
+    )}
     {uploadProgress && <aside className="rate-card-upload-status" role="status" aria-live="polite"><span className="rate-card-upload-percentage">{uploadProgress.percentage}%</span><div><strong>Uploading rate card {uploadProgress.current} of {uploadProgress.total}</strong><p>{uploadProgress.fileName}</p><span className="rate-card-upload-track"><span style={{ width: `${uploadProgress.percentage}%` }} /></span></div></aside>}
   </div>
 }
@@ -275,14 +316,98 @@ function RegistryForm({ definition, initialValues, allowRateCards = false, savin
   const [values, setValues] = useState<Record<string, string>>(() => ({ ...Object.fromEntries(definition.fields.filter((field) => field.options).map((field) => [field.key, field.options![0]])), ...initialValues }))
   const [rateCards, setRateCards] = useState<File[]>([])
   async function submit(event: FormEvent) { event.preventDefault(); const cleanValues = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])); try { await onSave(cleanValues, rateCards) } catch { /* Mutation errors are displayed above the registry. */ } }
-  return <section className="registry-form"><header><div><p className="eyebrow">{initialValues ? 'Edit record' : 'New record'}</p><h2>{initialValues ? 'Edit' : 'Add'} {definition.noun}</h2></div><button type="button" onClick={onClose} aria-label="Close"><X size={17} /></button></header><form onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.options ? <select required={field.required} value={values[field.key] ?? field.options[0]} onChange={(event) => setValues((current) => ({ ...current, [field.key]: event.target.value }))}>{initialValues?.[field.key] && !field.options.includes(initialValues[field.key]) && <option>{initialValues[field.key]}</option>}{field.options.map((value) => <option key={value}>{value}</option>)}</select> : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} step={field.step} pattern={field.key === 'phone' ? "\\+?[0-9][0-9 ()-]{6,19}" : undefined} title={field.key === 'phone' ? 'Enter a valid phone number with 7 to 20 digits and common separators.' : undefined} maxLength={field.type === 'url' ? 2048 : field.type === 'number' ? undefined : 160} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}{allowRateCards && <label className="rate-card-picker"><span>Rate cards <small>PDF or image, up to 25 MB each</small></span><input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setRateCards(Array.from(event.target.files ?? []))} /><strong>{rateCards.length ? rateCards.map((file) => file.name).join(', ') : initialValues ? 'Add more rate cards' : 'Choose rate cards'}</strong></label>}</div><footer><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={saving}>{saving ? 'Saving...' : 'Save'}</button></footer></form></section>
+  const formId = useId()
+  const canSubmit = definition.fields.every((field) => !field.required || String(values[field.key] ?? '').trim())
+  return <Modal open size="wide" title={`${initialValues ? 'Edit' : 'Add'} ${definition.noun}`} onClose={onClose} footer={<><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" form={formId} disabled={saving || !canSubmit}>{saving ? 'Saving...' : 'Save'}</Button></>}><div className="registry-form in-modal"><form id={formId} onSubmit={submit}><div>{definition.fields.map((field) => <label key={field.key}><span>{field.label}</span>{field.money ? <MoneyInput prefix="NGN" aria-label={field.label} value={values[field.key] ?? ''} onChange={(next) => setValues((current) => ({ ...current, [field.key]: next }))} placeholder={field.placeholder ?? '0.00'} />
+                    : field.options ? <Select required={field.required} aria-label={field.label} value={values[field.key] ?? field.options[0]} onChange={(next) => setValues((current) => ({ ...current, [field.key]: next }))} options={[...(initialValues?.[field.key] && !field.options.includes(initialValues[field.key]) ? [{ value: initialValues[field.key], label: initialValues[field.key] }] : []), ...field.options.map((value) => ({ value, label: value }))]} /> : field.type === 'date' ? <DateField required={field.required} aria-label={field.label} value={values[field.key] ?? ''} onChange={(next) => setValues((current) => ({ ...current, [field.key]: next }))} />
+                    : field.type === 'time' ? <TimeField aria-label={field.label} value={values[field.key] ?? ''} onChange={(next) => setValues((current) => ({ ...current, [field.key]: next }))} />
+                    : <input type={field.type ?? 'text'} required={field.required} min={field.type === 'number' ? field.min ?? 0 : undefined} step={field.step} pattern={field.key === 'phone' ? "\\+?[0-9][0-9 ()-]{6,19}" : undefined} title={field.key === 'phone' ? 'Enter a valid phone number with 7 to 20 digits and common separators.' : undefined} maxLength={field.type === 'url' ? 2048 : field.type === 'number' ? undefined : 160} value={values[field.key] ?? ''} placeholder={field.placeholder} onChange={(event) => setValues((current) => ({ ...current, [field.key]: field.type === 'file' ? event.target.files?.[0]?.name ?? '' : event.target.value }))} />}</label>)}{allowRateCards && <label className="rate-card-picker"><span>Rate cards <small>PDF or image, up to 25 MB each</small></span><input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => setRateCards(Array.from(event.target.files ?? []))} /><strong><Upload size={16} />{rateCards.length ? rateCards.map((file) => file.name).join(', ') : initialValues ? 'Add more rate cards' : 'Choose rate cards'}</strong></label>}</div></form></div></Modal>
 }
 
 function ReportsPage() {
   const reports = ['Wedding overview', 'Ceremony summary', 'Budget summary', 'Guest & RSVP report', 'Seating chart', 'Itineraries', 'Packing lists', 'Attire & aso-ebi', 'Ceremony requirements', 'Honeymoon itinerary']
-  return <div className="page registry-page ui-page"><header className="page-header"><div><p className="eyebrow">Exports</p><h1>Reports</h1><p className="page-lead">Create printable planning packs and clean CSV exports from the information in your workspace.</p></div></header><section className="report-grid">{reports.map((report) => <article key={report}><FileText size={18} /><div><strong>{report}</strong><small>PDF report</small></div><button type="button" onClick={() => window.print()}><Download size={15} /> Generate</button></article>)}</section></div>
+  return <div className="page registry-page ui-page"><header className="page-header"><div><h1>Reports</h1><p className="page-lead">Create printable planning packs and clean CSV exports from the information in your workspace.</p></div></header><section className="report-grid">{reports.map((report) => <article key={report}><FileText size={18} /><div><strong>{report}</strong><small>PDF report</small></div><button type="button" onClick={() => window.print()}><Download size={15} /> Generate</button></article>)}</section></div>
 }
 
 function SettingsPage() {
-  return <div className="page registry-page ui-page"><header className="page-header"><div><p className="eyebrow">Workspace control</p><h1>Settings</h1><p className="page-lead">Manage ceremony defaults, reporting currency, timezone, reminders, and account details.</p></div></header><section className="settings-grid"><label>Workspace name<input defaultValue="Timmy & Bisola" /></label><label>Reporting currency<select defaultValue="NGN"><option>NGN</option><option>GBP</option><option>USD</option><option>EUR</option></select></label><label>Timezone<input defaultValue="Africa/Lagos" readOnly /></label><label>Weekly summary<select defaultValue="Sunday evening"><option>Sunday evening</option></select></label><button className="button primary" type="button">Save settings</button></section></div>
+  return <div className="page registry-page ui-page"><header className="page-header"><div><h1>Settings</h1><p className="page-lead">Manage ceremony defaults, reporting currency, timezone, reminders, and account details.</p></div></header><section className="settings-grid"><label>Workspace name<input defaultValue="Timmy & Bisola" /></label><label>Reporting currency<Select aria-label="Reporting currency" value="NGN" onChange={() => {}} options={[{ value: 'NGN', label: 'NGN' }, { value: 'GBP', label: 'GBP' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }]} /></label><label>Timezone<input defaultValue="Africa/Lagos" readOnly /></label><label>Weekly summary<Select aria-label="Weekly summary" value="Sunday evening" onChange={() => {}} options={[{ value: 'Sunday evening', label: 'Sunday evening' }]} /></label><Button variant="primary" type="button">Save settings</Button></section></div>
+}
+
+
+/**
+ * Categories ship pre-filled, so they belong in a management surface rather than
+ * as an editable strip above the vendor list. That strip also duplicated the
+ * category filter that already sits in the toolbar.
+ */
+function CategoryManager({ categories, usage, saving, onAdd, onRename, onRemove, onClose }: {
+  categories: VendorCategory[]
+  usage: RegistryRecord[]
+  saving: boolean
+  onAdd: (name: string) => void
+  onRename: (category: VendorCategory, name: string) => void
+  onRemove: (category: VendorCategory) => void
+  onClose: () => void
+}) {
+  const [draft, setDraft] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const countFor = (name: string) => usage.filter((record) => record.values.category?.toLocaleLowerCase() === name.toLocaleLowerCase()).length
+
+  return (
+    <Modal
+      open
+      title="Vendor categories"
+      description="Rename a category to update every vendor using it. Categories in use cannot be removed."
+      onClose={onClose}
+      footer={<Button variant="secondary" onClick={onClose}>Done</Button>}
+    >
+      <form
+        className="category-add"
+        onSubmit={(event) => { event.preventDefault(); const name = draft.trim(); if (!name) return; onAdd(name); setDraft('') }}
+      >
+        <input value={draft} maxLength={100} placeholder="Add a category" aria-label="New vendor category" onChange={(event) => setDraft(event.target.value)} />
+        <Button variant="secondary" type="submit" disabled={!draft.trim() || saving}>Add</Button>
+      </form>
+
+      <ul className="category-manage-list">
+        {categories.map((category) => {
+          const inUse = countFor(category.name)
+          const isEditing = editingId === category.id
+          return (
+            <li key={category.id}>
+              {isEditing ? (
+                <>
+                  <input
+                    autoFocus
+                    value={editingName}
+                    maxLength={100}
+                    aria-label={`Rename ${category.name}`}
+                    onChange={(event) => setEditingName(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); onRename(category, editingName); setEditingId(null) } }}
+                  />
+                  <Button variant="secondary" size="sm" onClick={() => { onRename(category, editingName); setEditingId(null) }}>Save</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
+                </>
+              ) : (
+                <>
+                  <span className="category-manage-name">{category.name}</span>
+                  <span className="category-manage-count">{inUse ? `${inUse} vendor${inUse === 1 ? '' : 's'}` : 'Unused'}</span>
+                  <Button variant="ghost" icon size="sm" aria-label={`Rename ${category.name}`} onClick={() => { setEditingId(category.id); setEditingName(category.name) }}><Pencil size={14} /></Button>
+                  <Button
+                    variant="ghost"
+                    icon
+                    size="sm"
+                    aria-label={`Remove ${category.name}`}
+                    disabled={Boolean(inUse) || categories.length === 1 || saving}
+                    title={inUse ? 'Reassign these vendors before removing this category' : categories.length === 1 ? 'Keep at least one category' : undefined}
+                    onClick={() => onRemove(category)}
+                  ><Trash2 size={14} /></Button>
+                </>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </Modal>
+  )
 }

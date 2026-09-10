@@ -5,7 +5,7 @@
 .honeymoon-form header button { display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
 .honeymoon-form header button:hover { color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .honeymoon-form form { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px 16px; padding: 24px; }
-.honeymoon-form label, .honeymoon-detail-form label { display: flex; flex-direction: column; gap: 6px; color: var(--ui-gray-700); font-size: 12px; font-weight: 500; }
+.honeymoon-form label, .honeymoon-detail-form label { display: flex; flex-direction: column; gap: 6px; }
 .honeymoon-form input, .honeymoon-detail-form input, .honeymoon-detail-form select { width: 100%; height: 40px; min-width: 0; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; color: var(--ui-gray-900); background: white; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
 .honeymoon-form footer { display: flex; grid-column: 1 / -1; justify-content: flex-end; gap: 8px; padding-top: 4px; }
 .honeymoon-destinations { display: grid; gap: 20px; }
@@ -13,10 +13,7 @@
 .honeymoon-location-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .honeymoon-destination h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 16px; font-weight: 600; }
 .honeymoon-destination header p { margin-top: 3px; color: var(--ui-gray-500); font-size: 12px; }
-.honeymoon-destination header select { height: 36px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 30px 0 10px; font-size: 11px; font-weight: 600; box-shadow: var(--ui-shadow-xs); }
-.honeymoon-destination header select.pill-tone-yellow { border-color: #fedf89; color: #b54708 !important; background-color: var(--ui-warning-50) !important; }
-.honeymoon-destination header select.pill-tone-blue { border-color: #b2ddff; color: #175cd3 !important; background-color: #eff8ff !important; }
-.honeymoon-destination header select.pill-tone-green { border-color: #a6f4c5; color: #067647 !important; background-color: var(--ui-success-50) !important; }
+.honeymoon-destination header select { height: 36px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 30px 0 10px; font-size: 12px; font-weight: 600; box-shadow: var(--ui-shadow-xs); }
 .honeymoon-actions { display: flex; justify-content: flex-end; gap: 4px; }
 .honeymoon-actions button, .honeymoon-detail-list button { display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
 .honeymoon-actions button:hover, .honeymoon-detail-list button:hover { color: var(--ui-gray-700); background: var(--ui-gray-100); }
@@ -24,7 +21,7 @@
 .honeymoon-details-heading { display: flex; min-height: 64px; align-items: center; justify-content: space-between; padding: 12px 24px; background: var(--ui-gray-50); }
 .honeymoon-details-heading > div { display: flex; align-items: center; gap: 8px; }
 .honeymoon-details-heading strong { color: var(--ui-gray-900); font-size: 13px; font-weight: 600; }
-.honeymoon-details-heading span { color: var(--ui-gray-500); font-size: 11px; }
+.honeymoon-details-heading span { color: var(--ui-gray-500); font-size: 12px; }
 .honeymoon-details-heading button { display: inline-flex; min-height: 36px; align-items: center; gap: 6px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 7px 10px; color: var(--ui-gray-700); background: white; font-size: 12px; font-weight: 600; box-shadow: var(--ui-shadow-xs); cursor: pointer; }
 .honeymoon-details-heading button:hover { background: var(--ui-gray-50); }
 .honeymoon-detail-form { display: grid; grid-template-columns: 1fr 145px 145px 130px auto; align-items: end; gap: 12px; padding: 20px 24px; border-top: 1px solid var(--ui-gray-200); background: var(--ui-gray-50); }
@@ -32,9 +29,9 @@
 .honeymoon-detail-form .button { min-height: 40px; }
 .honeymoon-detail-list > div { display: grid; min-height: 68px; grid-template-columns: 115px 1fr minmax(150px, auto) 72px; align-items: center; gap: 12px; padding: 10px 24px; border-top: 1px solid var(--ui-gray-100); }
 .honeymoon-detail-list > div:hover { background: var(--ui-gray-25); }
-.honeymoon-detail-list .category-pill { border-radius: 999px; padding: 4px 9px; color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 11px; font-weight: 500; }
+.honeymoon-detail-list .category-pill { border-radius: 999px; padding: 4px 9px; color: var(--ui-gray-700); background: var(--ui-gray-100); font-size: 12px; font-weight: 500; }
 .honeymoon-detail-list strong { overflow: hidden; color: var(--ui-gray-900); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.honeymoon-detail-list small { color: var(--ui-gray-500); font-size: 11px; text-align: right; }
+.honeymoon-detail-list small { color: var(--ui-gray-500); font-size: 12px; text-align: right; }
 .honeymoon-detail-actions { display: flex; }
 .honeymoon-details-empty { padding: 24px; border-top: 1px solid var(--ui-gray-100); color: var(--ui-gray-500); font-size: 12px; }
 .honeymoon-empty { display: grid; min-height: 320px; place-content: center; justify-items: center; padding: 24px; color: var(--ui-gray-500); text-align: center; }
@@ -44,7 +41,7 @@
 .honeymoon-checklist > header { display: flex; min-height: 88px; align-items: center; justify-content: space-between; gap: 20px; padding: 18px 24px; border-bottom: 1px solid var(--ui-gray-200); }
 .honeymoon-checklist h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 18px; font-weight: 600; }
 .honeymoon-checklist header p:last-child { margin-top: 3px; color: var(--ui-gray-500); font-size: 12px; }
-.honeymoon-checklist header > span { flex: 0 0 auto; border: 1px solid #fedf89; border-radius: 999px; padding: 4px 9px; color: #b54708; background: var(--ui-warning-50); font-size: 11px; font-weight: 500; }
+.honeymoon-checklist header > span { flex: 0 0 auto; border: 1px solid #fedf89; border-radius: 999px; padding: 4px 9px; color: #b54708; background: var(--ui-warning-50); font-size: 12px; font-weight: 500; }
 .honeymoon-checklist > form { display: grid; grid-template-columns: 1fr 180px auto; align-items: center; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--ui-gray-200); background: var(--ui-gray-50); }
 .honeymoon-checklist > form input { width: 100%; height: 40px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; color: var(--ui-gray-900); background: white; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
 .honeymoon-checklist-list article { display: grid; min-height: 64px; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 12px; padding: 10px 24px; border-bottom: 1px solid var(--ui-gray-100); }
@@ -52,7 +49,7 @@
 .honeymoon-checklist-list article:hover { background: var(--ui-gray-25); }
 .honeymoon-checklist-list article > div { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
 .honeymoon-checklist-list strong { overflow: hidden; color: var(--ui-gray-900); font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
-.honeymoon-checklist-list small { color: var(--ui-gray-500); font-size: 11px; }
+.honeymoon-checklist-list small { color: var(--ui-gray-500); font-size: 12px; }
 .honeymoon-checklist-list article.completed strong { color: var(--ui-gray-400); text-decoration: line-through; }
 .honeymoon-check-toggle, .honeymoon-check-delete { display: grid; width: 36px; height: 36px; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
 .honeymoon-check-toggle:hover { color: var(--ui-success-600); background: var(--ui-success-50); }

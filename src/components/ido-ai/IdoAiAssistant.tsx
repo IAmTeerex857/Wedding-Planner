@@ -1,8 +1,15 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Clock3, FileImage, Plus, Trash2, X } from '../KoboyoIcon'
+import { ArrowUp, Check, ChevronDown, FileImage, History, Microphone, NewChat, Paperclip, Plus, PushPin, SidebarSimple, Trash2, X } from '../Icon'
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, uploadIdoAiImage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
+import { useDictation } from '../../lib/use-dictation'
+import { draftPreviewBatch, previewReply } from '../../lib/ido-ai-preview'
+import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'motion/react'
+import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
+import { StreamingText } from './StreamingText'
+import { ReasoningText } from './ReasoningText'
+import { Button } from '../Button'
 import './ido-ai.css'
 
 const PANEL_KEY = 'wedding-planner:ido-ai-panel:v2'
@@ -29,6 +36,15 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const [composer, setComposer] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  // Preview has no backend, so sent messages are held locally. Without this the
+  // thread stays empty and the bubbles cannot be seen at all.
+  const [previewMessages, setPreviewMessages] = useState<Array<{ id: string; body: string; createdAt: string; role: 'user' | 'assistant' }>>([])
+  const [previewBatches, setPreviewBatches] = useState<IdoAiBatch[]>([])
+  const [previewThinking, setPreviewThinking] = useState(false)
+  // Pinning is a per-person convenience, so it lives with the viewer.
+  const [pinned, setPinned] = useState<string[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem(`${PANEL_KEY}:pinned`) ?? '[]') as string[] } catch { return [] }
+  })
   const [selectedConversationId, setSelectedConversationId] = useState<string | null | undefined>(undefined)
   const [optimisticMessage, setOptimisticMessage] = useState<{ id: string; body: string; attachmentName: string | null; failed: boolean } | null>(null)
   const [attachment, setAttachment] = useState<{ file: File; previewUrl: string } | null>(null)
@@ -38,6 +54,7 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const previewTimerRef = useRef<number | null>(null)
   const stateQuery = useQuery({
     queryKey: ['ido-ai', workspace.id, selectedConversationId === undefined ? 'latest' : selectedConversationId ?? 'new'],
     enabled: !isPreview,
@@ -50,23 +67,32 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const question = shouldOnboard && onboardingStep < onboardingQuestions.length ? onboardingQuestions[onboardingStep] : null
 
   useEffect(() => { window.localStorage.setItem(PANEL_KEY, open ? 'open' : 'closed') }, [open])
-  useEffect(() => { window.localStorage.setItem(`${PANEL_KEY}:${workspace.id}:step`, String(onboardingStep)) }, [onboardingStep, workspace.id])
-  const activitySignature = state.batches.flatMap((batch) => batch.actions.map((action) => `${action.id}:${action.status}:${action.progress}`)).join('|')
-  useEffect(() => { if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }) }, [open, state.messages.length, state.batches.length, activitySignature])
+  useEffect(() => { window.localStorage.setItem(`${PANEL_KEY}:pinned`, JSON.stringify(pinned)) }, [pinned])
+  useEffect(() => {
+    if (!open) return
+    panelRef.current?.focus()
+  }, [open])
+  useEffect(() => {
+    if (!open) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || document.querySelector('.ui-select-list, .ui-picker, .menu-popover')) return
+      if (historyOpen) setHistoryOpen(false)
+      else setOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [historyOpen, open])
+  useEffect(() => () => {
+    if (previewTimerRef.current !== null) window.clearTimeout(previewTimerRef.current)
+  }, [])
+  // Grow with the message up to four lines, then let it scroll. This was lost
+  // when the composer was rebuilt, which is why the field never gained height.
   useEffect(() => {
     const textarea = composerRef.current
     if (!textarea) return
     textarea.style.height = 'auto'
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 116)}px`
   }, [composer])
-  useEffect(() => {
-    if (!open) return
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
-    window.addEventListener('keydown', closeOnEscape)
-    panelRef.current?.focus()
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [open])
-
   const sendMutation = useMutation({
     mutationFn: async ({ content, requestId, conversationId, file }: { content: string; requestId: string; conversationId: string; file: File | null }) => {
       const fileId = file ? await uploadIdoAiImage(workspace.id, userId, file) : undefined
@@ -96,7 +122,21 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     const value = input.trim()
     if ((!value && !attachment) || sendMutation.isPending) return
     const content = onboarding && question ? `Onboarding answer for “${question.prompt}”: ${value}` : value || 'Analyse the attached image and propose relevant planning updates.'
-    if (isPreview) { setComposer(''); setAnswer(''); clearAttachment(); if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 })); return }
+    if (isPreview) {
+      setPreviewMessages((current) => [...current, { id: crypto.randomUUID(), body: content, createdAt: new Date().toISOString(), role: 'user' }])
+      setComposer('')
+      setAnswer('')
+      clearAttachment()
+      if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 }))
+      setPreviewThinking(true)
+      if (previewTimerRef.current !== null) window.clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = window.setTimeout(() => {
+        previewTimerRef.current = null
+        setPreviewThinking(false)
+        setPreviewBatches((current) => [...current, draftPreviewBatch(content)])
+      }, 900)
+      return
+    }
     const requestId = crypto.randomUUID()
     const conversationId = state.conversationId ?? crypto.randomUUID()
     setSelectedConversationId(conversationId)
@@ -115,6 +155,13 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   }
 
   function startNewConversation() {
+    if (previewTimerRef.current !== null) {
+      window.clearTimeout(previewTimerRef.current)
+      previewTimerRef.current = null
+    }
+    setPreviewMessages([])
+    setPreviewBatches([])
+    setPreviewThinking(false)
     setSelectedConversationId(null)
     setOptimisticMessage(null)
     setComposer('')
@@ -149,14 +196,43 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     selectAttachment(image)
   }
 
-  const isThinking = Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
+  // Only replies that arrive after the panel opened get the speaking cadence.
+  // Older history should not retype itself, and comparing against the moment of
+  // opening needs no bookkeeping.
+  const [openedAt] = useState(() => new Date().toISOString())
+  const reduced = useReducedMotion()
+  const { supported: canDictate, listening: isListening, error: dictationError, waveRef, toggle: toggleDictation } = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
+
+  // A decision belongs where you would otherwise be typing, not floating in the
+  // scroll above it. While one is open the composer stands down.
+  const pendingBatch = previewBatches.find((batch) => batch.status === 'proposed') ?? state.batches.find((batch) => batch.status === 'proposed') ?? null
+
+  const activeConversation = state.conversations.find((conversation) => conversation.id === state.conversationId)
+  const conversationTitle = activeConversation?.title?.trim() || 'New conversation'
+
+  const isThinking = previewThinking || Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
   const timeline: TimelineItem[] = [
+    ...previewMessages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message: { id: message.id, role: message.role, body: message.body, createdAt: message.createdAt, runId: null, metadata: {} } as (typeof state.messages)[number] })),
     ...state.messages.map((message) => ({ kind: 'message' as const, id: message.id, createdAt: message.createdAt, order: 0, message })),
-    ...state.batches.filter((batch) => batch.actions.length > 0).map((batch) => {
+    ...previewBatches.filter((batch) => batch.status !== 'proposed').map((batch) => ({ kind: 'batch' as const, id: batch.id, createdAt: batch.createdAt, order: 1, batch })),
+    ...state.batches.filter((batch) => batch.actions.length > 0 && batch.status !== 'proposed').map((batch) => {
       const reply = state.messages.find((message) => message.role === 'assistant' && ((message.runId && message.runId === batch.runId) || message.metadata.vendor_research_batch_id === batch.id))
       return { kind: 'batch' as const, id: batch.id, createdAt: reply?.createdAt ?? batch.createdAt, order: reply ? 1 : 0, batch }
     }),
   ].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order)
+
+
+  // Consecutive messages from the same speaker share one attribution. Repeating
+  // the name above every card and reply reads as the conversation restarting.
+  const speakers = timeline.map((item) => item.kind === 'batch' ? 'assistant' : item.message.role)
+  const startsRun = (index: number) => index === 0 || speakers[index - 1] !== speakers[index]
+
+  useEffect(() => {
+    if (!open) return
+    const scroll = scrollRef.current
+    if (!scroll) return
+    scroll.scrollTo({ top: scroll.scrollHeight, behavior: reduced ? 'auto' : 'smooth' })
+  }, [isThinking, open, reduced, timeline.length])
 
   function sendOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>, value: string, onboarding = false) {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
@@ -164,39 +240,168 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     submitMessage(value, onboarding)
   }
 
-  return <div className={`ido-ai-workspace${open ? ' is-agent-open' : ''}`}>
+  return <LazyMotion features={domAnimation} strict><div className={`ido-ai-workspace${open ? ' is-agent-open' : ''}`}>
     <div className="ido-ai-page-slot">{children}</div>
     {!open && <button className="ido-ai-launcher" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>}
     {open && <button className="ido-ai-backdrop" type="button" aria-label="Close I Do AI" onClick={() => setOpen(false)} />}
     <aside className="ido-ai-panel" ref={panelRef} aria-label="I Do AI assistant" aria-hidden={!open} tabIndex={-1}>
-      <header className="ido-ai-header"><div className="ido-ai-identity"><span className="ido-ai-mark"><SparkleMark /></span><span><strong>I Do AI</strong><small><i /> Wedding planning agent</small></span></div><div className="ido-ai-header-actions"><button type="button" onClick={startNewConversation} aria-label="Start new conversation"><Plus size={18} /></button><button type="button" onClick={() => setHistoryOpen((value) => !value)} aria-label="Conversation history"><Clock3 size={17} /></button>{state.conversationId && <button type="button" onClick={() => setConfirmDelete(true)} aria-label="Archive conversation"><Trash2 size={17} /></button>}<button type="button" onClick={() => setOpen(false)} aria-label="Close I Do AI"><X size={18} /></button></div></header>
+      <header className="ido-ai-header">
+        <button className="ido-ai-icon-button" type="button" onClick={() => setHistoryOpen(true)} aria-label="Chat history"><History size={18} /></button>
+        <strong className="ido-ai-conversation-title" title={conversationTitle}>{conversationTitle}</strong>
+        <div className="ido-ai-header-actions">
+          <button className="ido-ai-icon-button" type="button" onClick={startNewConversation} aria-label="Start new conversation"><Plus size={18} /></button>
+          {state.conversationId && <button className="ido-ai-icon-button" type="button" onClick={() => setConfirmDelete(true)} aria-label="Archive conversation"><Trash2 size={17} /></button>}
+          <button className="ido-ai-icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close I Do AI"><X size={18} /></button>
+        </div>
+      </header>
       {confirmDelete && <div className="ido-ai-delete-confirm" role="alert"><div><strong>Archive this conversation?</strong><span>You can reopen it from chat history.</span></div><button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button><button type="button" disabled={archiveMutation.isPending} onClick={() => archiveMutation.mutate()}>Archive</button></div>}
-      {historyOpen && <ConversationHistory conversations={state.conversations} selectedId={state.conversationId} onNew={startNewConversation} onSelect={(id) => { setSelectedConversationId(id); setHistoryOpen(false); setOptimisticMessage(null) }} onClose={() => setHistoryOpen(false)} />}
+      <ConversationHistory
+        reduced={Boolean(reduced)}
+        open={historyOpen}
+        conversations={state.conversations}
+        selectedId={state.conversationId}
+        pinned={pinned}
+        onTogglePin={(id) => setPinned((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])}
+        onNew={() => { startNewConversation(); setHistoryOpen(false) }}
+        onSelect={(id) => { setSelectedConversationId(id); setHistoryOpen(false); setOptimisticMessage(null) }}
+        onClose={() => setHistoryOpen(false)}
+      />
       <div className="ido-ai-scroll" ref={scrollRef} aria-live="polite">
         <div className="ido-ai-date"><span>Today</span></div>
-        <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
-        {timeline.map((item) => item.kind === 'message'
-          ? <article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`}>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{item.message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><ReactMarkdown>{item.message.body}</ReactMarkdown></Suspense></div> : <><p>{item.message.body}</p>{attachmentName(item.message.metadata) && <span className="ido-ai-message-attachment"><FileImage size={13} />{attachmentName(item.message.metadata)}</span>}</>}</div></article>
-          : <BatchCard key={`batch:${item.id}`} batch={item.batch} pending={reviewMutation.isPending} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} onReview={(decision) => reviewMutation.mutate({ batchId: item.batch.id, decision })} />)}
-        {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><strong>You</strong><p>{optimisticMessage.body}</p>{optimisticMessage.attachmentName && <span className="ido-ai-message-attachment"><FileImage size={13} />{optimisticMessage.attachmentName}</span>}{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
-        {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
+        <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
+        <AnimatePresence initial={false}>
+        {timeline.map((item, index) => item.kind === 'message'
+          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit">{item.message.role === 'assistant' && (startsRun(index) ? <span className="ido-ai-message-mark"><SparkleMark /></span> : <span className="ido-ai-message-mark is-spacer" aria-hidden="true" />)}<div>{item.message.role === 'assistant' && startsRun(index) && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <><p>{item.message.body}</p>{attachmentName(item.message.metadata) && <span className="ido-ai-message-attachment"><FileImage size={13} />{attachmentName(item.message.metadata)}</span>}</>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
+          : <BatchCard key={`batch:${item.id}`} showAttribution={startsRun(index)} batch={item.batch} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} />)}
+        </AnimatePresence>
+        {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><p>{optimisticMessage.body}</p>{optimisticMessage.attachmentName && <span className="ido-ai-message-attachment"><FileImage size={13} />{optimisticMessage.attachmentName}</span>}<time className="ido-ai-message-time">{formatMessageTime(new Date().toISOString())}</time>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
+        {isThinking && <article className="ido-ai-message is-assistant" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><ReasoningText /></div></article>}
         {stateQuery.isError && <p className="ido-ai-error">{stateQuery.error.message}</p>}
         {sendMutation.error && <p className="ido-ai-error">{sendMutation.error.message}</p>}
         {state.job && (state.job.kind !== 'agent_turn' || state.job.status === 'failed') && ['queued', 'running', 'failed'].includes(state.job.status) && <div className={`ido-ai-job is-${state.job.status}`}><span className="ido-ai-job-icon">{state.job.status === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{state.job.label}</strong><small>{state.job.detail}</small></span></div>}
         {state.suggestions.length > 0 && <section className="ido-ai-suggestions"><header><span>Needs attention</span><strong>{state.suggestions.length} planning suggestion{state.suggestions.length === 1 ? '' : 's'}</strong></header>{state.suggestions.map((suggestion) => <article key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.body}</p></div><div><button type="button" onClick={() => suggestionMutation.mutate(suggestion.id)}>Dismiss</button><button type="button" onClick={() => submitMessage(`Help me with this suggestion: ${suggestion.title}. ${suggestion.body}`)}>Discuss</button></div></article>)}</section>}
         {question && <section className="ido-ai-question" aria-labelledby="ido-ai-question-title"><div className="ido-ai-question-progress"><span>{question.eyebrow}</span><strong>{onboardingStep + 1} of {onboardingQuestions.length}</strong></div><div className="ido-ai-progress-track" aria-hidden="true"><span style={{ width: `${((onboardingStep + 1) / onboardingQuestions.length) * 100}%` }} /></div><h2 id="ido-ai-question-title">{question.prompt}</h2><p>{question.helper}</p><div className="ido-ai-choices">{question.options.map((option) => <button type="button" disabled={sendMutation.isPending} key={option} onClick={() => submitMessage(option, true)}>{option}<span aria-hidden="true">→</span></button>)}</div><form className="ido-ai-answer" onSubmit={(event) => { event.preventDefault(); submitMessage(answer, true) }}><label htmlFor="ido-ai-answer">Something else</label><textarea id="ido-ai-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, answer, true)} placeholder="Describe what you have in mind..." rows={3} /><div><button type="button" disabled={onboardingMutation.isPending} onClick={() => advanceOnboarding(null)}>Skip for now</button><button type="submit" disabled={!answer.trim() || sendMutation.isPending}>Continue</button></div></form>{onboardingMutation.error && <p className="ido-ai-error">{onboardingMutation.error.message}</p>}</section>}
       </div>
-      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}>{attachment && <div className="ido-ai-composer-attachment"><img src={attachment.previewUrl} alt="Selected attachment preview" /><span><strong>{attachment.file.name}</strong><small>{formatFileSize(attachment.file.size)}</small></span><button type="button" onClick={clearAttachment} aria-label="Remove attached image"><X size={14} /></button></div>}{attachmentError && <p className="ido-ai-attachment-error">{attachmentError}</p>}<label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label><textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onPaste={pasteImage} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder="Ask I Do AI anything..." /><div className="ido-ai-composer-actions"><label className={`ido-ai-attach${isPreview || sendMutation.isPending ? ' is-disabled' : ''}`} title="Attach an image"><FileImage size={16} /><span className="sr-only">Attach an image</span><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" disabled={isPreview || sendMutation.isPending} onChange={(event) => selectAttachment(event.target.files?.[0] ?? null)} /></label><span>Paste or attach an image</span><button type="submit" disabled={(!composer.trim() && !attachment) || sendMutation.isPending || isPreview} aria-label="Send message">↑</button></div></form>
+      {pendingBatch ? (
+        <ApprovalDock
+          batch={pendingBatch}
+          pending={reviewMutation.isPending}
+          error={reviewMutation.variables?.batchId === pendingBatch.id ? reviewMutation.error?.message : undefined}
+          instruction={composer}
+          onInstruction={setComposer}
+          onSendInstruction={() => submitMessage(composer)}
+          onReview={(decision) => {
+            if (!isPreview) { reviewMutation.mutate({ batchId: pendingBatch.id, decision }); return }
+            setPreviewBatches((current) => current.map((batch) => batch.id === pendingBatch.id
+              ? { ...batch, status: decision === 'approve' ? 'completed' : 'rejected', actions: batch.actions.map((action) => ({ ...action, status: decision === 'approve' ? 'executed' as const : 'rejected' as const })) }
+              : batch))
+            setPreviewMessages((current) => [...current, { id: crypto.randomUUID(), body: previewReply(pendingBatch, decision), createdAt: new Date().toISOString(), role: 'assistant' }])
+          }}
+        />
+      ) : (
+      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}>
+        {attachment && <div className="ido-ai-composer-attachment"><img src={attachment.previewUrl} alt="Selected attachment preview" /><span><strong>{attachment.file.name}</strong><small>{formatFileSize(attachment.file.size)}</small></span><button type="button" onClick={clearAttachment} aria-label="Remove attached image"><X size={14} /></button></div>}
+        {attachmentError && <p className="ido-ai-attachment-error" role="alert">{attachmentError}</p>}
+        <div className="ido-ai-composer-field">
+          <label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label>
+          <textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onPaste={pasteImage} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder={isListening ? 'Listening...' : 'Ask I Do AI anything'} />
+          <div className="ido-ai-composer-actions">
+            <label className={`ido-ai-icon-button${isPreview || sendMutation.isPending ? ' is-disabled' : ''}`} title="Attach an image">
+              <Paperclip size={17} />
+              <span className="sr-only">Attach an image</span>
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" disabled={isPreview || sendMutation.isPending} onChange={(event) => selectAttachment(event.target.files?.[0] ?? null)} />
+            </label>
+            <span className="ido-ai-composer-spacer" />
+            {canDictate && (
+              <button
+                className={`ido-ai-icon-button${isListening ? ' is-listening' : ''}`}
+                type="button"
+                title={isListening ? 'Stop listening' : 'Dictate a message'}
+                aria-pressed={isListening}
+                onClick={toggleDictation}
+              >
+                {isListening
+                  ? <span className="ido-ai-wave" ref={waveRef} aria-hidden="true"><i /><i /><i /><i /></span>
+                  : <Microphone size={17} />}
+                <span className="sr-only">{isListening ? 'Stop listening' : 'Dictate a message'}</span>
+              </button>
+            )}
+            <m.button className="ido-ai-send" whileTap={reduced ? undefined : { scale: 0.92 }} transition={SPRING_PRESS} type="submit" disabled={(!composer.trim() && !attachment) || sendMutation.isPending} aria-label="Send message"><ArrowUp size={17} /></m.button>
+          </div>
+        </div>
+        {dictationError && <p className="ido-ai-error" role="alert">{dictationError}</p>}
+      </form>
+      )}
     </aside>
-  </div>
+  </div></LazyMotion>
 }
 
-function ConversationHistory({ conversations, selectedId, onNew, onSelect, onClose }: { conversations: IdoAiConversation[]; selectedId: string | null; onNew: () => void; onSelect: (id: string) => void; onClose: () => void }) {
-  return <section className="ido-ai-history" aria-label="Conversation history">
-    <header><div><strong>Chat history</strong><span>Return to an earlier planning conversation.</span></div><button type="button" onClick={onClose} aria-label="Close history"><X size={18} /></button></header>
-    <button className="ido-ai-new-chat" type="button" onClick={onNew}><Plus size={16} /> New chat</button>
-    <div className="ido-ai-history-list">{conversations.length ? conversations.map((conversation) => <button className={conversation.id === selectedId ? 'is-selected' : ''} type="button" key={conversation.id} onClick={() => onSelect(conversation.id)}><span><strong>{conversation.title}</strong><small>{formatConversationDate(conversation.updatedAt)}</small></span><span>{conversation.status}</span></button>) : <p>No previous conversations yet.</p>}</div>
-  </section>
+function ConversationHistory({ reduced, open, conversations, selectedId, pinned, onTogglePin, onNew, onSelect, onClose }: {
+  reduced: boolean
+  open: boolean
+  conversations: IdoAiConversation[]
+  selectedId: string | null
+  pinned: string[]
+  onTogglePin: (id: string) => void
+  onNew: () => void
+  onSelect: (id: string) => void
+  onClose: () => void
+}) {
+  // Pinned first, then most recent. The panel covers the whole widget rather
+  // than sitting inside it, so there is one way out instead of two.
+  const ordered = [...conversations].sort((left, right) => {
+    const pinnedDelta = Number(pinned.includes(right.id)) - Number(pinned.includes(left.id))
+    return pinnedDelta || right.updatedAt.localeCompare(left.updatedAt)
+  })
+
+  return (
+    <AnimatePresence>
+      {open && (
+    <m.section
+      className="ido-ai-history is-open"
+      aria-label="Chat history"
+      variants={reduced ? undefined : panelVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
+      <header>
+        <button className="ido-ai-icon-button" type="button" onClick={onClose} aria-label="Close chat history"><SidebarSimple size={18} /></button>
+        <strong>Chats</strong>
+      </header>
+      <div className="ido-ai-history-body">
+        <button className="ido-ai-new-chat" type="button" onClick={onNew}><NewChat size={17} /> New chat</button>
+        {ordered.length ? (
+          <m.div className="ido-ai-history-list" variants={reduced ? undefined : listVariants} initial="hidden" animate="visible">
+            {ordered.map((conversation) => (
+              <m.div className={`ido-ai-history-row${conversation.id === selectedId ? ' is-selected' : ''}`} key={conversation.id} variants={reduced ? undefined : rowVariants}>
+                <button type="button" onClick={() => onSelect(conversation.id)}>
+                  <span className="ido-ai-history-title">{conversation.title}</span>
+                  <span className="ido-ai-history-meta">{formatConversationDate(conversation.updatedAt)}</span>
+                </button>
+                <button
+                  className={`ido-ai-pin${pinned.includes(conversation.id) ? ' is-pinned' : ''}`}
+                  type="button"
+                  aria-pressed={pinned.includes(conversation.id)}
+                  aria-label={pinned.includes(conversation.id) ? `Unpin ${conversation.title}` : `Pin ${conversation.title}`}
+                  onClick={() => onTogglePin(conversation.id)}
+                ><PushPin size={14} /></button>
+              </m.div>
+            ))}
+          </m.div>
+        ) : (
+          <p className="ido-ai-history-empty">Conversations you start will be listed here.</p>
+        )}
+      </div>
+    </m.section>
+      )}
+    </AnimatePresence>
+  )
+}
+
+/** The date divider already says the day, so a message only needs the time. */
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat('en-NG', { hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 }
 
 function formatConversationDate(value: string) {
@@ -211,7 +416,9 @@ function formatFileSize(bytes: number) {
   return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function BatchCard({ batch, pending, approving, error, onReview }: { batch: IdoAiBatch; pending: boolean; approving: boolean; error?: string; onReview: (decision: 'approve' | 'reject') => void }) {
+function BatchCard({ batch, approving, error, showAttribution }: { batch: IdoAiBatch; approving: boolean; error?: string; showAttribution: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  const reduced = useReducedMotion()
   const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
   const researchAction = isResearch ? batch.actions[0] : null
   const progress = researchAction?.progress ?? (approving ? 'queued' : null)
@@ -222,13 +429,70 @@ function BatchCard({ batch, pending, approving, error, onReview }: { batch: IdoA
     : progress === 'failed' ? 'Research failed'
     : 'Research queued…'
 
-  return <section className="ido-ai-batch" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
-    <div className="ido-ai-batch-heading"><span>{isResearch ? 'Research request' : 'Proposed actions'}</span><strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>{isResearch && batch.status === 'proposed' && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>
-    {batch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && !isResearch && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}{action.error && <p className="ido-ai-action-error">{action.error}</p>}</article>)}
-    {isResearch && progress && <div className={`ido-ai-research-progress is-${progress}`} role="status"><span className="ido-ai-job-icon">{progress === 'completed' ? <Check size={14} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{progressCopy}</strong>{sourceLabel && <small>Sources requested: {sourceLabel}</small>}</span></div>}
-    {batch.status === 'proposed' && <div className="ido-ai-batch-actions"><button type="button" disabled={pending} onClick={() => onReview('reject')}>Not now</button><button type="button" disabled={pending} onClick={() => onReview('approve')}>{isResearch ? 'Start research' : 'Apply changes'}</button></div>}
-    {error && <p className="ido-ai-error">{error}</p>}
-  </section>
+  const settled = batch.status === 'rejected' || batch.status === 'cancelled' ? 'Declined'
+    : batch.status === 'failed' ? 'Failed'
+    : batch.status === 'completed' ? 'Applied'
+    : 'In progress'
+
+  return (
+    <article className="ido-ai-message is-assistant">
+      {showAttribution ? <span className="ido-ai-message-mark"><SparkleMark /></span> : <span className="ido-ai-message-mark is-spacer" aria-hidden="true" />}
+      <div>
+        {showAttribution && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}
+        <section className="ido-ai-activity" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
+          <div className="ido-ai-activity-head">
+            <div>
+              <strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>
+              <code>{isResearch ? 'vendor.research' : `workspace.update · ${batch.actions.length} change${batch.actions.length === 1 ? '' : 's'}`}</code>
+            </div>
+            <span className={`ido-ai-activity-badge is-${settled.toLowerCase().replace(' ', '-')}`}>{settled}</span>
+          </div>
+
+          <button
+            className="ido-ai-activity-toggle"
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            View details <ChevronDown size={14} className={expanded ? 'is-open' : undefined} />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expanded && (
+              <m.div
+                className="ido-ai-activity-details"
+                initial={reduced ? undefined : { height: 0, opacity: 0 }}
+                animate={reduced ? undefined : { height: 'auto', opacity: 1 }}
+                exit={reduced ? undefined : { height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <dl>
+                  {batch.actions.map((action) => (
+                    <div key={action.id}>
+                      <dt>{action.destination}</dt>
+                      <dd>
+                        <span>{action.title}</span>
+                        <small>{action.description}</small>
+                        {action.error && <em>{action.error}</em>}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {isResearch && progress && (
+                  <p className={`ido-ai-activity-progress is-${progress}`} role="status">
+                    {progress === 'completed' ? <Check size={13} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}
+                    {progressCopy}{sourceLabel ? ` · ${sourceLabel}` : ''}
+                  </p>
+                )}
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {error && <p className="ido-ai-error">{error}</p>}
+        </section>
+      </div>
+    </article>
+  )
 }
 
 function formatResearchSource(source: string) {
@@ -237,4 +501,65 @@ function formatResearchSource(source: string) {
 
 function SparkleMark() {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 2.75c.3 5.35 3.9 8.95 9.25 9.25-5.35.3-8.95 3.9-9.25 9.25C11.7 15.9 8.1 12.3 2.75 12 8.1 11.7 11.7 8.1 12 2.75Z" fill="currentColor" /><path d="M19 2.5c.08 1.45 1.05 2.42 2.5 2.5-1.45.08-2.42 1.05-2.5 2.5-.08-1.45-1.05-2.42-2.5-2.5 1.45-.08 2.42-1.05 2.5-2.5Z" fill="currentColor" opacity=".65" /></svg>
+}
+
+
+/**
+ * The decision surface, docked where the composer normally sits.
+ *
+ * A proposal that can change the workspace should not be something you scroll
+ * back to find. While one is open this replaces the composer, lists exactly
+ * what would change, and keeps a field for a follow-up instruction so replying
+ * and deciding happen in the same place.
+ */
+function ApprovalDock({ batch, pending, error, instruction, onInstruction, onSendInstruction, onReview }: {
+  batch: IdoAiBatch
+  pending: boolean
+  error?: string
+  instruction: string
+  onInstruction: (value: string) => void
+  onSendInstruction: () => void
+  onReview: (decision: 'approve' | 'reject') => void
+}) {
+  const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
+
+  return (
+    <section className="ido-ai-approval" aria-labelledby={`ido-ai-approval-${batch.id}`}>
+      <header>
+        <span className="ido-ai-approval-badge">{isResearch ? 'Research request' : 'Needs approval'}</span>
+        <strong id={`ido-ai-approval-${batch.id}`}>{batch.summary}</strong>
+      </header>
+
+      <dl className="ido-ai-approval-list">
+        {batch.actions.map((action) => (
+          <div key={action.id}>
+            <dt>{action.destination}</dt>
+            <dd>{action.title}</dd>
+          </div>
+        ))}
+      </dl>
+
+      {isResearch && <p className="ido-ai-approval-note">Approving starts the search only. You will review the results before anything is added.</p>}
+
+      <form
+        className="ido-ai-approval-reply"
+        onSubmit={(event) => { event.preventDefault(); if (instruction.trim()) onSendInstruction() }}
+      >
+        <input
+          value={instruction}
+          placeholder="Add another instruction"
+          aria-label="Add another instruction"
+          onChange={(event) => onInstruction(event.target.value)}
+        />
+        <button className="ido-ai-send" type="submit" disabled={!instruction.trim() || pending} aria-label="Send instruction"><ArrowUp size={17} /></button>
+      </form>
+
+      <div className="ido-ai-approval-actions">
+        <Button variant="ghost" size="sm" disabled={pending} onClick={() => onReview('reject')}>Reject</Button>
+        <Button variant="primary" size="sm" disabled={pending} onClick={() => onReview('approve')}>{pending ? 'Working...' : isResearch ? 'Start research' : 'Approve'}</Button>
+      </div>
+
+      {error && <p className="ido-ai-error" role="alert">{error}</p>}
+    </section>
+  )
 }

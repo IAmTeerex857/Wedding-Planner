@@ -27,7 +27,7 @@
   cursor: pointer;
 }
 .ido-ai-launcher svg { width: 22px; height: 22px; }
-.ido-ai-launcher b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 999px; padding: 0 5px; color: #101828; background: #fff; font-size: 10px; }
+.ido-ai-launcher b { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 999px; padding: 0 5px; color: #101828; background: #fff; font-size: 12px; }
 .ido-ai-launcher:hover { background: #344054; }
 
 .ido-ai-panel {
@@ -38,10 +38,11 @@
   width: 400px;
   min-width: 0;
   flex-direction: column;
+  overflow: hidden;
   border-left: 1px solid #e4e7ec;
   color: #101828;
   background: #fff;
-  box-shadow: -8px 0 28px rgba(16, 24, 40, .08);
+  box-shadow: -1px 0 0 rgba(16, 24, 40, .04);
   transform: translateX(100%);
   visibility: hidden;
   transition: transform 120ms ease-out, visibility 120ms;
@@ -51,15 +52,15 @@
 .ido-ai-panel:focus { outline: none; }
 .ido-ai-backdrop { position: fixed; inset: 0; z-index: 34; display: block; border: 0; background: transparent; }
 
-.ido-ai-header {
-  display: flex;
-  min-height: 72px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #e4e7ec;
+/* At desktop widths the assistant docks and the page reflows beside it, so the
+   panel never covers page content and no full-screen backdrop swallows clicks.
+   Below 1000px there is no room to reflow, so it stays an overlay. */
+@media (min-width: 1001px) {
+  .ido-ai-page-slot { transition: padding-right 240ms cubic-bezier(.32, .72, 0, 1); }
+  .is-agent-open .ido-ai-page-slot { padding-right: 400px; }
+  .ido-ai-backdrop { display: none; }
 }
+
 .ido-ai-identity { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .ido-ai-mark, .ido-ai-message-mark {
   display: grid;
@@ -68,59 +69,30 @@
   color: white;
   background: #101828;
 }
-.ido-ai-mark { width: 38px; height: 38px; border-radius: 10px; box-shadow: 0 1px 2px rgba(16, 24, 40, .12); }
+.ido-ai-mark { width: 38px; height: 38px; border-radius: 10px; }
 .ido-ai-mark svg { width: 22px; height: 22px; }
 .ido-ai-identity > span:last-child { display: flex; min-width: 0; flex-direction: column; }
 .ido-ai-identity strong { font-size: 14px; font-weight: 650; line-height: 20px; }
-.ido-ai-identity small { display: flex; align-items: center; gap: 6px; color: #667085; font-size: 11px; }
-.ido-ai-identity small i { width: 6px; height: 6px; border-radius: 50%; background: #17b26a; box-shadow: 0 0 0 2px #ecfdf3; }
 .ido-ai-header-actions { display: flex; gap: 4px; }
-.ido-ai-header-actions button {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border: 0;
-  border-radius: 8px;
-  color: #667085;
-  background: transparent;
-  cursor: pointer;
-}
-.ido-ai-header-actions button:hover { color: #344054; background: #f2f4f7; }
 
-.ido-ai-history { position: absolute; inset: 72px 0 0; z-index: 4; display: flex; flex-direction: column; padding: 16px; background: #fcfcfd; }
-.ido-ai-history > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.ido-ai-history > header div { display: flex; flex-direction: column; gap: 3px; }
-.ido-ai-history > header strong { color: #101828; font-size: 16px; }
-.ido-ai-history > header span { color: #667085; font-size: 11px; }
-.ido-ai-history > header button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 7px; color: #667085; background: transparent; cursor: pointer; }
-.ido-ai-new-chat { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #101828; border-radius: 8px; color: white; background: #101828; font-size: 12px; font-weight: 650; cursor: pointer; }
-.ido-ai-history-list { display: grid; gap: 7px; margin-top: 14px; overflow-y: auto; }
-.ido-ai-history-list > button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 11px 12px; color: #344054; background: white; text-align: left; cursor: pointer; }
-.ido-ai-history-list > button:hover, .ido-ai-history-list > button.is-selected { border-color: #98a2b3; background: #f9fafb; }
-.ido-ai-history-list > button > span:first-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
-.ido-ai-history-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.ido-ai-history-list small { color: #667085; font-size: 9px; }
-.ido-ai-history-list > button > span:last-child { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #667085; background: #f2f4f7; font-size: 8px; text-transform: capitalize; }
-.ido-ai-history-list > p { margin-top: 24px; color: #667085; font-size: 11px; text-align: center; }
 
 .ido-ai-delete-confirm { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #fecdca; background: #fef3f2; }
 .ido-ai-delete-confirm > div { display: flex; flex-direction: column; }
 .ido-ai-delete-confirm strong { color: #b42318; font-size: 12px; }
-.ido-ai-delete-confirm span { color: #912018; font-size: 10px; }
-.ido-ai-delete-confirm button { border: 1px solid #fecdca; border-radius: 6px; padding: 6px 8px; color: #b42318; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-delete-confirm span { color: #912018; font-size: 12px; }
+.ido-ai-delete-confirm button { border: 1px solid #fecdca; border-radius: 6px; padding: 6px 8px; color: #b42318; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-delete-confirm button:last-child { color: white; background: #d92d20; }
 
-.ido-ai-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 28px; background: #fcfcfd; }
-.ido-ai-date { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; color: #98a2b3; font-size: 10px; text-transform: uppercase; }
+.ido-ai-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 28px; background: #fcfcfd; scrollbar-width: none; }
+.ido-ai-scroll::-webkit-scrollbar { display: none; }
+.ido-ai-date { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; color: #98a2b3; font-size: 12px; text-transform: uppercase; }
 .ido-ai-date::before, .ido-ai-date::after { height: 1px; flex: 1; background: #eaecf0; content: ""; }
 .ido-ai-message { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 16px; }
 .ido-ai-message.is-user { justify-content: flex-end; }
 .ido-ai-message-mark { width: 26px; height: 26px; margin-top: 1px; border-radius: 7px; }
 .ido-ai-message-mark svg { width: 15px; height: 15px; }
 .ido-ai-message > div { max-width: 82%; }
-.ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 10px; font-weight: 600; }
-.ido-ai-message > div > p, .ido-ai-message-body { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 12px; font-weight: 600; }
 .ido-ai-message-body > :first-child { margin-top: 0; }
 .ido-ai-message-body > :last-child { margin-bottom: 0; }
 .ido-ai-message-body p + p, .ido-ai-message-body p + ul, .ido-ai-message-body p + ol, .ido-ai-message-body ul + p, .ido-ai-message-body ol + p { margin-top: 8px; }
@@ -132,8 +104,8 @@
 .ido-ai-message.is-user > div > p { border-color: #101828; border-radius: 12px 4px 12px 12px; color: white; background: #101828; white-space: pre-wrap; }
 .ido-ai-message-attachment { display: flex; max-width: 100%; align-items: center; gap: 5px; margin-top: 5px; color: #667085; font-size: 9px; overflow-wrap: anywhere; }
 .ido-ai-message.is-failed > div > p { border-color: #fda29b; }
-.ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 10px; font-weight: 650; cursor: pointer; }
-.ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
+.ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 12px; font-weight: 650; cursor: pointer; }
+.ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; }
 .ido-ai-thinking-bubble span { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: linear-gradient(90deg, #eaecf0 20%, #f9fafb 45%, #d0d5dd 70%, #eaecf0 100%); background-size: 240% 100%; animation: ido-ai-shimmer 1.25s ease-in-out infinite; }
 .ido-ai-thinking-bubble span:nth-child(2) { width: 88%; animation-delay: 100ms; }
 .ido-ai-thinking-bubble span:nth-child(3) { width: 58%; animation-delay: 200ms; }
@@ -141,100 +113,78 @@
 .ido-ai-job { display: flex; align-items: center; gap: 10px; margin: 18px 0; border: 1px solid #d1fadf; border-radius: 9px; padding: 10px; background: #f6fef9; }
 .ido-ai-job-icon { display: grid; width: 24px; height: 24px; flex: 0 0 auto; place-items: center; border-radius: 50%; color: #067647; background: #dcfae6; }
 .ido-ai-job > span:last-child { display: flex; flex-direction: column; }
-.ido-ai-job strong { color: #067647; font-size: 11px; }
-.ido-ai-job small { margin-top: 1px; color: #475467; font-size: 10px; }
+.ido-ai-job strong { color: #067647; font-size: 12px; }
+.ido-ai-job small { margin-top: 1px; color: #475467; font-size: 12px; }
 .ido-ai-spinner { width: 12px; height: 12px; border: 2px solid #a6f4c5; border-top-color: #067647; border-radius: 50%; animation: ido-ai-spin .8s linear infinite; }
 
-.ido-ai-question { margin: 18px 0; border: 1px solid #d0d5dd; border-radius: 12px; padding: 16px; background: white; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
-.ido-ai-question-progress { display: flex; align-items: center; justify-content: space-between; color: #667085; font-size: 10px; font-weight: 600; }
+.ido-ai-question { margin: 18px 0; border: 1px solid #d0d5dd; border-radius: 12px; padding: 16px; background: white; }
+.ido-ai-question-progress { display: flex; align-items: center; justify-content: space-between; color: #667085; font-size: 12px; font-weight: 600; }
 .ido-ai-question-progress span { letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-question-progress strong { color: #475467; }
 .ido-ai-progress-track { height: 4px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: #f2f4f7; }
 .ido-ai-progress-track span { display: block; height: 100%; border-radius: inherit; background: #7f56d9; }
 .ido-ai-question h2 { margin: 18px 0 5px; color: #101828; font-size: 17px; font-weight: 650; line-height: 1.35; letter-spacing: -.015em; }
-.ido-ai-question > p { color: #667085; font-size: 11px; line-height: 1.5; }
+.ido-ai-question > p { color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-choices { display: grid; gap: 7px; margin-top: 14px; }
-.ido-ai-choices button { display: flex; min-height: 40px; align-items: center; justify-content: space-between; border: 1px solid #d0d5dd; border-radius: 8px; padding: 8px 11px; color: #344054; background: white; font-size: 12px; font-weight: 550; text-align: left; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); cursor: pointer; }
+.ido-ai-choices button { display: flex; min-height: 40px; align-items: center; justify-content: space-between; border: 1px solid #d0d5dd; border-radius: 8px; padding: 8px 11px; color: #344054; background: white; font-size: 12px; font-weight: 550; text-align: left; cursor: pointer; }
 .ido-ai-choices button:hover { border-color: #98a2b3; background: #f9fafb; }
 .ido-ai-choices button span { color: #98a2b3; font-size: 16px; }
 .ido-ai-answer { margin-top: 16px; padding-top: 14px; border-top: 1px solid #eaecf0; }
-.ido-ai-answer label { display: block; margin-bottom: 6px; color: #344054; font-size: 11px; font-weight: 600; }
-.ido-ai-answer textarea, .ido-ai-composer textarea { width: 100%; resize: none; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 10px; color: #101828; background: white; font: inherit; font-size: 12px; line-height: 1.5; box-shadow: 0 1px 2px rgba(16, 24, 40, .05); }
-.ido-ai-answer textarea::placeholder, .ido-ai-composer textarea::placeholder { color: #98a2b3; }
-.ido-ai-answer > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; }
-.ido-ai-answer button, .ido-ai-action-buttons button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 11px; color: #344054; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-answer label { display: block; margin-bottom: 6px; color: #344054; font-size: 12px; font-weight: 600; }
+.ido-ai-answer textarea, .ido-ai-answer textarea::placeholder, .ido-ai-answer > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; }
+.ido-ai-answer button, .ido-ai-action-buttons button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 11px; color: #344054; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-answer button[type="submit"], .ido-ai-action-buttons button:last-child { border-color: #101828; color: white; background: #101828; }
-.ido-ai-answer button:disabled, .ido-ai-composer button:disabled { cursor: not-allowed; opacity: .4; }
-
+.ido-ai-answer button:disabled { cursor: not-allowed; opacity: .45; }
 .ido-ai-batch { margin: 18px 0; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 11px; background: white; }
 .ido-ai-batch-heading { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-bottom: 1px solid #e4e7ec; background: #f9fafb; }
-.ido-ai-batch-heading span { color: #6941c6; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.ido-ai-batch-heading span { color: #6941c6; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-batch-heading strong { color: #101828; font-size: 13px; }
-.ido-ai-batch-heading p { margin-top: 5px; color: #667085; font-size: 10px; line-height: 1.45; }
+.ido-ai-batch-heading p { margin-top: 5px; color: #667085; font-size: 12px; line-height: 1.45; }
 .ido-ai-action { padding: 14px; border-bottom: 1px solid #eaecf0; }
 .ido-ai-action:last-child { border-bottom: 0; }
 .ido-ai-action.is-approved { background: #f6fef9; }
 .ido-ai-action.is-rejected { opacity: .65; background: #f9fafb; }
 .ido-ai-action-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .ido-ai-action-top strong { color: #101828; font-size: 12px; line-height: 1.4; }
-.ido-ai-action-top span { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #475467; background: #f2f4f7; font-size: 9px; }
-.ido-ai-action p { margin-top: 5px; color: #667085; font-size: 10px; line-height: 1.5; }
+.ido-ai-action-top span { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #475467; background: #f2f4f7; font-size: 12px; }
+.ido-ai-action p { margin-top: 5px; color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-action-buttons { display: flex; justify-content: flex-end; gap: 7px; margin-top: 11px; }
-.ido-ai-decision { display: flex; align-items: center; gap: 5px; margin-top: 10px; color: #067647; font-size: 10px; font-weight: 600; }
-.ido-ai-decision button { margin-left: auto; border: 0; color: #475467; background: transparent; font-size: 10px; text-decoration: underline; cursor: pointer; }
+.ido-ai-decision { display: flex; align-items: center; gap: 5px; margin-top: 10px; color: #067647; font-size: 12px; font-weight: 600; }
+.ido-ai-decision button { margin-left: auto; border: 0; color: #475467; background: transparent; font-size: 12px; text-decoration: underline; cursor: pointer; }
 .ido-ai-action-error { color: #b42318 !important; }
 .ido-ai-research-progress { display: flex; align-items: center; gap: 10px; border-top: 1px solid #d1fadf; padding: 12px 14px; background: #f6fef9; }
 .ido-ai-research-progress > span:last-child { display: flex; min-width: 0; flex-direction: column; }
-.ido-ai-research-progress strong { color: #067647; font-size: 11px; }
-.ido-ai-research-progress small { margin-top: 2px; color: #475467; font-size: 9px; }
+.ido-ai-research-progress strong { color: #067647; font-size: 12px; }
+.ido-ai-research-progress small { margin-top: 2px; color: #475467; font-size: 12px; }
 .ido-ai-research-progress.is-failed { border-color: #fecdca; background: #fef3f2; }
 .ido-ai-research-progress.is-failed .ido-ai-job-icon, .ido-ai-research-progress.is-failed strong { color: #b42318; }
 .ido-ai-batch-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; border-top: 1px solid #eaecf0; background: #f9fafb; }
-.ido-ai-batch-actions button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 12px; color: #344054; background: white; font-size: 11px; font-weight: 600; cursor: pointer; }
+.ido-ai-batch-actions button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 12px; color: #344054; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-batch-actions button:last-child { border-color: #101828; color: white; background: #101828; }
 .ido-ai-batch-actions button:disabled { cursor: not-allowed; opacity: .45; }
-.ido-ai-error { margin: 10px 0; border: 1px solid #fecdca; border-radius: 8px; padding: 9px 10px; color: #b42318; background: #fef3f2; font-size: 11px; line-height: 1.45; }
+.ido-ai-error { margin: 10px 0; border: 1px solid #fecdca; border-radius: 8px; padding: 9px 10px; color: #b42318; background: #fef3f2; font-size: 12px; line-height: 1.45; }
 .ido-ai-suggestions { margin: 16px 0; overflow: hidden; border: 1px solid #fedf89; border-radius: 11px; background: #fffcf5; }
 .ido-ai-suggestions > header { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-bottom: 1px solid #fedf89; }
-.ido-ai-suggestions > header span { color: #b54708; font-size: 10px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.ido-ai-suggestions > header span { color: #b54708; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
 .ido-ai-suggestions > header strong { color: #7a2e0e; font-size: 12px; }
 .ido-ai-suggestions article { padding: 12px 14px; border-bottom: 1px solid #fef0c7; }
 .ido-ai-suggestions article:last-child { border-bottom: 0; }
 .ido-ai-suggestions article strong { color: #344054; font-size: 12px; }
-.ido-ai-suggestions article p { margin-top: 4px; color: #667085; font-size: 10px; line-height: 1.5; }
+.ido-ai-suggestions article p { margin-top: 4px; color: #667085; font-size: 12px; line-height: 1.5; }
 .ido-ai-suggestions article > div:last-child { display: flex; justify-content: flex-end; gap: 7px; margin-top: 9px; }
-.ido-ai-suggestions button { border: 1px solid #d0d5dd; border-radius: 7px; padding: 6px 9px; color: #344054; background: #fff; font-size: 10px; font-weight: 600; cursor: pointer; }
+.ido-ai-suggestions button { border: 1px solid #d0d5dd; border-radius: 7px; padding: 6px 9px; color: #344054; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-suggestions button:last-child { border-color: #101828; color: #fff; background: #101828; }
-
-.ido-ai-composer { flex: 0 0 auto; padding: 12px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e4e7ec; background: white; }
-.ido-ai-composer textarea { min-height: 22px; max-height: 100px; overflow-y: auto; border: 0; padding: 2px; box-shadow: none; }
-.ido-ai-composer-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.ido-ai-composer-actions > span { flex: 1; color: #98a2b3; font-size: 9px; }
-.ido-ai-composer-actions > button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }
-.ido-ai-attach { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid #d0d5dd; border-radius: 7px; color: #475467; background: white; cursor: pointer; }
-.ido-ai-attach:hover { border-color: #98a2b3; background: #f9fafb; }
-.ido-ai-attach.is-disabled { cursor: not-allowed; opacity: .4; }
-.ido-ai-attach input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.ido-ai-composer-attachment { display: grid; grid-template-columns: 42px minmax(0, 1fr) 28px; align-items: center; gap: 9px; margin-bottom: 9px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 7px; background: #f9fafb; }
-.ido-ai-composer-attachment img { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; }
-.ido-ai-composer-attachment > span { display: flex; min-width: 0; flex-direction: column; }
-.ido-ai-composer-attachment strong { overflow: hidden; color: #344054; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.ido-ai-composer-attachment small { color: #98a2b3; font-size: 9px; }
-.ido-ai-composer-attachment button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 6px; color: #667085; background: transparent; cursor: pointer; }
-.ido-ai-attachment-error { margin-bottom: 7px; color: #b42318; font-size: 10px; }
 
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 
 @media (max-width: 1000px) {
-  .ido-ai-backdrop { background: rgba(16, 24, 40, .35); backdrop-filter: blur(3px); }
+  .ido-ai-backdrop { background: rgba(16, 24, 40, .28); }
 }
 
 @media (max-width: 760px) {
   .ido-ai-workspace { margin-left: 0; }
   .ido-ai-panel { top: 0; width: 100%; border-left: 0; box-shadow: none; }
-  .ido-ai-header { min-height: 62px; padding-top: max(10px, env(safe-area-inset-top)); }
-  .ido-ai-history { top: 62px; }
-  .ido-ai-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 46px; }
+      .ido-ai-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 46px; }
   .ido-ai-backdrop { display: none; }
   .ido-ai-scroll { padding-inline: 14px; }
 }
@@ -246,3 +196,495 @@
 
 @keyframes ido-ai-spin { to { transform: rotate(360deg); } }
 @keyframes ido-ai-shimmer { to { background-position: -240% 0; } }
+
+
+/* ==========================================================================
+   I Do AI — chat surface
+   ========================================================================== */
+.ido-ai-header {
+  display: flex;
+  min-height: 60px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-gray-200);
+  background: white;
+}
+
+.ido-ai-identity { display: flex; min-width: 0; flex: 1; align-items: center; gap: 9px; }
+.ido-ai-identity strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.ido-ai-mark { width: 28px; height: 28px; border-radius: 8px; }
+.ido-ai-mark svg { width: 17px; height: 17px; }
+.ido-ai-header-actions { display: flex; flex: 0 0 auto; gap: 2px; }
+
+.ido-ai-icon-button {
+  position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ido-ai-icon-button:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+.ido-ai-icon-button:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+.ido-ai-icon-button input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ido-ai-icon-button.is-listening { color: white; background: var(--ui-gray-900); }
+.ido-ai-icon-button.is-listening::after {
+  position: absolute;
+  inset: -3px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 0 rgba(16, 24, 40, .28);
+  content: "";
+  animation: ido-ai-listening 1.6s ease-out infinite;
+}
+@keyframes ido-ai-listening {
+  to { box-shadow: 0 0 0 8px rgba(16, 24, 40, 0); }
+}
+
+/* ---- Bubbles ------------------------------------------------------------- */
+.ido-ai-message { margin-bottom: 18px; }
+
+
+/* The assistant speaks in the page's own voice: no bubble, just text. The
+   person's own words get the solid bubble so the thread reads as a dialogue. */
+.ido-ai-message.is-assistant > div > p,
+.ido-ai-message-body {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ido-ai-message.is-user > div { max-width: 86%; }
+.ido-ai-message.is-user > div > p {
+  border: 0;
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  color: white;
+  background: var(--ui-gray-900);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ido-ai-message.is-user.is-failed > div > p { background: #b42318; }
+
+.ido-ai-message-mark { width: 26px; height: 26px; border-radius: 8px; }
+.ido-ai-thinking-bubble { width: auto; border: 0; border-radius: 14px; padding: 10px 14px; background: var(--ui-gray-100); }
+
+/* ---- Composer ------------------------------------------------------------ */
+.ido-ai-composer { flex: 0 0 auto; padding: 12px; border-top: 1px solid var(--ui-gray-200); background: white; }
+
+.ido-ai-composer-field {
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 14px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ido-ai-composer-field:focus-within { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
+
+.ido-ai-composer-field textarea {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  min-height: 44px;
+  resize: none;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  padding: 12px 14px 4px;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: none;
+}
+.ido-ai-composer-field textarea:focus-visible { outline: none; box-shadow: none; }
+.ido-ai-composer-field textarea::placeholder { color: var(--ui-gray-500); }
+
+.ido-ai-composer-actions { display: flex; align-items: center; gap: 2px; padding: 4px 6px 6px; }
+
+.ido-ai-send:hover:not(:disabled) { background: var(--ui-gray-700); }
+.ido-ai-send:active:not(:disabled) { transform: scale(.94); }
+.ido-ai-send:disabled { color: var(--ui-gray-400); background: var(--ui-gray-100); cursor: not-allowed; }
+.ido-ai-send:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+.ido-ai-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.ido-ai-attachments li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ui-gray-200); border-radius: 999px; padding: 4px 6px 4px 10px; color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; }
+.ido-ai-attachments button { display: grid; width: 18px; height: 18px; place-items: center; border: 0; border-radius: 50%; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
+.ido-ai-attachments button:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
+.ido-ai-icon-button.is-disabled { cursor: not-allowed; opacity: .4; }
+.ido-ai-composer-attachment { display: grid; grid-template-columns: 44px minmax(0, 1fr) 30px; align-items: center; gap: 10px; margin-bottom: 8px; border: 1px solid var(--ui-gray-200); border-radius: 12px; padding: 8px; background: var(--ui-gray-50); }
+.ido-ai-composer-attachment img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+.ido-ai-composer-attachment > span { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.ido-ai-composer-attachment strong { overflow: hidden; color: var(--ui-gray-800); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.ido-ai-composer-attachment small { color: var(--ui-gray-500); font-size: 12px; }
+.ido-ai-composer-attachment button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
+.ido-ai-composer-attachment button:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
+.ido-ai-attachment-error { margin: 0 0 8px; color: #b42318; font-size: 12px; }
+
+/* ---- History: an overlay across the whole widget ------------------------- */
+/* motion drives the slide; CSS only positions the panel. */
+.ido-ai-history {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  background: white;
+}
+
+.ido-ai-history > header {
+  display: flex;
+  min-height: 60px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-gray-200);
+}
+.ido-ai-history > header strong { font-size: 14px; font-weight: 600; }
+
+.ido-ai-history-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+
+.ido-ai-history-list { display: flex; flex-direction: column; gap: 2px; }
+.ido-ai-history-row { display: flex; align-items: center; gap: 2px; border-radius: 9px; transition: background var(--dur-fast) var(--ease-out); }
+.ido-ai-history-row:hover { background: var(--ui-gray-50); }
+.ido-ai-history-row.is-selected { background: var(--ui-gray-100); }
+.ido-ai-history-row > button:first-child {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ido-ai-history-title { overflow: hidden; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.ido-ai-history-meta { color: var(--ui-gray-500); font-size: 12px; }
+
+.ido-ai-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ui-gray-400);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.ido-ai-history-row:hover .ido-ai-pin,
+.ido-ai-pin:focus-visible,
+.ido-ai-pin.is-pinned { opacity: 1; }
+.ido-ai-pin.is-pinned { color: var(--ui-gray-900); }
+.ido-ai-pin:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
+
+.ido-ai-history-empty { padding: 24px 4px; color: var(--ui-gray-500); font-size: 14px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ido-ai-icon-button.is-listening::after { animation: none; }
+}
+
+
+/* ---- Header: the conversation names itself ------------------------------- */
+.ido-ai-conversation-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--ui-gray-900);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Composer ------------------------------------------------------------ */
+.ido-ai-composer-spacer { flex: 1; }
+
+/* Grows to four lines, then scrolls without showing a bar. */
+.ido-ai-composer-field textarea {
+  scrollbar-width: none;
+}
+.ido-ai-composer-field textarea::-webkit-scrollbar { display: none; }
+
+/* Fully round, deliberately: it is the one action in the field. */
+.ido-ai-send {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  color: white;
+  background: var(--ui-gray-900);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ido-ai-send:hover:not(:disabled) { background: var(--ui-gray-700); }
+.ido-ai-send:disabled { color: var(--ui-gray-400); background: var(--ui-gray-100); cursor: not-allowed; }
+.ido-ai-send:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+/* ---- Listening: a live waveform, not a stop sign ------------------------- */
+.ido-ai-wave { display: flex; align-items: center; gap: 2px; height: 17px; }
+/* Heights come from the microphone analyser via --l1..--l4, so the meter is
+   still when the room is. A short transition smooths the frame-to-frame step
+   without hiding the silence. */
+.ido-ai-wave i {
+  display: block;
+  width: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: height 80ms linear;
+}
+.ido-ai-wave i:nth-child(1) { height: calc(3px + (var(--l1, 0) * 12px)); }
+.ido-ai-wave i:nth-child(2) { height: calc(3px + (var(--l2, 0) * 12px)); }
+.ido-ai-wave i:nth-child(3) { height: calc(3px + (var(--l3, 0) * 12px)); }
+.ido-ai-wave i:nth-child(4) { height: calc(3px + (var(--l4, 0) * 12px)); }
+
+/* ---- History: New chat reads as a tab, matching the nav ------------------ */
+.ido-ai-new-chat {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--ui-gray-700);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ido-ai-new-chat:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+.ido-ai-new-chat:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ido-ai-wave i { transition: none; }
+}
+
+
+/* The side of the thread already says who spoke, so the person's own messages
+   carry only a time. The assistant keeps its name because it is not obvious. */
+.ido-ai-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 5px;
+  color: var(--ui-gray-500);
+  font-size: 12px;
+}
+.ido-ai-message-meta strong { color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
+.ido-ai-message.is-user .ido-ai-message-meta { justify-content: flex-end; }
+
+/* The time sits under the message it belongs to. */
+.ido-ai-message-time { display: block; margin-top: 5px; color: var(--ui-gray-400); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ido-ai-message.is-user .ido-ai-message-time { text-align: right; }
+
+/* ==========================================================================
+   Approval dock
+   A proposal that can change the workspace takes the composer's place while it
+   is open, so the decision sits where your hands already are instead of
+   scrolling away up the thread.
+   ========================================================================== */
+.ido-ai-approval {
+  flex: 0 0 auto;
+  padding: 14px;
+  border-top: 1px solid var(--ui-gray-200);
+  background: var(--ui-gray-25);
+}
+
+.ido-ai-approval > header { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 12px; }
+.ido-ai-approval-badge {
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--ui-gray-600);
+  background: white;
+  font-size: 12px;
+  font-weight: 500;
+}
+.ido-ai-approval > header strong { color: var(--ui-gray-900); font-size: 14px; font-weight: 600; line-height: 1.45; }
+
+.ido-ai-approval-list { display: flex; flex-direction: column; gap: 0; margin: 0 0 12px; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; background: white; }
+.ido-ai-approval-list > div { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 9px 12px; border-bottom: 1px solid var(--ui-gray-200); }
+.ido-ai-approval-list > div:last-child { border-bottom: 0; }
+.ido-ai-approval-list dt { color: var(--ui-gray-500); font-size: 12px; white-space: nowrap; }
+.ido-ai-approval-list dd { margin: 0; color: var(--ui-gray-900); font-size: 13px; font-weight: 500; }
+
+.ido-ai-approval-note { margin-bottom: 12px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
+
+/* Replying and deciding happen in the same place. */
+.ido-ai-approval-reply { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.ido-ai-approval-reply input {
+  min-width: 0;
+  flex: 1;
+  min-height: 38px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 999px;
+  padding: 8px 14px;
+  color: var(--ui-gray-900);
+  background: white;
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ido-ai-approval-reply input:focus-visible { border-color: var(--ui-focus-border); outline: none; box-shadow: var(--ui-focus-ring); }
+.ido-ai-approval-reply .ido-ai-send { width: 32px; height: 32px; }
+
+.ido-ai-approval-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* The thread keeps the proposal as a record and points at the dock. */
+.ido-ai-batch-await { margin-top: 10px; color: var(--ui-gray-500); font-size: 13px; }
+
+/* ==========================================================================
+   Thinking state
+   A phrase that names the step, a pulsing grid, and elapsed time. A single
+   unchanging spinner only says something is happening.
+   ========================================================================== */
+.ido-ai-reasoning { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+
+.ido-ai-reasoning-grid { display: grid; grid-template-columns: repeat(3, 3px); gap: 2px; flex: 0 0 auto; }
+.ido-ai-reasoning-grid i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--ui-gray-400);
+  animation: ido-ai-cell 1.55s cubic-bezier(.77, 0, .175, 1) infinite;
+}
+@keyframes ido-ai-cell {
+  0%, 100% { opacity: .25; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.ido-ai-reasoning-phrase { min-width: 0; flex: 1; font-size: 14px; }
+.ido-ai-reasoning-phrase > span { display: inline-block; white-space: pre; }
+
+/* The shimmer travels across the phrase on the reference's 2.2s cycle. */
+.ido-ai-shimmer {
+  background: linear-gradient(100deg, var(--ui-gray-500) 30%, var(--ui-gray-900) 50%, var(--ui-gray-500) 70%);
+  background-size: 220% 100%;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: ido-ai-shimmer 2.2s linear infinite;
+}
+@keyframes ido-ai-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+
+.ido-ai-reasoning-time { flex: 0 0 auto; color: var(--ui-gray-400); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   Activity card
+   What the agent did, folded away. The detail is there when asked for, not
+   pushed into the reader's face by default.
+   ========================================================================== */
+.ido-ai-activity { border: 1px solid var(--ui-gray-200); border-radius: 12px; padding: 12px; background: white; }
+
+/* One row: the title takes the space that is left, the badge keeps its own and
+   never leaves the card. The grid template here still had a column for the
+   status icon after that icon was removed, which pushed the badge out of frame. */
+.ido-ai-activity-head { display: flex; align-items: flex-start; gap: 10px; }
+.ido-ai-activity-head > div { min-width: 0; flex: 1; }
+.ido-ai-activity-head .ido-ai-activity-badge { flex: 0 0 auto; }
+.ido-ai-activity-head strong { display: block; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.ido-ai-activity-head code { display: block; margin-top: 2px; overflow: hidden; color: var(--ui-gray-500); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+.ido-ai-activity-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: var(--ui-gray-50);
+}
+.ido-ai-activity-icon.is-applied { border-color: #a6f4c5; color: #067647; background: #ecfdf3; }
+.ido-ai-activity-icon.is-declined { border-color: var(--ui-gray-200); color: var(--ui-gray-500); }
+.ido-ai-activity-icon.is-failed { border-color: #fecdca; color: #b42318; background: #fef3f2; }
+
+.ido-ai-activity-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ido-ai-activity-badge.is-applied { border-color: #a6f4c5; color: #067647; background: #ecfdf3; }
+.ido-ai-activity-badge.is-failed { border-color: #fecdca; color: #b42318; background: #fef3f2; }
+
+.ido-ai-activity-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px 4px 0;
+  color: var(--ui-gray-600);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ido-ai-activity-toggle:hover { color: var(--ui-gray-900); }
+.ido-ai-activity-toggle .app-icon { transition: transform var(--dur-fast) var(--ease-out); }
+.ido-ai-activity-toggle .app-icon.is-open { transform: rotate(180deg); }
+
+.ido-ai-activity-details { overflow: hidden; }
+.ido-ai-activity-details dl { display: flex; flex-direction: column; margin: 8px 0 0; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; }
+.ido-ai-activity-details dl > div { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
+.ido-ai-activity-details dl > div:last-child { border-bottom: 0; }
+.ido-ai-activity-details dt { color: var(--ui-gray-500); font-size: 12px; white-space: nowrap; }
+.ido-ai-activity-details dd { display: flex; flex-direction: column; gap: 2px; margin: 0; min-width: 0; }
+.ido-ai-activity-details dd span { color: var(--ui-gray-900); font-size: 13px; font-weight: 500; }
+.ido-ai-activity-details dd small { color: var(--ui-gray-600); font-size: 12px; line-height: 1.5; }
+.ido-ai-activity-details dd em { color: #b42318; font-size: 12px; font-style: normal; }
+
+.ido-ai-activity-progress { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: var(--ui-gray-600); font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ido-ai-reasoning-grid i, .ido-ai-shimmer { animation: none; }
+  .ido-ai-shimmer { color: var(--ui-gray-700); -webkit-text-fill-color: currentColor; }
+}
+
+
+/* A run of messages from the same speaker keeps the alignment without repeating
+   the mark, so the thread reads as one turn rather than several. */
+.ido-ai-message-mark.is-spacer { background: transparent; box-shadow: none; }

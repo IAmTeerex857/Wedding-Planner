@@ -1,15 +1,13 @@
 import {
   ArrowUpRight,
-  CalendarPlus,
   Check,
   ChevronRight,
   Circle,
   CircleDollarSign,
   ListPlus,
-  Plus,
   Shirt,
   Users,
-} from '../components/KoboyoIcon'
+} from '../components/Icon'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { formatNaira } from '../lib/format'
@@ -71,10 +69,6 @@ export function Dashboard() {
           <h1>Overview</h1>
           <p className="page-lead">Every celebration. One clear view of what comes next.</p>
         </div>
-        <div className="header-actions">
-          <Link className="button secondary" to="/ceremonies"><CalendarPlus size={16} /> Add date</Link>
-          <Link className="button primary" to="/tasks?new=1"><Plus size={16} /> New task</Link>
-        </div>
       </header>
 
       <section className="ceremony-strip" aria-label="Ceremonies">
@@ -106,10 +100,7 @@ export function Dashboard() {
       <section className="dashboard-columns">
         <div className="panel focus-panel">
           <div className="panel-header">
-            <div>
-              <p className="eyebrow">Start here</p>
-              <h2>Set up the essentials</h2>
-            </div>
+            <h2>Set up the essentials</h2>
             <span className="quiet-badge">0 of {setupItems.length}</span>
           </div>
           <div className="setup-list">
@@ -125,10 +116,7 @@ export function Dashboard() {
 
         <div className="panel activity-panel">
           <div className="panel-header">
-            <div>
-              <p className="eyebrow">This week</p>
-              <h2>Planning pulse</h2>
-            </div>
+            <h2>Recent activity</h2>
           </div>
           <div className="pulse-list">
             <PulseRow icon={Circle} label="Tasks completed" value={String(completedTasks)} />
