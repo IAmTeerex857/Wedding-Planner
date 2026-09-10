@@ -22,7 +22,7 @@
 .guest-directory { margin-top: 28px; border: 1px solid var(--line); }
 .guest-tools { display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
 .guest-search { display: flex; width: min(430px, 100%); align-items: center; gap: 9px; }
-.guest-search svg, .guest-search .koboyo-icon { color: var(--faint); }
+.guest-search svg, .guest-search .app-icon { color: var(--faint); }
 .guest-search input { width: 100%; height: 38px; border: 0; border-bottom: 1px solid var(--line); color: var(--ink); background: transparent; font-size: 12px; outline: none; }
 .guest-search input:focus { border-color: var(--ink); }
 .guest-filters { display: flex; gap: 8px; }
@@ -33,7 +33,7 @@
 .guest-row { display: grid; min-height: 112px; grid-template-columns: 1.3fr 1fr 1.4fr 60px; align-items: center; gap: 24px; padding: 18px; border-bottom: 1px solid var(--soft-line); }
 .guest-row:last-child { border-bottom: 0; }
 .guest-row:hover { background: #fdfdfb; }
-.guest-row:hover .guest-avatar .koboyo-icon { transform: rotate(-4deg) scale(1.08); }
+.guest-row:hover .guest-avatar .app-icon { transform: rotate(-4deg) scale(1.08); }
 .guest-identity { display: flex; min-width: 0; align-items: center; gap: 12px; }
 .guest-avatar { display: grid; width: 38px; height: 38px; flex: 0 0 38px; place-items: center; border-radius: 50%; color: #315f78; background: #e8f1f5; }
 .guest-identity h2 { font-size: 19px; font-weight: 400; letter-spacing: -.025em; }

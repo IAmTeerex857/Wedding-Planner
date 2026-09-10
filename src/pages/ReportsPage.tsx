@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, Printer } from '../components/KoboyoIcon'
+import { Download, FileText, Printer } from '../components/Icon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './reports.css'

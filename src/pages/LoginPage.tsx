@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight } from '../components/KoboyoIcon'
+import { ArrowRight } from '../components/Icon'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/BrandMark'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'

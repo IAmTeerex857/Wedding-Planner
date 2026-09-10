@@ -1,6 +1,8 @@
-import { CalendarDays, Clock3, MapPin, Pencil, Plus, Trash2, Users } from '../components/KoboyoIcon'
+import { CalendarDays, Clock3, MapPin, Pencil, Plus, Trash2, Users } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
+import { Select } from '../components/Select'
+import { DateField, TimeField } from '../components/DateField'
 import { pillTone } from '../lib/pills'
 import { useCreateParam } from '../lib/use-create-param'
 import { useEffect, useId, useState } from 'react'
@@ -173,10 +175,10 @@ export function CeremoniesPage() {
                 <span className={`ceremony-status ${pillTone(ceremony.status)}`}>{statusOptions.find((option) => option.value === ceremony.status)?.label}</span>
               </div>
               <dl className="ceremony-facts">
-                <div><dt><CalendarDays size={14} /> Date</dt><dd>{formatCeremonyDate(ceremony.date)}</dd></div>
-                <div><dt><MapPin size={14} /> Location</dt><dd>{ceremony.location || 'Not set'}</dd></div>
-                <div><dt><Users size={14} /> Capacity</dt><dd>{ceremony.capacity ?? 'Not set'}</dd></div>
-                <div><dt><Clock3 size={14} /> Segments</dt><dd>{ceremony.segments.length || 'None'}</dd></div>
+                <div><dt><CalendarDays size={14} /> Date</dt><dd data-empty={!ceremony.date || undefined}>{formatCeremonyDate(ceremony.date)}</dd></div>
+                <div><dt><MapPin size={14} /> Location</dt><dd data-empty={!ceremony.location || undefined}>{ceremony.location || 'Not set'}</dd></div>
+                <div><dt><Users size={14} /> Capacity</dt><dd data-empty={ceremony.capacity == null || undefined}>{ceremony.capacity ?? 'Not set'}</dd></div>
+                <div><dt><Clock3 size={14} /> Segments</dt><dd data-empty={!ceremony.segments.length || undefined}>{ceremony.segments.length || 'None'}</dd></div>
               </dl>
               <div className="ceremony-row-actions">
                 <button className="button secondary" type="button" onClick={() => startEdit(ceremony)}><Pencil size={15} /> Edit</button>
@@ -240,12 +242,10 @@ function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony:
             <input required maxLength={80} value={values.name} placeholder="Court, Traditional, White..." onChange={(event) => patch({ name: event.target.value })} />
           </label>
           <label><span>Status</span>
-            <select value={values.status} onChange={(event) => patch({ status: event.target.value as CeremonyStatus })}>
-              {statusOptions.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
-            </select>
+            <Select aria-label="Status" value={values.status} onChange={(next) => patch({ status: next as CeremonyStatus })} options={statusOptions} />
           </label>
           <label><span>Date</span>
-            <input type="date" value={values.date} onChange={(event) => patch({ date: event.target.value })} />
+            <DateField aria-label="Date" value={values.date} onChange={(next) => patch({ date: next })} />
           </label>
           <label className="field-wide"><span>Location</span>
             <input type="text" value={values.location} placeholder="Add a venue or address" onChange={(event) => patch({ location: event.target.value })} />
@@ -269,7 +269,7 @@ function CeremonyModal({ ceremony, isNew, saving, onClose, onSave }: { ceremony:
               {values.segments.map((segment, index) => (
                 <div className="ceremony-segment-row" key={segment.id}>
                   <input aria-label={`Segment ${index + 1} name`} value={segment.title} placeholder="Segment name" onChange={(event) => patchSegment(segment.id, { title: event.target.value })} />
-                  <input aria-label={`Segment ${index + 1} time`} type="time" value={segment.time} onChange={(event) => patchSegment(segment.id, { time: event.target.value })} />
+                  <TimeField aria-label={`Segment ${index + 1} time`} value={segment.time} onChange={(next) => patchSegment(segment.id, { time: next })} />
                   <button className="plain-icon-button" type="button" aria-label={`Remove segment ${index + 1}`} onClick={() => setValues((current) => ({ ...current, segments: current.segments.filter((item) => item.id !== segment.id) }))}>
                     <Trash2 size={15} />
                   </button>

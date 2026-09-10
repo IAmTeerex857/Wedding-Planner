@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Clock3, Plus, Trash2, X } from '../KoboyoIcon'
+import { Check, Clock3, Plus, Trash2, X } from '../Icon'
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import './ido-ai.css'
@@ -34,7 +33,6 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const [optimisticMessage, setOptimisticMessage] = useState<{ id: string; body: string; failed: boolean } | null>(null)
   const [onboardingSteps, setOnboardingSteps] = useState<Record<string, number>>(() => ({ [workspace.id]: Number(window.localStorage.getItem(`${PANEL_KEY}:${workspace.id}:step`) ?? 0) }))
   const panelRef = useRef<HTMLElement>(null)
-  const [launcherSlot, setLauncherSlot] = useState<HTMLElement | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const composerRef = useRef<HTMLTextAreaElement>(null)
   const stateQuery = useQuery({
@@ -49,33 +47,6 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const question = shouldOnboard && onboardingStep < onboardingQuestions.length ? onboardingQuestions[onboardingStep] : null
 
   useEffect(() => { window.localStorage.setItem(PANEL_KEY, open ? 'open' : 'closed') }, [open])
-  // The launcher docks into the sidebar footer wherever the sidebar exists, so it
-  // can never float over page controls. Below 760px the sidebar is hidden, so it
-  // falls back to a floating button.
-  useEffect(() => {
-    const query = window.matchMedia('(min-width: 761px)')
-    const sync = () => setLauncherSlot(query.matches ? document.getElementById('ido-ai-launcher-slot') : null)
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
-  }, [])
-  useEffect(() => { window.localStorage.setItem(`${PANEL_KEY}:${workspace.id}:step`, String(onboardingStep)) }, [onboardingStep, workspace.id])
-  const activitySignature = state.batches.flatMap((batch) => batch.actions.map((action) => `${action.id}:${action.status}:${action.progress}`)).join('|')
-  useEffect(() => { if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight }) }, [open, state.messages.length, state.batches.length, activitySignature])
-  useEffect(() => {
-    const textarea = composerRef.current
-    if (!textarea) return
-    textarea.style.height = 'auto'
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 100)}px`
-  }, [composer])
-  useEffect(() => {
-    if (!open) return
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
-    window.addEventListener('keydown', closeOnEscape)
-    panelRef.current?.focus()
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [open])
-
   const sendMutation = useMutation({
     mutationFn: ({ content, requestId, conversationId }: { content: string; requestId: string; conversationId: string }) => sendIdoAiMessage(workspace.id, conversationId, content, requestId),
     onSuccess: async (result) => { setSelectedConversationId(result.conversationId); await queryClient.invalidateQueries({ queryKey: ['ido-ai', workspace.id] }); setOptimisticMessage(null) },
@@ -144,9 +115,7 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
 
   return <div className={`ido-ai-workspace${open ? ' is-agent-open' : ''}`}>
     <div className="ido-ai-page-slot">{children}</div>
-    {!open && (launcherSlot
-      ? createPortal(<button className="ido-ai-launcher is-docked" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>, launcherSlot)
-      : <button className="ido-ai-launcher" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>)}
+    {!open && <button className="ido-ai-launcher" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>}
     {open && <button className="ido-ai-backdrop" type="button" aria-label="Close I Do AI" onClick={() => setOpen(false)} />}
     <aside className="ido-ai-panel" ref={panelRef} aria-label="I Do AI assistant" aria-hidden={!open} tabIndex={-1}>
       <header className="ido-ai-header"><div className="ido-ai-identity"><span className="ido-ai-mark"><SparkleMark /></span><span><strong>I Do AI</strong><small><i /> Wedding planning agent</small></span></div><div className="ido-ai-header-actions"><button type="button" onClick={startNewConversation} aria-label="Start new conversation"><Plus size={18} /></button><button type="button" onClick={() => setHistoryOpen((value) => !value)} aria-label="Conversation history"><Clock3 size={17} /></button>{state.conversationId && <button type="button" onClick={() => setConfirmDelete(true)} aria-label="Archive conversation"><Trash2 size={17} /></button>}<button type="button" onClick={() => setOpen(false)} aria-label="Close I Do AI"><X size={18} /></button></div></header>

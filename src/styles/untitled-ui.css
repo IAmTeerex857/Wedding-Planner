@@ -37,12 +37,6 @@
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.ui-page .koboyo-icon {
-  filter: drop-shadow(1.5px 0 0 currentColor) drop-shadow(-1.5px 0 0 currentColor) drop-shadow(0 1.5px 0 currentColor) drop-shadow(0 -1.5px 0 currentColor);
-}
-.ui-page.guests-page .koboyo-icon {
-  filter: drop-shadow(1.75px 0 0 currentColor) drop-shadow(-1.75px 0 0 currentColor) drop-shadow(0 1.75px 0 currentColor) drop-shadow(0 -1.75px 0 currentColor);
-}
 
 /* Type scale: 36 / 20 / 16 / 15 / 14 / 12. The page title previously sat at 30px
    against a 16px lead — a 1.875x step, too tight to read as the page's anchor. */
@@ -145,7 +139,7 @@
 .ui-page .ceremony-card + .ceremony-card { border-left: 1px solid var(--ui-gray-200); }
 .ui-page .ceremony-card:hover { border-color: var(--ui-gray-300); background: white; box-shadow: var(--ui-shadow-sm); }
 .ui-page .ceremony-number { color: var(--ui-gray-500); font-family: inherit; font-size: 12px; font-weight: 600; }
-.ui-page .ceremony-topline .koboyo-icon { color: var(--ui-gray-400); }
+.ui-page .ceremony-topline .app-icon { color: var(--ui-gray-400); }
 .ui-page .ceremony-card h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 20px; font-weight: 600; letter-spacing: 0; }
 .ui-page .ceremony-card p { margin-top: 4px; color: var(--ui-gray-600); font-size: 14px; }
 .ui-page .progress-row { color: var(--ui-gray-600); font-size: 12px; }
@@ -187,7 +181,7 @@
 .ui-page .setup-label { color: var(--ui-gray-700); font-size: 14px; font-weight: 500; }
 .ui-page .pulse-list { padding: 8px 24px; }
 .ui-page .pulse-row { min-height: 48px; color: var(--ui-gray-600); font-size: 14px; }
-.ui-page .pulse-row .koboyo-icon { color: var(--ui-gray-400); }
+.ui-page .pulse-row .app-icon { color: var(--ui-gray-400); }
 .ui-page .pulse-row strong { color: var(--ui-gray-900); font-weight: 600; }
 .ui-page .empty-note { padding: 16px 24px; border-color: var(--ui-gray-100); color: var(--ui-gray-500); font-size: 12px; }
 
@@ -414,11 +408,9 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-shell .nav-item { min-height: 32px; gap: 12px; margin: 1px 0; padding: 6px 12px; border: 0; border-radius: 6px; color: var(--ui-gray-600); font-size: 14px; font-weight: 500; }
 .ui-shell .nav-item:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-shell .nav-item.active { color: var(--ui-gray-900); background: var(--ui-gray-100); box-shadow: none; }
-.ui-shell .nav-item.active .koboyo-icon { color: var(--ui-gray-900); }
+.ui-shell .nav-item.active .app-icon { color: var(--ui-gray-900); }
 .ui-shell .sidebar-footer { border-color: var(--ui-gray-200); }
 .ui-shell .profile-button { min-height: 46px; border-radius: 8px; padding: 8px; }
-.ui-shell .ido-ai-launcher.is-docked { width: 38px; height: 38px; margin: 0; padding: 0; }
-.ui-shell .ido-ai-launcher.is-docked span { display: none; }
 .ui-shell .profile-button:hover { background: var(--ui-gray-50); }
 .ui-shell .profile-button strong { font-size: 13px; }
 .ui-shell .profile-button small { color: var(--ui-gray-500); font-size: 12px; }
@@ -592,7 +584,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .directory-heading { min-height: 44px; padding-inline: 24px; border-color: var(--ui-gray-200); color: var(--ui-gray-600); background: var(--ui-gray-50); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .guest-row { min-height: 112px; padding: 18px 24px; border-color: var(--ui-gray-100); }
 .ui-page .guest-row:hover { background: var(--ui-gray-25); }
-.ui-page .guest-row:hover .guest-avatar .koboyo-icon { transform: none; }
+.ui-page .guest-row:hover .guest-avatar .app-icon { transform: none; }
 .ui-page .guest-avatar { border-radius: 8px; color: var(--ui-gray-700); background: var(--ui-gray-100); }
 .ui-page .guest-identity h2 { color: var(--ui-gray-900); font-family: inherit; font-size: 14px; font-weight: 600; letter-spacing: 0; }
 .ui-page .guest-contact,
@@ -605,13 +597,11 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .rsvp-badge.declined { border-color: var(--ui-gray-200); color: var(--ui-gray-500); background: white; }
 .ui-page .rsvp-badge i { display: none; }
 .ui-page .rsvp-badge select,
-.ui-page .rsvp-select { font-weight: 700; }
 .ui-page .rsvp-badge.attending select,
 .ui-page .rsvp-select.attending { border-color: #a6f4c5; color: #067647 !important; background-color: #ecfdf3 !important; }
 .ui-page .rsvp-badge.pending select,
 .ui-page .rsvp-select.pending { border-color: #fedf89; color: #b54708 !important; background-color: #fffaeb !important; }
 .ui-page .rsvp-badge.declined select,
-.ui-page .rsvp-select.declined { border-color: #fcceee; color: #c11574 !important; background-color: #fdf2fa !important; }
 .ui-page .guest-edit,
 .ui-page .guest-remove { width: 36px; height: 36px; border-radius: 8px; color: var(--ui-gray-500); }
 .ui-page .guest-edit:hover,
@@ -687,7 +677,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .record-table { overflow: hidden; border: 1px solid var(--ui-gray-200); border-radius: 12px; background: white; box-shadow: var(--ui-shadow-xs); }
 .ui-page .logistics-summary > div { min-height: 144px; padding: 20px 24px; }
 .ui-page .logistics-summary > div + div { border-color: var(--ui-gray-200); }
-.ui-page .logistics-summary .koboyo-icon { color: var(--ui-gray-600); }
+.ui-page .logistics-summary .app-icon { color: var(--ui-gray-600); }
 .ui-page .logistics-summary strong { color: var(--ui-gray-900); font-family: inherit; font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
 .ui-page .logistics-summary span { color: var(--ui-gray-500); font-size: 12px; text-transform: none; }
 .ui-page .logistics-entry { margin-top: 24px; background: white; }
@@ -1036,9 +1026,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 /* ==========================================================================
    Sidebar: create action, grouped nav with a divider, account menu
    ========================================================================== */
-.ui-shell .sidebar-actions { display: flex; align-items: center; gap: 8px; padding: 10px; }
-.ui-shell .sidebar-actions .menu-root { flex: 1; min-width: 0; }
-.ui-shell .sidebar-actions #ido-ai-launcher-slot { flex: 0 0 auto; }
+.ui-shell .sidebar-actions { padding: 10px; }
 .ui-shell .sidebar-actions:empty { display: none; }
 
 .ui-shell .new-button {
@@ -1059,7 +1047,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 }
 .ui-shell .new-button:hover { background: #000; }
 .ui-shell .new-button > span { flex: 1; text-align: left; }
-.ui-shell .new-button > .koboyo-icon:last-child { opacity: .7; filter: none; }
 
 /* The rule between Workspace and Planning. */
 .ui-shell .sidebar-nav .nav-section + .nav-section {
@@ -1130,27 +1117,44 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 
 .ui-page .ceremony-row {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(0, 2.2fr) auto;
+  grid-template-columns: minmax(200px, 1fr) auto auto;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
   border: 1px solid var(--ui-gray-200);
   border-radius: 12px;
-  padding: 18px 20px;
+  padding: 16px 20px;
   background: white;
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 .ui-page .ceremony-row:hover { border-color: var(--ui-gray-300); background: var(--ui-gray-25); }
 
-.ui-page .ceremony-row-title { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; gap: 8px; }
-.ui-page .ceremony-row-title h2 { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
-.ui-page .ceremony-status { border: 1px solid; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
+/* Name and status read as one thing on one line. Stacking them left the pill
+   stranded under the title and threw the row's vertical balance out. */
+.ui-page .ceremony-row-title { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.ui-page .ceremony-row-title h2 { overflow: hidden; font-size: 16px; font-weight: 600; letter-spacing: -.01em; text-overflow: ellipsis; white-space: nowrap; }
+.ui-page .ceremony-status { flex: 0 0 auto; border: 1px solid; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 500; }
 
-.ui-page .ceremony-facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 0; }
-.ui-page .ceremony-facts > div { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
+.ui-page .ceremony-facts { display: flex; gap: 32px; margin: 0; }
+.ui-page .ceremony-facts > div { display: flex; min-width: 92px; flex-direction: column; gap: 2px; }
 .ui-page .ceremony-facts dt { display: flex; align-items: center; gap: 6px; color: var(--ui-gray-500); font-size: 12px; }
 .ui-page .ceremony-facts dd { margin: 0; overflow: hidden; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+/* Unset values should recede rather than shout four times per row. */
+.ui-page .ceremony-facts dd[data-empty] { color: var(--ui-gray-400); font-weight: 400; }
 
 .ui-page .ceremony-row-actions { display: flex; flex: 0 0 auto; align-items: center; gap: 8px; }
+.ui-page .ceremony-row-actions .plain-icon-button {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  color: var(--ui-gray-600);
+  background: white;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-page .ceremony-row-actions .plain-icon-button:hover { border-color: #fecdca; color: #b42318; background: var(--ui-error-50); }
 
 .ui-page .ceremony-empty {
   display: grid;
@@ -1193,13 +1197,283 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-modal-panel .plain-icon-button:hover { color: #b42318; background: var(--ui-error-50); }
 .ui-modal-panel .button.compact { min-height: 32px; padding: 0 10px; font-size: 13px; }
 
-@media (max-width: 1000px) {
-  .ui-page .ceremony-row { grid-template-columns: 1fr; gap: 16px; }
-  .ui-page .ceremony-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ui-page .ceremony-row-actions { justify-content: flex-end; }
+@media (max-width: 1180px) {
+  .ui-page .ceremony-row { grid-template-columns: 1fr auto; gap: 16px 20px; }
+  .ui-page .ceremony-facts { order: 3; grid-column: 1 / -1; flex-wrap: wrap; gap: 20px 32px; }
 }
 
 @media (max-width: 700px) {
   .ceremony-form-grid { grid-template-columns: 1fr; }
   .ui-page.ceremonies-page .header-actions { flex-wrap: wrap; }
+}
+
+
+/* ==========================================================================
+   Select, date and time controls
+   These replace native <select> and <input type="date|time">, whose open state
+   is drawn by the operating system and cannot be themed.
+   ========================================================================== */
+.ui-select, .ui-datefield { position: relative; min-width: 0; }
+
+.ui-select-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: var(--ui-gray-900);
+  background: white;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-select-trigger:hover:not(:disabled) { border-color: var(--ui-gray-400); }
+.ui-select-trigger:focus-visible {
+  border-color: var(--ui-brand-500);
+  outline: none;
+  box-shadow: 0 0 0 4px var(--ui-brand-100);
+}
+.ui-select-trigger:disabled { cursor: not-allowed; color: var(--ui-gray-500); background: var(--ui-gray-50); }
+
+.ui-select-label { flex: 0 0 auto; color: var(--ui-gray-500); font-size: 14px; }
+.ui-select-value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ui-select-value.is-placeholder { color: var(--ui-gray-500); }
+.ui-select-caret { flex: 0 0 auto; color: var(--ui-gray-500); }
+.ui-select-trigger:disabled .ui-select-caret { color: var(--ui-gray-400); }
+
+/* Filter-bar shape: a pill carrying its own label, used above lists. */
+.ui-select.is-compact .ui-select-trigger {
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+
+/* ---- The open list ---- */
+.ui-select-list {
+  position: fixed;
+  z-index: 300;
+  max-height: 280px;
+  min-width: 180px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-gray-300) transparent;
+}
+.ui-select-list::-webkit-scrollbar { width: 8px; }
+.ui-select-list::-webkit-scrollbar-track { background: transparent; }
+.ui-select-list::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--ui-gray-300); background-clip: content-box; }
+
+.ui-select-option {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--ui-gray-700);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.ui-select-option[data-active="true"], .ui-select-option:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+.ui-select-option[aria-selected="true"] { color: var(--ui-gray-900); font-weight: 500; }
+.ui-select-option[aria-disabled="true"] { color: var(--ui-gray-400); cursor: not-allowed; }
+.ui-select-tick { flex: 0 0 auto; color: var(--ui-brand-600); }
+.ui-timelist { max-height: 260px; }
+
+/* ---- Calendar ---- */
+.ui-picker {
+  position: fixed;
+  z-index: 300;
+  width: 300px;
+  padding: 12px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 24px -6px rgba(16, 24, 40, .12), 0 4px 8px -4px rgba(16, 24, 40, .08);
+  animation: panel-in var(--dur-fast) var(--ease-out);
+}
+
+.ui-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ui-picker-head strong { color: var(--ui-gray-900); font-size: 14px; font-weight: 600; }
+.ui-picker-head button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ui-gray-600);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ui-picker-head button:hover { background: var(--ui-gray-100); }
+.ui-picker-head .is-flipped { transform: rotate(180deg); }
+
+.ui-picker-weekdays, .ui-picker-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.ui-picker-weekdays { margin-bottom: 4px; }
+.ui-picker-weekdays span { display: grid; height: 28px; place-items: center; color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
+
+.ui-picker-day {
+  display: grid;
+  height: 34px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.ui-picker-day:hover { background: var(--ui-gray-100); }
+.ui-picker-day[data-outside] { color: var(--ui-gray-400); }
+.ui-picker-day[data-today] { border-color: var(--ui-gray-300); font-weight: 600; }
+.ui-picker-day[aria-pressed="true"] { color: white; background: var(--ui-gray-900); border-color: var(--ui-gray-900); }
+
+.ui-picker-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--ui-gray-200); }
+.ui-picker-foot button {
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: var(--ui-gray-600);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ui-picker-foot button:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-select-list, .ui-picker { animation: overlay-in var(--dur-fast) ease; }
+}
+
+.ui-datetime { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+@media (max-width: 560px) { .ui-datetime { grid-template-columns: 1fr; } }
+
+
+/* ==========================================================================
+   Bare controls inside a decorated wrapper
+   These inputs sit inside an element that already draws the border — a search
+   pill, a currency field, a table cell. The global control layer above would
+   give them a second border and background, which rendered as a box inside a
+   box. The wrapper owns the chrome; the control stays transparent.
+   ========================================================================== */
+.ui-page .guest-search input,
+.ui-page .budget-search input,
+.ui-page .registry-panel > header input,
+.ui-page .seating-tools input,
+.ui-page .money-input input,
+.ui-page .allocation-amount input,
+.ui-page .import-paste input {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.ui-page .guest-search input:focus-visible,
+.ui-page .budget-search input:focus-visible,
+.ui-page .registry-panel > header input:focus-visible,
+.ui-page .seating-tools input:focus-visible,
+.ui-page .money-input input:focus-visible,
+.ui-page .allocation-amount input:focus-visible {
+  border-color: transparent;
+  outline: none;
+  box-shadow: none;
+}
+
+/* The wrapper takes the focus ring instead, so the whole control responds. */
+.ui-page .guest-search,
+.ui-page .budget-search,
+.ui-page .registry-panel > header label,
+.ui-page .money-input {
+  border-radius: 8px;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ui-page .guest-search:focus-within,
+.ui-page .budget-search:focus-within,
+.ui-page .registry-panel > header label:focus-within,
+.ui-page .money-input:focus-within {
+  border-color: var(--ui-brand-500);
+  box-shadow: 0 0 0 4px var(--ui-brand-100);
+}
+
+/* The search pill is a real bordered field rather than a bottom-ruled input. */
+.ui-page .guest-search,
+.ui-page .budget-search {
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ui-gray-300);
+  background: white;
+}
+.ui-page .guest-search input,
+.ui-page .budget-search input { font-size: 14px; }
+.ui-page .guest-search .app-icon,
+.ui-page .budget-search .app-icon { color: var(--ui-gray-500); }
+
+
+/* ==========================================================================
+   Guest modal: ceremony responses
+   This row used to sit in column two of the old inline two-column layout, so
+   inside the modal its three columns lined up with nothing above them. It is
+   now its own labelled group, separated by a rule.
+   ========================================================================== */
+.ui-page .entry-rsvp-group,
+.ui-modal-panel .entry-rsvp-group {
+  grid-column: 1 / -1;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+.ui-page .entry-group-label,
+.ui-modal-panel .entry-group-label {
+  margin-bottom: 12px;
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ui-page .entry-rsvps,
+.ui-modal-panel .entry-rsvps {
+  display: grid;
+  grid-column: auto;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Response tone belongs to the pill set, and "declined" was still magenta.
+   Left unscoped because the modal portals to <body>, outside .ui-page. */
+.rsvp-select .ui-select-trigger { font-weight: 500; }
+.rsvp-select.attending .ui-select-trigger { border-color: #a6f4c5; color: #067647; background-color: #ecfdf3; }
+.rsvp-select.pending .ui-select-trigger { border-color: #fedf89; color: #b54708; background-color: #fffaeb; }
+.rsvp-select.declined .ui-select-trigger { border-color: #fecdca; color: #b42318; background-color: #fef3f2; }
+.rsvp-select .ui-select-caret { color: currentColor; opacity: .6; }
+
+@media (max-width: 700px) {
+  .ui-modal-panel .entry-rsvps { grid-template-columns: 1fr; }
 }

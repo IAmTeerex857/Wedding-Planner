@@ -40,20 +40,17 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-.koboyo-icon {
+/* Phosphor icons are real SVG: they take colour from currentColor and need no
+   mask or faux-weight drop-shadows. */
+.app-icon {
   display: inline-block;
   flex: 0 0 auto;
-  background: currentColor;
-  -webkit-mask: var(--koboyo-icon) center / contain no-repeat;
-  mask: var(--koboyo-icon) center / contain no-repeat;
-  filter: drop-shadow(1px 0 0 currentColor) drop-shadow(-1px 0 0 currentColor) drop-shadow(0 1px 0 currentColor) drop-shadow(0 -1px 0 currentColor);
+  vertical-align: middle;
   transition: opacity 100ms ease;
 }
 
-.koboyo-icon-pencil { scale: 1.3; }
-
-button:hover .koboyo-icon,
-a:hover .koboyo-icon { opacity: .82; }
+button:hover .app-icon,
+a:hover .app-icon { opacity: .82; }
 
 select {
   appearance: none !important;

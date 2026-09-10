@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from './KoboyoIcon'
+import { X } from './Icon'
 
 type ModalProps = {
   open: boolean
@@ -45,6 +45,10 @@ export function Modal({ open, title, description, onClose, children, footer, siz
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
+        // A dropdown, calendar or menu open inside the modal owns Escape first:
+        // this listener runs in the capture phase, so without the check the
+        // whole dialog would close instead of just the popover.
+        if (document.querySelector('.ui-select-list, .ui-picker, .menu-popover')) return
         event.stopPropagation()
         onClose()
         return

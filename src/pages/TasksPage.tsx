@@ -1,7 +1,9 @@
-import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../components/KoboyoIcon'
+import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../components/Icon'
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Select } from '../components/Select'
+import { DateTimeField } from '../components/DateField'
 import { useCreateParam } from '../lib/use-create-param'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
@@ -247,7 +249,7 @@ export function TasksPage() {
         <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeModal()}>
           <section className="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-form-title">
             <div className="modal-header">
-              <div><p className="eyebrow">{editingId ? 'Update action' : 'New action'}</p><h2 id="task-form-title">{editingId ? 'Edit task' : 'Add a task'}</h2></div>
+              <div><h2 id="task-form-title">{editingId ? 'Edit task' : 'Add a task'}</h2></div>
               <button className="plain-icon-button" type="button" aria-label="Close" onClick={closeModal}><X size={18} /></button>
             </div>
             <form onSubmit={addTask}>
@@ -262,22 +264,20 @@ export function TasksPage() {
               <div className="task-form-grid">
                 <label className="planning-field">
                   <span>Status</span>
-                  <select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as TaskStatus })}>
-                    {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
-                  </select>
+                  <Select aria-label="Status" value={draft.status} onChange={(next) => setDraft({ ...draft, status: next as TaskStatus })} options={columns.map((column) => ({ value: column.id, label: column.label }))} />
                 </label>
                 <label className="planning-field">
                   <span>Priority</span>
-                  <select value={draft.priority} onChange={(event) => setDraft({ ...draft, priority: event.target.value as TaskPriority })}>
-                    <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option>
-                  </select>
+                  <Select aria-label="Priority" value={draft.priority} onChange={(next) => setDraft({ ...draft, priority: next as TaskPriority })} options={[{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }]} />
                 </label>
                 <label className="planning-field">
                   <span>Event</span>
-                  <select value={draft.ceremonyId ?? ''} onChange={(event) => { const ceremony = ceremonyOptions.find((item) => item.id === event.target.value); setDraft({ ...draft, ceremonyId: ceremony?.id ?? null, event: ceremonyLabel(ceremony) }) }}>
-                    <option value="">General / shared</option>
-                    {ceremonyOptions.map((ceremony) => <option value={ceremony.id} key={ceremony.id}>{ceremonyLabel(ceremony)}</option>)}
-                  </select>
+                  <Select
+                    aria-label="Event"
+                    value={draft.ceremonyId ?? ''}
+                    onChange={(next) => { const ceremony = ceremonyOptions.find((item) => item.id === next); setDraft({ ...draft, ceremonyId: ceremony?.id ?? null, event: ceremonyLabel(ceremony) }) }}
+                    options={[{ value: '', label: 'General / shared' }, ...ceremonyOptions.map((ceremony) => ({ value: ceremony.id, label: ceremonyLabel(ceremony) }))]}
+                  />
                 </label>
                 <label className="planning-field">
                   <span>Assignee <small>Optional</small></span>
@@ -285,11 +285,11 @@ export function TasksPage() {
                 </label>
                 <label className="planning-field">
                   <span>Deadline <small>Optional</small></span>
-                  <input type="datetime-local" value={draft.dueAt} onChange={(event) => setDraft({ ...draft, dueAt: event.target.value })} />
+                  <DateTimeField aria-label="Due" value={draft.dueAt} onChange={(next) => setDraft({ ...draft, dueAt: next })} />
                 </label>
                 <label className="planning-field">
                   <span>Email reminder <small>Optional</small></span>
-                  <input type="datetime-local" value={draft.reminderAt} onChange={(event) => setDraft({ ...draft, reminderAt: event.target.value })} />
+                  <DateTimeField aria-label="Reminder" value={draft.reminderAt} onChange={(next) => setDraft({ ...draft, reminderAt: next })} />
                 </label>
               </div>
               <div className="modal-actions">
@@ -345,9 +345,14 @@ function EventTag({ event }: { event: TaskEvent }) {
 
 function StatusControl({ task, onMove }: { task: PlanningTask; onMove: (id: string, status: TaskStatus) => void }) {
   return (
-    <select className="task-status-control" aria-label={`Status for ${task.title}`} value={task.status} onChange={(event) => onMove(task.id, event.target.value as TaskStatus)}>
-      {columns.map((column) => <option value={column.id} key={column.id}>{column.label}</option>)}
-    </select>
+    <Select
+      className="task-status-control"
+      compact
+      aria-label={`Status for ${task.title}`}
+      value={task.status}
+      onChange={(next) => onMove(task.id, next as TaskStatus)}
+      options={columns.map((column) => ({ value: column.id, label: column.label }))}
+    />
   )
 }
 

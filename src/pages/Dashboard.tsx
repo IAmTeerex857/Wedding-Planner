@@ -7,7 +7,7 @@ import {
   ListPlus,
   Shirt,
   Users,
-} from '../components/KoboyoIcon'
+} from '../components/Icon'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { formatNaira } from '../lib/format'

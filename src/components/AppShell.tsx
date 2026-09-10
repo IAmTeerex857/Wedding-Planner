@@ -24,7 +24,7 @@ import {
   Utensils,
   Armchair,
   X,
-} from './KoboyoIcon'
+} from './Icon'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { BrandMark } from './BrandMark'
@@ -96,7 +96,7 @@ export function AppShell() {
       label="Create"
       align="start"
       buttonClassName="new-button"
-      button={<><Plus size={16} /><span>New</span><ChevronDown size={14} /></>}
+      button={<><Plus size={16} /><span>New</span></>}
     >
       {createActions.map((action) => (
         <MenuItem
@@ -113,10 +113,7 @@ export function AppShell() {
     <div className="app-frame ui-shell">
       <aside className="sidebar">
         <div className="sidebar-brand"><BrandMark /></div>
-        <div className="sidebar-actions">
-          {createMenu}
-          <div id="ido-ai-launcher-slot" />
-        </div>
+        <div className="sidebar-actions">{createMenu}</div>
         <nav className="sidebar-nav" aria-label="Main navigation">{navigation(false)}</nav>
         <div className="sidebar-footer">
           <Menu

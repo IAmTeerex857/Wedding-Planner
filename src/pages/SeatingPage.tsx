@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/KoboyoIcon'
+import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Select } from '../components/Select'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './seating.css'
@@ -213,7 +214,7 @@ export function SeatingPage() {
   return <div className="page seating-page ui-page">
     <header className="page-header">
       <div><h1>Seating</h1><p className="page-lead">Assign confirmed guests in bulk, then refine individual placements table by table.</p></div>
-      <label className="page-ceremony-filter"><span>Ceremony</span><select value={ceremony?.id ?? ''} onChange={(change) => switchEvent(change.target.value)}><option value="" disabled>Select ceremony</option>{ceremonyOptions.map((item) => <option value={item.id} key={item.id}>{ceremonyLabel(item)}</option>)}</select></label>
+      <label className="page-ceremony-filter"><span>Ceremony</span><Select compact aria-label="Ceremony" placeholder="Select ceremony" value={ceremony?.id ?? ''} onChange={switchEvent} options={ceremonyOptions.map((item) => ({ value: item.id, label: ceremonyLabel(item) }))} /></label>
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}
     <section className="seating-summary"><div><strong>{guests.length}</strong><span>Confirmed guests</span></div><div><strong>{guests.length - waiting.length}</strong><span>Seated</span></div><div><strong>{waiting.length}</strong><span>Waiting</span></div><div><strong>{tables.length}</strong><span>Tables</span></div></section>

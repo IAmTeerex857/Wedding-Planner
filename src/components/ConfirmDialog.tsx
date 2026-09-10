@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Trash2, X } from './KoboyoIcon'
+import { Trash2, X } from './Icon'
 
 type ConfirmDialogProps = {
   title: string

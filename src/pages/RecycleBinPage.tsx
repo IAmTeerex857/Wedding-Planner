@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw, Trash2 } from '../components/KoboyoIcon'
+import { RotateCcw, Trash2 } from '../components/Icon'
 import { supabase } from '../lib/supabase'
 import { useWorkspace } from '../lib/workspace-context'
 import './recycle-bin.css'

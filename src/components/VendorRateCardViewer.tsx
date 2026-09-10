@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Download, FileText, X } from './KoboyoIcon'
+import { Download, FileText, X } from './Icon'
 import { supabase } from '../lib/supabase'
 import './file-viewer.css'
 

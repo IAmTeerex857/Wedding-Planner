@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { ArrowRight } from '../components/KoboyoIcon'
+import { ArrowRight } from '../components/Icon'
 import { BrandMark } from '../components/BrandMark'
 
 export function WorkspaceOnboarding({ loading, error, onCreate }: {

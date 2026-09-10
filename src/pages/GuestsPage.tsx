@@ -15,9 +15,10 @@ import {
   UserRound,
   Users,
   X,
-} from '../components/KoboyoIcon'
+} from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
+import { Select } from '../components/Select'
 import { pillTone } from '../lib/pills'
 import { useCreateParam } from '../lib/use-create-param'
 import {
@@ -332,16 +333,22 @@ export function GuestsPage() {
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, contact, tag, or hotel" />
           </label>
           <div className="guest-filters">
-            <SelectFilter label="Event" value={eventFilter} onChange={(value) => setEventFilter(value as typeof eventFilter)}>
-              <option value="all">All events</option>
-              {ceremonyOptions.map((ceremony) => <option key={ceremony.id} value={ceremony.id}>{ceremonyLabel(ceremony)}</option>)}
-            </SelectFilter>
-            <SelectFilter label="Response" value={rsvpFilter} onChange={(value) => setRsvpFilter(value as typeof rsvpFilter)}>
-              <option value="all">All responses</option>
-              <option value="attending">Attending</option>
-              <option value="pending">Pending</option>
-              <option value="declined">Declined</option>
-            </SelectFilter>
+            <Select
+              compact
+              label="Event"
+              aria-label="Filter by event"
+              value={eventFilter}
+              onChange={(value) => setEventFilter(value as typeof eventFilter)}
+              options={[{ value: 'all', label: 'All events' }, ...ceremonyOptions.map((ceremony) => ({ value: ceremony.id, label: ceremonyLabel(ceremony) }))]}
+            />
+            <Select
+              compact
+              label="Response"
+              aria-label="Filter by response"
+              value={rsvpFilter}
+              onChange={(value) => setRsvpFilter(value as typeof rsvpFilter)}
+              options={[{ value: 'all', label: 'All responses' }, { value: 'attending', label: 'Attending' }, { value: 'pending', label: 'Pending' }, { value: 'declined', label: 'Declined' }]}
+            />
           </div>
         </div>
 
@@ -369,14 +376,6 @@ function Summary({ value, label, detail }: { value: number; label: string; detai
   return <div className="guest-summary-item"><strong>{value}</strong><div><span>{label}</span><small>{detail}</small></div></div>
 }
 
-function SelectFilter({ label, value, onChange, children }: {
-  label: string; value: string; onChange: (value: string) => void; children: React.ReactNode
-}) {
-  return (
-    <label className="compact-select"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}>{children}</select></label>
-  )
-}
-
 function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Guest; ceremonies: CeremonyOption[]; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
   return (
     <article className="guest-row">
@@ -394,7 +393,19 @@ function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Gues
 }
 
 function RsvpBadge({ label, status, onChange }: { label: string; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
-  return <label className={`rsvp-badge ${status}`}><i />{label}<select aria-label={`${label} RSVP`} value={status} onChange={(event) => onChange(event.target.value as RsvpStatus)}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+  return (
+    <span className={`rsvp-badge ${status}`}>
+      <i />
+      <Select
+        compact
+        className={`rsvp-select ${status}`}
+        aria-label={`${label} RSVP`}
+        value={status}
+        onChange={(next) => onChange(next as RsvpStatus)}
+        options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
+      />
+    </span>
+  )
 }
 
 function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { initialGuest?: Guest; ceremonies: CeremonyOption[]; onSave: (guest: Omit<Guest, 'id'>) => void; onClose: () => void; isSaving: boolean }) {
@@ -428,10 +439,22 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
         <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
         <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
       </div>
+      <div className="entry-rsvp-group">
+      <p className="entry-group-label">Ceremony responses</p>
       <div className="entry-rsvps">
         {ceremonies.map((ceremony) => (
-          <label key={ceremony.id}><span>{ceremonyLabel(ceremony)} RSVP</span><select className={`rsvp-select ${guest.rsvps[ceremony.id]}`} value={guest.rsvps[ceremony.id]} onChange={(change) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: change.target.value as RsvpStatus } }))}><option value="pending">Pending</option><option value="attending">Attending</option><option value="declined">Declined</option></select></label>
+          <label key={ceremony.id}>
+            <span>{ceremonyLabel(ceremony)} RSVP</span>
+            <Select
+              className={`rsvp-select ${guest.rsvps[ceremony.id]}`}
+              aria-label={`${ceremonyLabel(ceremony)} RSVP`}
+              value={guest.rsvps[ceremony.id]}
+              onChange={(next) => setGuest((current) => ({ ...current, rsvps: { ...current.rsvps, [ceremony.id]: next as RsvpStatus } }))}
+              options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
+            />
+          </label>
         ))}
+      </div>
       </div>
     </form>
     </Modal>
@@ -491,7 +514,7 @@ function GuestImport({ guests, onClose, onImport }: { guests: Guest[]; onClose: 
               <div className="stage-note"><div><strong>Match your columns</strong><span>{parsed.rows.length} rows found in {parsed.headers.length} columns</span></div><p>Review each suggested match. Unmapped fields stay blank.</p></div>
               <div className="mapping-grid">
                 {GUEST_IMPORT_FIELDS.map((field) => (
-                  <label key={field}><span>{FIELD_LABELS[field]}{field === 'firstName' || field === 'lastName' ? <small>Name</small> : null}</span><select value={mapping[field] ?? ''} onChange={(event) => setMapping((current) => ({ ...current, [field]: event.target.value || undefined }))}><option value="">Do not import</option>{parsed.headers.map((header) => <option key={header} value={header}>{header}</option>)}</select></label>
+                  <label key={field}><span>{FIELD_LABELS[field]}{field === 'firstName' || field === 'lastName' ? <small>Name</small> : null}</span><Select aria-label={`Column for ${FIELD_LABELS[field]}`} value={mapping[field] ?? ''} onChange={(next) => setMapping((current) => ({ ...current, [field]: next || undefined }))} options={[{ value: '', label: 'Do not import' }, ...parsed.headers.map((header) => ({ value: header, label: header }))]} /></label>
                 ))}
               </div>
               <div className="mapping-preview"><span>Source preview</span><div>{parsed.headers.map((header) => <code key={header}>{header}: {parsed.rows[0]?.[header] || '—'}</code>)}</div></div>
