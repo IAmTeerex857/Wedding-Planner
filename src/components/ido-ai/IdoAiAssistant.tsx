@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUp, Check, History, Microphone, NewChat, Paperclip, Plus, PushPin, SidebarSimple, Trash2, X } from '../Icon'
+import { ArrowUp, Check, ChevronDown, History, Microphone, NewChat, Paperclip, Plus, PushPin, SidebarSimple, Sparkle, Trash2, X } from '../Icon'
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import { useDictation } from '../../lib/use-dictation'
@@ -8,6 +8,7 @@ import { draftPreviewBatch, previewReply } from '../../lib/ido-ai-preview'
 import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'motion/react'
 import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
 import { StreamingText } from './StreamingText'
+import { ReasoningText } from './ReasoningText'
 import { Button } from '../Button'
 import './ido-ai.css'
 
@@ -206,11 +207,11 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
         <AnimatePresence initial={false}>
         {timeline.map((item) => item.kind === 'message'
-          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit" layout>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div>{item.message.role === 'assistant' && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
+          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit">{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div>{item.message.role === 'assistant' && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
           : <BatchCard key={`batch:${item.id}`} batch={item.batch} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} />)}
         </AnimatePresence>
         {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><p>{optimisticMessage.body}</p><time className="ido-ai-message-time">{formatMessageTime(new Date().toISOString())}</time>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
-        {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
+        {isThinking && <article className="ido-ai-message is-assistant" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><ReasoningText /></div></article>}
         {stateQuery.isError && <p className="ido-ai-error">{stateQuery.error.message}</p>}
         {sendMutation.error && <p className="ido-ai-error">{sendMutation.error.message}</p>}
         {state.job && (state.job.kind !== 'agent_turn' || state.job.status === 'failed') && ['queued', 'running', 'failed'].includes(state.job.status) && <div className={`ido-ai-job is-${state.job.status}`}><span className="ido-ai-job-icon">{state.job.status === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{state.job.label}</strong><small>{state.job.detail}</small></span></div>}
@@ -353,6 +354,8 @@ function formatConversationDate(value: string) {
 }
 
 function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: boolean; error?: string }) {
+  const [expanded, setExpanded] = useState(false)
+  const reduced = useReducedMotion()
   const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
   const researchAction = isResearch ? batch.actions[0] : null
   const progress = researchAction?.progress ?? (approving ? 'queued' : null)
@@ -363,12 +366,73 @@ function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: 
     : progress === 'failed' ? 'Research failed'
     : 'Research queued…'
 
-  return <section className="ido-ai-batch" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
-    <div className="ido-ai-batch-heading"><span>{isResearch ? 'Research request' : 'Proposed actions'}</span><strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>{isResearch && batch.status === 'proposed' && <p>Approving starts the search only. You will review the results separately before anything is added to Vendors or Venues.</p>}</div>
-    {batch.actions.map((action) => <article className={`ido-ai-action is-${action.status}`} key={action.id}><div className="ido-ai-action-top"><strong>{action.title}</strong><span>{action.destination}</span></div><p>{action.description}</p>{action.status !== 'proposed' && !isResearch && <div className="ido-ai-decision"><Check size={13} /> {action.status}</div>}{action.error && <p className="ido-ai-action-error">{action.error}</p>}</article>)}
-    {isResearch && progress && <div className={`ido-ai-research-progress is-${progress}`} role="status"><span className="ido-ai-job-icon">{progress === 'completed' ? <Check size={14} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{progressCopy}</strong>{sourceLabel && <small>Sources requested: {sourceLabel}</small>}</span></div>}
-    {error && <p className="ido-ai-error">{error}</p>}
-  </section>
+  const settled = batch.status === 'rejected' || batch.status === 'cancelled' ? 'Declined'
+    : batch.status === 'failed' ? 'Failed'
+    : batch.status === 'completed' || batch.status === 'approved' ? 'Applied'
+    : 'In progress'
+
+  return (
+    <article className="ido-ai-message is-assistant">
+      <span className="ido-ai-message-mark"><SparkleMark /></span>
+      <div>
+        <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>
+        <section className="ido-ai-activity" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
+          <div className="ido-ai-activity-head">
+            <span className={`ido-ai-activity-icon is-${settled.toLowerCase().replace(' ', '-')}`}>
+              {settled === 'Applied' ? <Check size={15} /> : settled === 'Declined' ? <X size={15} /> : <Sparkle size={15} />}
+            </span>
+            <div>
+              <strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>
+              <code>{isResearch ? 'vendor.research' : `workspace.update · ${batch.actions.length} change${batch.actions.length === 1 ? '' : 's'}`}</code>
+            </div>
+            <span className={`ido-ai-activity-badge is-${settled.toLowerCase().replace(' ', '-')}`}>{settled}</span>
+          </div>
+
+          <button
+            className="ido-ai-activity-toggle"
+            type="button"
+            aria-expanded={expanded}
+            onClick={() => setExpanded((value) => !value)}
+          >
+            View details <ChevronDown size={14} className={expanded ? 'is-open' : undefined} />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {expanded && (
+              <m.div
+                className="ido-ai-activity-details"
+                initial={reduced ? undefined : { height: 0, opacity: 0 }}
+                animate={reduced ? undefined : { height: 'auto', opacity: 1 }}
+                exit={reduced ? undefined : { height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              >
+                <dl>
+                  {batch.actions.map((action) => (
+                    <div key={action.id}>
+                      <dt>{action.destination}</dt>
+                      <dd>
+                        <span>{action.title}</span>
+                        <small>{action.description}</small>
+                        {action.error && <em>{action.error}</em>}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {isResearch && progress && (
+                  <p className={`ido-ai-activity-progress is-${progress}`} role="status">
+                    {progress === 'completed' ? <Check size={13} /> : progress === 'failed' ? '!' : <span className="ido-ai-spinner" />}
+                    {progressCopy}{sourceLabel ? ` · ${sourceLabel}` : ''}
+                  </p>
+                )}
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {error && <p className="ido-ai-error">{error}</p>}
+        </section>
+      </div>
+    </article>
+  )
 }
 
 function formatResearchSource(source: string) {

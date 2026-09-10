@@ -552,3 +552,121 @@
 
 /* The thread keeps the proposal as a record and points at the dock. */
 .ido-ai-batch-await { margin-top: 10px; color: var(--ui-gray-500); font-size: 13px; }
+
+/* ==========================================================================
+   Thinking state
+   A phrase that names the step, a pulsing grid, and elapsed time. A single
+   unchanging spinner only says something is happening.
+   ========================================================================== */
+.ido-ai-reasoning { display: flex; align-items: center; gap: 10px; min-height: 26px; }
+
+.ido-ai-reasoning-grid { display: grid; grid-template-columns: repeat(3, 3px); gap: 2px; flex: 0 0 auto; }
+.ido-ai-reasoning-grid i {
+  display: block;
+  width: 3px;
+  height: 3px;
+  border-radius: 1px;
+  background: var(--ui-gray-400);
+  animation: ido-ai-cell 1.55s cubic-bezier(.77, 0, .175, 1) infinite;
+}
+@keyframes ido-ai-cell {
+  0%, 100% { opacity: .25; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.ido-ai-reasoning-phrase { min-width: 0; flex: 1; font-size: 14px; }
+.ido-ai-reasoning-phrase > span { display: inline-block; white-space: pre; }
+
+/* The shimmer travels across the phrase on the reference's 2.2s cycle. */
+.ido-ai-shimmer {
+  background: linear-gradient(100deg, var(--ui-gray-500) 30%, var(--ui-gray-900) 50%, var(--ui-gray-500) 70%);
+  background-size: 220% 100%;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: ido-ai-shimmer 2.2s linear infinite;
+}
+@keyframes ido-ai-shimmer {
+  from { background-position: 180% 0; }
+  to { background-position: -80% 0; }
+}
+
+.ido-ai-reasoning-time { flex: 0 0 auto; color: var(--ui-gray-400); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   Activity card
+   What the agent did, folded away. The detail is there when asked for, not
+   pushed into the reader's face by default.
+   ========================================================================== */
+.ido-ai-activity { border: 1px solid var(--ui-gray-200); border-radius: 12px; padding: 12px; background: white; }
+
+.ido-ai-activity-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; }
+.ido-ai-activity-head .ido-ai-activity-badge { grid-column: 2; justify-self: start; margin-top: 6px; }
+.ido-ai-activity-head > div { min-width: 0; }
+.ido-ai-activity-head strong { display: block; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.ido-ai-activity-head code { display: block; margin-top: 2px; overflow: hidden; color: var(--ui-gray-500); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+
+.ido-ai-activity-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: var(--ui-gray-50);
+}
+.ido-ai-activity-icon.is-applied { border-color: #a6f4c5; color: #067647; background: #ecfdf3; }
+.ido-ai-activity-icon.is-declined { border-color: var(--ui-gray-200); color: var(--ui-gray-500); }
+.ido-ai-activity-icon.is-failed { border-color: #fecdca; color: #b42318; background: #fef3f2; }
+
+.ido-ai-activity-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 2px 9px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ido-ai-activity-badge.is-applied { border-color: #a6f4c5; color: #067647; background: #ecfdf3; }
+.ido-ai-activity-badge.is-failed { border-color: #fecdca; color: #b42318; background: #fef3f2; }
+
+.ido-ai-activity-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 6px 4px 0;
+  color: var(--ui-gray-600);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.ido-ai-activity-toggle:hover { color: var(--ui-gray-900); }
+.ido-ai-activity-toggle .app-icon { transition: transform var(--dur-fast) var(--ease-out); }
+.ido-ai-activity-toggle .app-icon.is-open { transform: rotate(180deg); }
+
+.ido-ai-activity-details { overflow: hidden; }
+.ido-ai-activity-details dl { display: flex; flex-direction: column; margin: 8px 0 0; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; }
+.ido-ai-activity-details dl > div { display: grid; grid-template-columns: minmax(0, auto) minmax(0, 1fr); gap: 12px; padding: 9px 12px; border-bottom: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
+.ido-ai-activity-details dl > div:last-child { border-bottom: 0; }
+.ido-ai-activity-details dt { color: var(--ui-gray-500); font-size: 12px; white-space: nowrap; }
+.ido-ai-activity-details dd { display: flex; flex-direction: column; gap: 2px; margin: 0; min-width: 0; }
+.ido-ai-activity-details dd span { color: var(--ui-gray-900); font-size: 13px; font-weight: 500; }
+.ido-ai-activity-details dd small { color: var(--ui-gray-600); font-size: 12px; line-height: 1.5; }
+.ido-ai-activity-details dd em { color: #b42318; font-size: 12px; font-style: normal; }
+
+.ido-ai-activity-progress { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: var(--ui-gray-600); font-size: 13px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ido-ai-reasoning-grid i, .ido-ai-shimmer { animation: none; }
+  .ido-ai-shimmer { color: var(--ui-gray-700); -webkit-text-fill-color: currentColor; }
+}
