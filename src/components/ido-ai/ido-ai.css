@@ -60,15 +60,6 @@
   .ido-ai-backdrop { display: none; }
 }
 
-.ido-ai-header {
-  display: flex;
-  min-height: 72px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid #e4e7ec;
-}
 .ido-ai-identity { display: flex; min-width: 0; align-items: center; gap: 10px; }
 .ido-ai-mark, .ido-ai-message-mark {
   display: grid;
@@ -81,37 +72,8 @@
 .ido-ai-mark svg { width: 22px; height: 22px; }
 .ido-ai-identity > span:last-child { display: flex; min-width: 0; flex-direction: column; }
 .ido-ai-identity strong { font-size: 14px; font-weight: 650; line-height: 20px; }
-.ido-ai-identity small { display: flex; align-items: center; gap: 6px; color: #667085; font-size: 12px; }
-.ido-ai-identity small i { width: 6px; height: 6px; border-radius: 50%; background: #17b26a; box-shadow: 0 0 0 2px #ecfdf3; }
 .ido-ai-header-actions { display: flex; gap: 4px; }
-.ido-ai-header-actions button {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border: 0;
-  border-radius: 8px;
-  color: #667085;
-  background: transparent;
-  cursor: pointer;
-}
-.ido-ai-header-actions button:hover { color: #344054; background: #f2f4f7; }
 
-.ido-ai-history { position: absolute; inset: 72px 0 0; z-index: 4; display: flex; flex-direction: column; padding: 16px; background: #fcfcfd; }
-.ido-ai-history > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.ido-ai-history > header div { display: flex; flex-direction: column; gap: 3px; }
-.ido-ai-history > header strong { color: #101828; font-size: 16px; }
-.ido-ai-history > header span { color: #667085; font-size: 12px; }
-.ido-ai-history > header button { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 7px; color: #667085; background: transparent; cursor: pointer; }
-.ido-ai-new-chat { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 1px solid #101828; border-radius: 8px; color: white; background: #101828; font-size: 12px; font-weight: 650; cursor: pointer; }
-.ido-ai-history-list { display: grid; gap: 7px; margin-top: 14px; overflow-y: auto; }
-.ido-ai-history-list > button { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 11px 12px; color: #344054; background: white; text-align: left; cursor: pointer; }
-.ido-ai-history-list > button:hover, .ido-ai-history-list > button.is-selected { border-color: #98a2b3; background: #f9fafb; }
-.ido-ai-history-list > button > span:first-child { display: flex; min-width: 0; flex-direction: column; gap: 3px; }
-.ido-ai-history-list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.ido-ai-history-list small { color: #667085; font-size: 12px; }
-.ido-ai-history-list > button > span:last-child { flex: 0 0 auto; border-radius: 999px; padding: 3px 6px; color: #667085; background: #f2f4f7; font-size: 12px; text-transform: capitalize; }
-.ido-ai-history-list > p { margin-top: 24px; color: #667085; font-size: 12px; text-align: center; }
 
 .ido-ai-delete-confirm { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #fecdca; background: #fef3f2; }
 .ido-ai-delete-confirm > div { display: flex; flex-direction: column; }
@@ -129,7 +91,6 @@
 .ido-ai-message-mark svg { width: 15px; height: 15px; }
 .ido-ai-message > div { max-width: 82%; }
 .ido-ai-message > div > strong { display: block; margin: 0 0 4px; color: #667085; font-size: 12px; font-weight: 600; }
-.ido-ai-message > div > p, .ido-ai-message-body { border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 10px 12px; color: #344054; background: white; font-size: 12px; line-height: 1.55; }
 .ido-ai-message-body > :first-child { margin-top: 0; }
 .ido-ai-message-body > :last-child { margin-bottom: 0; }
 .ido-ai-message-body p + p, .ido-ai-message-body p + ul, .ido-ai-message-body p + ol, .ido-ai-message-body ul + p, .ido-ai-message-body ol + p { margin-top: 8px; }
@@ -167,13 +128,10 @@
 .ido-ai-choices button span { color: #98a2b3; font-size: 16px; }
 .ido-ai-answer { margin-top: 16px; padding-top: 14px; border-top: 1px solid #eaecf0; }
 .ido-ai-answer label { display: block; margin-bottom: 6px; color: #344054; font-size: 12px; font-weight: 600; }
-.ido-ai-answer textarea, .ido-ai-composer textarea { width: 100%; resize: none; border: 1px solid #d0d5dd; border-radius: 8px; padding: 9px 10px; color: #101828; background: white; font: inherit; font-size: 12px; line-height: 1.5; }
-.ido-ai-answer textarea::placeholder, .ido-ai-composer textarea::placeholder { color: #98a2b3; }
-.ido-ai-answer > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; }
+.ido-ai-answer textarea, .ido-ai-answer textarea::placeholder, .ido-ai-answer > div { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; }
 .ido-ai-answer button, .ido-ai-action-buttons button { min-height: 34px; border: 1px solid #d0d5dd; border-radius: 7px; padding: 0 11px; color: #344054; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-answer button[type="submit"], .ido-ai-action-buttons button:last-child { border-color: #101828; color: white; background: #101828; }
-.ido-ai-answer button:disabled, .ido-ai-composer button:disabled { cursor: not-allowed; opacity: .4; }
-
+.ido-ai-answer button:disabled, 
 .ido-ai-batch { margin: 18px 0; overflow: hidden; border: 1px solid #e4e7ec; border-radius: 11px; background: white; }
 .ido-ai-batch-heading { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-bottom: 1px solid #e4e7ec; background: #f9fafb; }
 .ido-ai-batch-heading span { color: #6941c6; font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
@@ -214,11 +172,6 @@
 .ido-ai-suggestions button { border: 1px solid #d0d5dd; border-radius: 7px; padding: 6px 9px; color: #344054; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-suggestions button:last-child { border-color: #101828; color: #fff; background: #101828; }
 
-.ido-ai-composer { flex: 0 0 auto; padding: 12px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e4e7ec; background: white; }
-.ido-ai-composer textarea { min-height: 22px; max-height: 100px; overflow-y: auto; border: 0; padding: 2px; box-shadow: none; }
-.ido-ai-composer > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.ido-ai-composer span { color: #98a2b3; font-size: 12px; }
-.ido-ai-composer button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }
 
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 
@@ -229,9 +182,7 @@
 @media (max-width: 760px) {
   .ido-ai-workspace { margin-left: 0; }
   .ido-ai-panel { top: 0; width: 100%; border-left: 0; box-shadow: none; }
-  .ido-ai-header { min-height: 62px; padding-top: max(10px, env(safe-area-inset-top)); }
-  .ido-ai-history { top: 62px; }
-  .ido-ai-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 46px; }
+      .ido-ai-launcher { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); height: 46px; }
   .ido-ai-backdrop { display: none; }
   .ido-ai-scroll { padding-inline: 14px; }
 }
@@ -243,3 +194,245 @@
 
 @keyframes ido-ai-spin { to { transform: rotate(360deg); } }
 @keyframes ido-ai-shimmer { to { background-position: -240% 0; } }
+
+
+/* ==========================================================================
+   I Do AI — chat surface
+   ========================================================================== */
+.ido-ai-header {
+  display: flex;
+  min-height: 60px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-gray-200);
+  background: white;
+}
+
+.ido-ai-identity { display: flex; min-width: 0; flex: 1; align-items: center; gap: 9px; }
+.ido-ai-identity strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.ido-ai-mark { width: 28px; height: 28px; border-radius: 8px; }
+.ido-ai-mark svg { width: 17px; height: 17px; }
+.ido-ai-header-actions { display: flex; flex: 0 0 auto; gap: 2px; }
+
+.ido-ai-icon-button {
+  position: relative;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ui-gray-500);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ido-ai-icon-button:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
+.ido-ai-icon-button:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+.ido-ai-icon-button input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ido-ai-icon-button.is-listening { color: white; background: var(--ui-gray-900); }
+.ido-ai-icon-button.is-listening::after {
+  position: absolute;
+  inset: -3px;
+  border-radius: 10px;
+  box-shadow: 0 0 0 0 rgba(16, 24, 40, .28);
+  content: "";
+  animation: ido-ai-listening 1.6s ease-out infinite;
+}
+@keyframes ido-ai-listening {
+  to { box-shadow: 0 0 0 8px rgba(16, 24, 40, 0); }
+}
+
+/* ---- Bubbles ------------------------------------------------------------- */
+.ido-ai-message { margin-bottom: 18px; animation: ido-ai-message-in 260ms var(--ease-out) both; }
+@keyframes ido-ai-message-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.ido-ai-message > div > strong { display: block; margin: 0 0 5px; color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
+.ido-ai-message.is-user > div > strong { text-align: right; }
+
+/* The assistant speaks in the page's own voice: no bubble, just text. The
+   person's own words get the solid bubble so the thread reads as a dialogue. */
+.ido-ai-message.is-assistant > div > p,
+.ido-ai-message-body {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ido-ai-message.is-user > div { max-width: 86%; }
+.ido-ai-message.is-user > div > p {
+  border: 0;
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  color: white;
+  background: var(--ui-gray-900);
+  font-size: 14px;
+  line-height: 1.55;
+}
+.ido-ai-message.is-user.is-failed > div > p { background: #b42318; }
+
+.ido-ai-message-mark { width: 26px; height: 26px; border-radius: 8px; }
+.ido-ai-thinking-bubble { width: auto; border: 0; border-radius: 14px; padding: 10px 14px; background: var(--ui-gray-100); }
+
+/* ---- Composer ------------------------------------------------------------ */
+.ido-ai-composer { flex: 0 0 auto; padding: 12px; border-top: 1px solid var(--ui-gray-200); background: white; }
+
+.ido-ai-composer-field {
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 14px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ido-ai-composer-field:focus-within { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
+
+.ido-ai-composer-field textarea {
+  display: block;
+  width: 100%;
+  max-height: 140px;
+  min-height: 44px;
+  resize: none;
+  border: 0;
+  border-radius: 14px 14px 0 0;
+  padding: 12px 14px 4px;
+  color: var(--ui-gray-900);
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: none;
+}
+.ido-ai-composer-field textarea:focus-visible { outline: none; box-shadow: none; }
+.ido-ai-composer-field textarea::placeholder { color: var(--ui-gray-500); }
+
+.ido-ai-composer-actions { display: flex; align-items: center; gap: 2px; padding: 4px 6px 6px; }
+.ido-ai-composer-hint { flex: 1; padding-left: 6px; color: var(--ui-gray-400); font-size: 12px; text-align: right; }
+
+.ido-ai-send {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  color: white;
+  background: var(--ui-gray-900);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.ido-ai-send:hover:not(:disabled) { background: var(--ui-gray-700); }
+.ido-ai-send:active:not(:disabled) { transform: scale(.94); }
+.ido-ai-send:disabled { color: var(--ui-gray-400); background: var(--ui-gray-100); cursor: not-allowed; }
+.ido-ai-send:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
+
+.ido-ai-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; list-style: none; }
+.ido-ai-attachments li { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ui-gray-200); border-radius: 999px; padding: 4px 6px 4px 10px; color: var(--ui-gray-700); background: var(--ui-gray-50); font-size: 12px; }
+.ido-ai-attachments button { display: grid; width: 18px; height: 18px; place-items: center; border: 0; border-radius: 50%; color: var(--ui-gray-500); background: transparent; cursor: pointer; }
+.ido-ai-attachments button:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
+
+/* ---- History: an overlay across the whole widget ------------------------- */
+.ido-ai-history {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform 260ms var(--ease-out), visibility 260ms;
+}
+.ido-ai-history.is-open { transform: translateX(0); visibility: visible; }
+
+.ido-ai-history > header {
+  display: flex;
+  min-height: 60px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-gray-200);
+}
+.ido-ai-history > header strong { font-size: 14px; font-weight: 600; }
+
+.ido-ai-history-body { flex: 1; overflow-y: auto; padding: 12px; }
+
+.ido-ai-new-chat {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  border: 1px solid var(--ui-gray-900);
+  border-radius: 10px;
+  color: white;
+  background: var(--ui-gray-900);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.ido-ai-new-chat:hover { background: var(--ui-gray-700); }
+
+.ido-ai-history-list { display: flex; flex-direction: column; gap: 2px; }
+.ido-ai-history-row { display: flex; align-items: center; gap: 2px; border-radius: 9px; transition: background var(--dur-fast) var(--ease-out); }
+.ido-ai-history-row:hover { background: var(--ui-gray-50); }
+.ido-ai-history-row.is-selected { background: var(--ui-gray-100); }
+.ido-ai-history-row > button:first-child {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 10px;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ido-ai-history-title { overflow: hidden; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+.ido-ai-history-meta { color: var(--ui-gray-500); font-size: 12px; }
+
+.ido-ai-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  place-items: center;
+  margin-right: 6px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ui-gray-400);
+  background: transparent;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.ido-ai-history-row:hover .ido-ai-pin,
+.ido-ai-pin:focus-visible,
+.ido-ai-pin.is-pinned { opacity: 1; }
+.ido-ai-pin.is-pinned { color: var(--ui-gray-900); }
+.ido-ai-pin:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
+
+.ido-ai-history-empty { padding: 24px 4px; color: var(--ui-gray-500); font-size: 14px; text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ido-ai-message { animation: none; }
+  .ido-ai-history { transition: visibility 0s; }
+  .ido-ai-icon-button.is-listening::after { animation: none; }
+}

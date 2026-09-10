@@ -2,6 +2,15 @@
 import type { ComponentType, SVGAttributes } from 'react'
 import {
   Airplane,
+  ArrowLeft as PhArrowLeft,
+  ArrowUp as PhArrowUp,
+  ChatsCircle,
+  Microphone as PhMicrophone,
+  Paperclip as PhPaperclip,
+  PushPin as PhPushPin,
+  SidebarSimple as PhSidebarSimple,
+  Sparkle as PhSparkle,
+  Stop as PhStop,
   Chair,
   ArrowCounterClockwise,
   ArrowDownLeft as PhArrowDownLeft,
@@ -93,6 +102,15 @@ function icon(Component: PhosphorIcon, extraClass = '') {
   }
 }
 
+export const ArrowLeft = icon(PhArrowLeft)
+export const ArrowUp = icon(PhArrowUp)
+export const Chats = icon(ChatsCircle)
+export const Microphone = icon(PhMicrophone)
+export const Paperclip = icon(PhPaperclip)
+export const PushPin = icon(PhPushPin)
+export const SidebarSimple = icon(PhSidebarSimple)
+export const Sparkle = icon(PhSparkle)
+export const Stop = icon(PhStop)
 export const AlignJustify = icon(TextAlignJustify)
 export const Armchair = icon(Chair)
 export const ArrowDownLeft = icon(PhArrowDownLeft)

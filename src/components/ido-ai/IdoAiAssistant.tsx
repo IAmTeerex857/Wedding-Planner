@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Check, Clock3, Plus, Trash2, X } from '../Icon'
+import { ArrowUp, Check, Chats, Microphone, Paperclip, Plus, PushPin, SidebarSimple, Stop, Trash2, X } from '../Icon'
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
+import { useDictation } from '../../lib/use-dictation'
 import './ido-ai.css'
 
 const PANEL_KEY = 'wedding-planner:ido-ai-panel:v2'
@@ -29,6 +30,11 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const [composer, setComposer] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [attachments, setAttachments] = useState<File[]>([])
+  // Pinning is a per-person convenience, so it lives with the viewer.
+  const [pinned, setPinned] = useState<string[]>(() => {
+    try { return JSON.parse(window.localStorage.getItem(`${PANEL_KEY}:pinned`) ?? '[]') as string[] } catch { return [] }
+  })
   const [selectedConversationId, setSelectedConversationId] = useState<string | null | undefined>(undefined)
   const [optimisticMessage, setOptimisticMessage] = useState<{ id: string; body: string; failed: boolean } | null>(null)
   const [onboardingSteps, setOnboardingSteps] = useState<Record<string, number>>(() => ({ [workspace.id]: Number(window.localStorage.getItem(`${PANEL_KEY}:${workspace.id}:step`) ?? 0) }))
@@ -47,6 +53,7 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   const question = shouldOnboard && onboardingStep < onboardingQuestions.length ? onboardingQuestions[onboardingStep] : null
 
   useEffect(() => { window.localStorage.setItem(PANEL_KEY, open ? 'open' : 'closed') }, [open])
+  useEffect(() => { window.localStorage.setItem(`${PANEL_KEY}:pinned`, JSON.stringify(pinned)) }, [pinned])
   const sendMutation = useMutation({
     mutationFn: ({ content, requestId, conversationId }: { content: string; requestId: string; conversationId: string }) => sendIdoAiMessage(workspace.id, conversationId, content, requestId),
     onSuccess: async (result) => { setSelectedConversationId(result.conversationId); await queryClient.invalidateQueries({ queryKey: ['ido-ai', workspace.id] }); setOptimisticMessage(null) },
@@ -72,14 +79,18 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
   function submitMessage(input: string, onboarding = false) {
     const value = input.trim()
     if (!value || sendMutation.isPending) return
-    const content = onboarding && question ? `Onboarding answer for “${question.prompt}”: ${value}` : value
-    if (isPreview) { setComposer(''); setAnswer(''); if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 })); return }
+    const referenced = attachments.length ? `
+
+Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
+    const content = (onboarding && question ? `Onboarding answer for “${question.prompt}”: ${value}` : value) + referenced
+    if (isPreview) { setComposer(''); setAnswer(''); setAttachments([]); if (onboarding) setOnboardingSteps((steps) => ({ ...steps, [workspace.id]: onboardingStep + 1 })); return }
     const requestId = crypto.randomUUID()
     const conversationId = state.conversationId ?? crypto.randomUUID()
     setSelectedConversationId(conversationId)
     setOptimisticMessage({ id: requestId, body: content, failed: false })
     setComposer('')
     setAnswer('')
+    setAttachments([])
     sendMutation.mutate({ content, requestId, conversationId })
     if (onboarding && question) advanceOnboarding(value)
   }
@@ -97,6 +108,8 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     setComposer('')
     setHistoryOpen(false)
   }
+
+  const dictation = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
 
   const isThinking = Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
   const timeline: TimelineItem[] = [
@@ -118,9 +131,26 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
     {!open && <button className="ido-ai-launcher" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>}
     {open && <button className="ido-ai-backdrop" type="button" aria-label="Close I Do AI" onClick={() => setOpen(false)} />}
     <aside className="ido-ai-panel" ref={panelRef} aria-label="I Do AI assistant" aria-hidden={!open} tabIndex={-1}>
-      <header className="ido-ai-header"><div className="ido-ai-identity"><span className="ido-ai-mark"><SparkleMark /></span><span><strong>I Do AI</strong><small><i /> Wedding planning agent</small></span></div><div className="ido-ai-header-actions"><button type="button" onClick={startNewConversation} aria-label="Start new conversation"><Plus size={18} /></button><button type="button" onClick={() => setHistoryOpen((value) => !value)} aria-label="Conversation history"><Clock3 size={17} /></button>{state.conversationId && <button type="button" onClick={() => setConfirmDelete(true)} aria-label="Archive conversation"><Trash2 size={17} /></button>}<button type="button" onClick={() => setOpen(false)} aria-label="Close I Do AI"><X size={18} /></button></div></header>
+      <header className="ido-ai-header">
+        <button className="ido-ai-icon-button" type="button" onClick={() => setHistoryOpen(true)} aria-label="Chat history"><Chats size={18} /></button>
+        <div className="ido-ai-identity"><span className="ido-ai-mark"><SparkleMark /></span><strong>I Do AI</strong></div>
+        <div className="ido-ai-header-actions">
+          <button className="ido-ai-icon-button" type="button" onClick={startNewConversation} aria-label="Start new conversation"><Plus size={18} /></button>
+          {state.conversationId && <button className="ido-ai-icon-button" type="button" onClick={() => setConfirmDelete(true)} aria-label="Archive conversation"><Trash2 size={17} /></button>}
+          <button className="ido-ai-icon-button" type="button" onClick={() => setOpen(false)} aria-label="Close I Do AI"><SidebarSimple size={18} /></button>
+        </div>
+      </header>
       {confirmDelete && <div className="ido-ai-delete-confirm" role="alert"><div><strong>Archive this conversation?</strong><span>You can reopen it from chat history.</span></div><button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button><button type="button" disabled={archiveMutation.isPending} onClick={() => archiveMutation.mutate()}>Archive</button></div>}
-      {historyOpen && <ConversationHistory conversations={state.conversations} selectedId={state.conversationId} onNew={startNewConversation} onSelect={(id) => { setSelectedConversationId(id); setHistoryOpen(false); setOptimisticMessage(null) }} onClose={() => setHistoryOpen(false)} />}
+      <ConversationHistory
+        open={historyOpen}
+        conversations={state.conversations}
+        selectedId={state.conversationId}
+        pinned={pinned}
+        onTogglePin={(id) => setPinned((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])}
+        onNew={() => { startNewConversation(); setHistoryOpen(false) }}
+        onSelect={(id) => { setSelectedConversationId(id); setHistoryOpen(false); setOptimisticMessage(null) }}
+        onClose={() => setHistoryOpen(false)}
+      />
       <div className="ido-ai-scroll" ref={scrollRef} aria-live="polite">
         <div className="ido-ai-date"><span>Today</span></div>
         <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
@@ -135,17 +165,98 @@ export function IdoAiWorkspace({ children }: { children: ReactNode }) {
         {state.suggestions.length > 0 && <section className="ido-ai-suggestions"><header><span>Needs attention</span><strong>{state.suggestions.length} planning suggestion{state.suggestions.length === 1 ? '' : 's'}</strong></header>{state.suggestions.map((suggestion) => <article key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.body}</p></div><div><button type="button" onClick={() => suggestionMutation.mutate(suggestion.id)}>Dismiss</button><button type="button" onClick={() => submitMessage(`Help me with this suggestion: ${suggestion.title}. ${suggestion.body}`)}>Discuss</button></div></article>)}</section>}
         {question && <section className="ido-ai-question" aria-labelledby="ido-ai-question-title"><div className="ido-ai-question-progress"><span>{question.eyebrow}</span><strong>{onboardingStep + 1} of {onboardingQuestions.length}</strong></div><div className="ido-ai-progress-track" aria-hidden="true"><span style={{ width: `${((onboardingStep + 1) / onboardingQuestions.length) * 100}%` }} /></div><h2 id="ido-ai-question-title">{question.prompt}</h2><p>{question.helper}</p><div className="ido-ai-choices">{question.options.map((option) => <button type="button" disabled={sendMutation.isPending} key={option} onClick={() => submitMessage(option, true)}>{option}<span aria-hidden="true">→</span></button>)}</div><form className="ido-ai-answer" onSubmit={(event) => { event.preventDefault(); submitMessage(answer, true) }}><label htmlFor="ido-ai-answer">Something else</label><textarea id="ido-ai-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, answer, true)} placeholder="Describe what you have in mind..." rows={3} /><div><button type="button" disabled={onboardingMutation.isPending} onClick={() => advanceOnboarding(null)}>Skip for now</button><button type="submit" disabled={!answer.trim() || sendMutation.isPending}>Continue</button></div></form>{onboardingMutation.error && <p className="ido-ai-error">{onboardingMutation.error.message}</p>}</section>}
       </div>
-      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}><label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label><textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder="Ask I Do AI anything..." /><div><span>Enter to send · Shift + Enter for a new line</span><button type="submit" disabled={!composer.trim() || sendMutation.isPending || isPreview} aria-label="Send message">↑</button></div></form>
+      <form className="ido-ai-composer" onSubmit={(event: FormEvent) => { event.preventDefault(); submitMessage(composer) }}>
+        {attachments.length > 0 && (
+          <ul className="ido-ai-attachments">
+            {attachments.map((file, index) => (
+              <li key={`${file.name}-${index}`}>
+                <Paperclip size={13} />
+                <span>{file.name}</span>
+                <button type="button" aria-label={`Remove ${file.name}`} onClick={() => setAttachments((current) => current.filter((_, position) => position !== index))}><X size={12} /></button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="ido-ai-composer-field">
+          <label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label>
+          <textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder={dictation.listening ? 'Listening...' : 'Ask I Do AI anything'} />
+          <div className="ido-ai-composer-actions">
+            <label className="ido-ai-icon-button" title="Attach a file">
+              <Paperclip size={17} />
+              <span className="sr-only">Attach a file</span>
+              <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { setAttachments((current) => [...current, ...Array.from(event.target.files ?? [])]); event.currentTarget.value = '' }} />
+            </label>
+            {dictation.supported && (
+              <button
+                className={`ido-ai-icon-button${dictation.listening ? ' is-listening' : ''}`}
+                type="button"
+                title={dictation.listening ? 'Stop listening' : 'Dictate a message'}
+                aria-pressed={dictation.listening}
+                onClick={dictation.toggle}
+              >
+                {dictation.listening ? <Stop size={16} /> : <Microphone size={17} />}
+                <span className="sr-only">{dictation.listening ? 'Stop listening' : 'Dictate a message'}</span>
+              </button>
+            )}
+            <span className="ido-ai-composer-hint">Enter to send</span>
+            <button className="ido-ai-send" type="submit" disabled={!composer.trim() || sendMutation.isPending} aria-label="Send message"><ArrowUp size={17} /></button>
+          </div>
+        </div>
+        {dictation.error && <p className="ido-ai-error" role="alert">{dictation.error}</p>}
+      </form>
     </aside>
   </div>
 }
 
-function ConversationHistory({ conversations, selectedId, onNew, onSelect, onClose }: { conversations: IdoAiConversation[]; selectedId: string | null; onNew: () => void; onSelect: (id: string) => void; onClose: () => void }) {
-  return <section className="ido-ai-history" aria-label="Conversation history">
-    <header><div><strong>Chat history</strong><span>Return to an earlier planning conversation.</span></div><button type="button" onClick={onClose} aria-label="Close history"><X size={18} /></button></header>
-    <button className="ido-ai-new-chat" type="button" onClick={onNew}><Plus size={16} /> New chat</button>
-    <div className="ido-ai-history-list">{conversations.length ? conversations.map((conversation) => <button className={conversation.id === selectedId ? 'is-selected' : ''} type="button" key={conversation.id} onClick={() => onSelect(conversation.id)}><span><strong>{conversation.title}</strong><small>{formatConversationDate(conversation.updatedAt)}</small></span><span>{conversation.status}</span></button>) : <p>No previous conversations yet.</p>}</div>
-  </section>
+function ConversationHistory({ open, conversations, selectedId, pinned, onTogglePin, onNew, onSelect, onClose }: {
+  open: boolean
+  conversations: IdoAiConversation[]
+  selectedId: string | null
+  pinned: string[]
+  onTogglePin: (id: string) => void
+  onNew: () => void
+  onSelect: (id: string) => void
+  onClose: () => void
+}) {
+  // Pinned first, then most recent. The panel covers the whole widget rather
+  // than sitting inside it, so there is one way out instead of two.
+  const ordered = [...conversations].sort((left, right) => {
+    const pinnedDelta = Number(pinned.includes(right.id)) - Number(pinned.includes(left.id))
+    return pinnedDelta || right.updatedAt.localeCompare(left.updatedAt)
+  })
+
+  return (
+    <section className={`ido-ai-history${open ? ' is-open' : ''}`} aria-label="Chat history" aria-hidden={!open} inert={!open || undefined}>
+      <header>
+        <button className="ido-ai-icon-button" type="button" onClick={onClose} aria-label="Close chat history"><SidebarSimple size={18} /></button>
+        <strong>Chats</strong>
+      </header>
+      <div className="ido-ai-history-body">
+        <button className="ido-ai-new-chat" type="button" onClick={onNew}><Plus size={16} /> New chat</button>
+        {ordered.length ? (
+          <div className="ido-ai-history-list">
+            {ordered.map((conversation) => (
+              <div className={`ido-ai-history-row${conversation.id === selectedId ? ' is-selected' : ''}`} key={conversation.id}>
+                <button type="button" onClick={() => onSelect(conversation.id)}>
+                  <span className="ido-ai-history-title">{conversation.title}</span>
+                  <span className="ido-ai-history-meta">{formatConversationDate(conversation.updatedAt)}</span>
+                </button>
+                <button
+                  className={`ido-ai-pin${pinned.includes(conversation.id) ? ' is-pinned' : ''}`}
+                  type="button"
+                  aria-pressed={pinned.includes(conversation.id)}
+                  aria-label={pinned.includes(conversation.id) ? `Unpin ${conversation.title}` : `Pin ${conversation.title}`}
+                  onClick={() => onTogglePin(conversation.id)}
+                ><PushPin size={14} /></button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="ido-ai-history-empty">Conversations you start will be listed here.</p>
+        )}
+      </div>
+    </section>
+  )
 }
 
 function formatConversationDate(value: string) {
