@@ -42,7 +42,7 @@
   border-left: 1px solid #e4e7ec;
   color: #101828;
   background: #fff;
-  box-shadow: -8px 0 28px rgba(16, 24, 40, .08);
+  box-shadow: -1px 0 0 rgba(16, 24, 40, .04);
   transform: translateX(100%);
   visibility: hidden;
   transition: transform 120ms ease-out, visibility 120ms;
@@ -177,7 +177,7 @@
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 
 @media (max-width: 1000px) {
-  .ido-ai-backdrop { background: rgba(16, 24, 40, .35); backdrop-filter: blur(3px); }
+  .ido-ai-backdrop { background: rgba(16, 24, 40, .28); }
 }
 
 @media (max-width: 760px) {
@@ -250,8 +250,6 @@
 /* ---- Bubbles ------------------------------------------------------------- */
 .ido-ai-message { margin-bottom: 18px; }
 
-.ido-ai-message > div > strong { display: block; margin: 0 0 5px; color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
-.ido-ai-message.is-user > div > strong { text-align: right; }
 
 /* The assistant speaks in the page's own voice: no bubble, just text. The
    person's own words get the solid bubble so the thread reads as a dialogue. */
@@ -439,21 +437,20 @@
 
 /* ---- Listening: a live waveform, not a stop sign ------------------------- */
 .ido-ai-wave { display: flex; align-items: center; gap: 2px; height: 17px; }
+/* Heights come from the microphone analyser via --l1..--l4, so the meter is
+   still when the room is. A short transition smooths the frame-to-frame step
+   without hiding the silence. */
 .ido-ai-wave i {
   display: block;
   width: 2px;
-  height: 4px;
   border-radius: 999px;
   background: currentColor;
-  animation: ido-ai-wave 900ms var(--ease-in-out, ease-in-out) infinite;
+  transition: height 80ms linear;
 }
-.ido-ai-wave i:nth-child(2) { animation-delay: 140ms; }
-.ido-ai-wave i:nth-child(3) { animation-delay: 280ms; }
-.ido-ai-wave i:nth-child(4) { animation-delay: 420ms; }
-@keyframes ido-ai-wave {
-  0%, 100% { height: 4px; }
-  50% { height: 15px; }
-}
+.ido-ai-wave i:nth-child(1) { height: calc(3px + (var(--l1, 0) * 12px)); }
+.ido-ai-wave i:nth-child(2) { height: calc(3px + (var(--l2, 0) * 12px)); }
+.ido-ai-wave i:nth-child(3) { height: calc(3px + (var(--l3, 0) * 12px)); }
+.ido-ai-wave i:nth-child(4) { height: calc(3px + (var(--l4, 0) * 12px)); }
 
 /* ---- History: New chat reads as a tab, matching the nav ------------------ */
 .ido-ai-new-chat {
@@ -479,5 +476,23 @@
 .ido-ai-new-chat:focus-visible { outline: 2px solid var(--ui-gray-900); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ido-ai-wave i { animation: none; height: 10px; }
+  .ido-ai-wave i { transition: none; }
 }
+
+
+/* The side of the thread already says who spoke, so the person's own messages
+   carry only a time. The assistant keeps its name because it is not obvious. */
+.ido-ai-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 5px;
+  color: var(--ui-gray-500);
+  font-size: 12px;
+}
+.ido-ai-message-meta strong { color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
+.ido-ai-message.is-user .ido-ai-message-meta { justify-content: flex-end; }
+
+/* The time sits under the message it belongs to. */
+.ido-ai-message-time { display: block; margin-top: 5px; color: var(--ui-gray-400); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ido-ai-message.is-user .ido-ai-message-time { text-align: right; }

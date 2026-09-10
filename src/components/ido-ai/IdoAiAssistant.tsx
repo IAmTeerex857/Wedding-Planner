@@ -129,7 +129,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
   // opening needs no bookkeeping.
   const [openedAt] = useState(() => new Date().toISOString())
   const reduced = useReducedMotion()
-  const dictation = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
+  const { supported: canDictate, listening: isListening, error: dictationError, waveRef, toggle: toggleDictation } = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
 
   const activeConversation = state.conversations.find((conversation) => conversation.id === state.conversationId)
   const conversationTitle = activeConversation?.title?.trim() || 'New conversation'
@@ -179,14 +179,14 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
       />
       <div className="ido-ai-scroll" ref={scrollRef} aria-live="polite">
         <div className="ido-ai-date"><span>Today</span></div>
-        <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
+        <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
         <AnimatePresence initial={false}>
         {timeline.map((item) => item.kind === 'message'
-          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit" layout>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{item.message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}</div></m.article>
+          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit" layout>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div>{item.message.role === 'assistant' && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
           : <BatchCard key={`batch:${item.id}`} batch={item.batch} pending={reviewMutation.isPending} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} onReview={(decision) => reviewMutation.mutate({ batchId: item.batch.id, decision })} />)}
         </AnimatePresence>
-        {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><strong>You</strong><p>{optimisticMessage.body}</p>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
-        {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
+        {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><p>{optimisticMessage.body}</p><time className="ido-ai-message-time">{formatMessageTime(new Date().toISOString())}</time>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
+        {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
         {stateQuery.isError && <p className="ido-ai-error">{stateQuery.error.message}</p>}
         {sendMutation.error && <p className="ido-ai-error">{sendMutation.error.message}</p>}
         {state.job && (state.job.kind !== 'agent_turn' || state.job.status === 'failed') && ['queued', 'running', 'failed'].includes(state.job.status) && <div className={`ido-ai-job is-${state.job.status}`}><span className="ido-ai-job-icon">{state.job.status === 'failed' ? '!' : <span className="ido-ai-spinner" />}</span><span><strong>{state.job.label}</strong><small>{state.job.detail}</small></span></div>}
@@ -207,7 +207,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         )}
         <div className="ido-ai-composer-field">
           <label className="sr-only" htmlFor="ido-ai-message">Message I Do AI</label>
-          <textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder={dictation.listening ? 'Listening...' : 'Ask I Do AI anything'} />
+          <textarea ref={composerRef} id="ido-ai-message" rows={1} value={composer} onChange={(event) => setComposer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, composer)} placeholder={isListening ? 'Listening...' : 'Ask I Do AI anything'} />
           <div className="ido-ai-composer-actions">
             <label className="ido-ai-icon-button" title="Attach a file">
               <Paperclip size={17} />
@@ -215,24 +215,24 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
               <input type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => { setAttachments((current) => [...current, ...Array.from(event.target.files ?? [])]); event.currentTarget.value = '' }} />
             </label>
             <span className="ido-ai-composer-spacer" />
-            {dictation.supported && (
+            {canDictate && (
               <button
-                className={`ido-ai-icon-button${dictation.listening ? ' is-listening' : ''}`}
+                className={`ido-ai-icon-button${isListening ? ' is-listening' : ''}`}
                 type="button"
-                title={dictation.listening ? 'Stop listening' : 'Dictate a message'}
-                aria-pressed={dictation.listening}
-                onClick={dictation.toggle}
+                title={isListening ? 'Stop listening' : 'Dictate a message'}
+                aria-pressed={isListening}
+                onClick={toggleDictation}
               >
-                {dictation.listening
-                  ? <span className="ido-ai-wave" aria-hidden="true"><i /><i /><i /><i /></span>
+                {isListening
+                  ? <span className="ido-ai-wave" ref={waveRef} aria-hidden="true"><i /><i /><i /><i /></span>
                   : <Microphone size={17} />}
-                <span className="sr-only">{dictation.listening ? 'Stop listening' : 'Dictate a message'}</span>
+                <span className="sr-only">{isListening ? 'Stop listening' : 'Dictate a message'}</span>
               </button>
             )}
             <m.button className="ido-ai-send" whileTap={reduced ? undefined : { scale: 0.92 }} transition={SPRING_PRESS} type="submit" disabled={!composer.trim() || sendMutation.isPending} aria-label="Send message"><ArrowUp size={17} /></m.button>
           </div>
         </div>
-        {dictation.error && <p className="ido-ai-error" role="alert">{dictation.error}</p>}
+        {dictationError && <p className="ido-ai-error" role="alert">{dictationError}</p>}
       </form>
     </aside>
   </div></LazyMotion>
@@ -299,6 +299,11 @@ function ConversationHistory({ reduced, open, conversations, selectedId, pinned,
       )}
     </AnimatePresence>
   )
+}
+
+/** The date divider already says the day, so a message only needs the time. */
+function formatMessageTime(value: string) {
+  return new Intl.DateTimeFormat('en-NG', { hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 }
 
 function formatConversationDate(value: string) {
