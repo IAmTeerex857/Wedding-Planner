@@ -83,7 +83,8 @@
 .ido-ai-delete-confirm button { border: 1px solid #fecdca; border-radius: 6px; padding: 6px 8px; color: #b42318; background: white; font-size: 12px; font-weight: 600; cursor: pointer; }
 .ido-ai-delete-confirm button:last-child { color: white; background: #d92d20; }
 
-.ido-ai-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 28px; background: #fcfcfd; }
+.ido-ai-scroll { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 18px 16px 28px; background: #fcfcfd; scrollbar-width: none; }
+.ido-ai-scroll::-webkit-scrollbar { display: none; }
 .ido-ai-date { display: flex; align-items: center; gap: 10px; margin: 2px 0 18px; color: #98a2b3; font-size: 12px; text-transform: uppercase; }
 .ido-ai-date::before, .ido-ai-date::after { height: 1px; flex: 1; background: #eaecf0; content: ""; }
 .ido-ai-message { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 16px; }
@@ -670,3 +671,11 @@
   .ido-ai-reasoning-grid i, .ido-ai-shimmer { animation: none; }
   .ido-ai-shimmer { color: var(--ui-gray-700); -webkit-text-fill-color: currentColor; }
 }
+
+
+/* A run of messages from the same speaker keeps the alignment without repeating
+   the mark, so the thread reads as one turn rather than several. */
+.ido-ai-message-mark.is-spacer { background: transparent; box-shadow: none; }
+
+/* The panel borrows the app's scrollbar rather than growing a native one. */
+.ido-ai-panel .fsb { position: absolute; right: 6px; z-index: 7; }

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUp, Check, ChevronDown, History, Microphone, NewChat, Paperclip, Plus, PushPin, SidebarSimple, Sparkle, Trash2, X } from '../Icon'
+import { ArrowUp, Check, ChevronDown, History, Microphone, NewChat, Paperclip, Plus, PushPin, SidebarSimple, Trash2, X } from '../Icon'
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import { useDictation } from '../../lib/use-dictation'
@@ -9,6 +9,7 @@ import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from '
 import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
 import { StreamingText } from './StreamingText'
 import { ReasoningText } from './ReasoningText'
+import { FloatingScrollbar } from '../FloatingScrollbar'
 import { Button } from '../Button'
 import './ido-ai.css'
 
@@ -170,6 +171,11 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
   ].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order)
 
 
+  // Consecutive messages from the same speaker share one attribution. Repeating
+  // the name above every card and reply reads as the conversation restarting.
+  const speakers = timeline.map((item) => item.kind === 'batch' ? 'assistant' : item.message.role)
+  const startsRun = (index: number) => index === 0 || speakers[index - 1] !== speakers[index]
+
   function sendOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>, value: string, onboarding = false) {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
@@ -206,9 +212,9 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         <div className="ido-ai-date"><span>Today</span></div>
         <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
         <AnimatePresence initial={false}>
-        {timeline.map((item) => item.kind === 'message'
-          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit">{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div>{item.message.role === 'assistant' && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
-          : <BatchCard key={`batch:${item.id}`} batch={item.batch} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} />)}
+        {timeline.map((item, index) => item.kind === 'message'
+          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit">{item.message.role === 'assistant' && (startsRun(index) ? <span className="ido-ai-message-mark"><SparkleMark /></span> : <span className="ido-ai-message-mark is-spacer" aria-hidden="true" />)}<div>{item.message.role === 'assistant' && startsRun(index) && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}<time className="ido-ai-message-time" dateTime={item.createdAt}>{formatMessageTime(item.createdAt)}</time></div></m.article>
+          : <BatchCard key={`batch:${item.id}`} showAttribution={startsRun(index)} batch={item.batch} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} />)}
         </AnimatePresence>
         {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><p>{optimisticMessage.body}</p><time className="ido-ai-message-time">{formatMessageTime(new Date().toISOString())}</time>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
         {isThinking && <article className="ido-ai-message is-assistant" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><span className="ido-ai-message-meta"><strong>I Do AI</strong></span><ReasoningText /></div></article>}
@@ -218,6 +224,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
         {state.suggestions.length > 0 && <section className="ido-ai-suggestions"><header><span>Needs attention</span><strong>{state.suggestions.length} planning suggestion{state.suggestions.length === 1 ? '' : 's'}</strong></header>{state.suggestions.map((suggestion) => <article key={suggestion.id}><div><strong>{suggestion.title}</strong><p>{suggestion.body}</p></div><div><button type="button" onClick={() => suggestionMutation.mutate(suggestion.id)}>Dismiss</button><button type="button" onClick={() => submitMessage(`Help me with this suggestion: ${suggestion.title}. ${suggestion.body}`)}>Discuss</button></div></article>)}</section>}
         {question && <section className="ido-ai-question" aria-labelledby="ido-ai-question-title"><div className="ido-ai-question-progress"><span>{question.eyebrow}</span><strong>{onboardingStep + 1} of {onboardingQuestions.length}</strong></div><div className="ido-ai-progress-track" aria-hidden="true"><span style={{ width: `${((onboardingStep + 1) / onboardingQuestions.length) * 100}%` }} /></div><h2 id="ido-ai-question-title">{question.prompt}</h2><p>{question.helper}</p><div className="ido-ai-choices">{question.options.map((option) => <button type="button" disabled={sendMutation.isPending} key={option} onClick={() => submitMessage(option, true)}>{option}<span aria-hidden="true">→</span></button>)}</div><form className="ido-ai-answer" onSubmit={(event) => { event.preventDefault(); submitMessage(answer, true) }}><label htmlFor="ido-ai-answer">Something else</label><textarea id="ido-ai-answer" value={answer} onChange={(event) => setAnswer(event.target.value)} onKeyDown={(event) => sendOnEnter(event, answer, true)} placeholder="Describe what you have in mind..." rows={3} /><div><button type="button" disabled={onboardingMutation.isPending} onClick={() => advanceOnboarding(null)}>Skip for now</button><button type="submit" disabled={!answer.trim() || sendMutation.isPending}>Continue</button></div></form>{onboardingMutation.error && <p className="ido-ai-error">{onboardingMutation.error.message}</p>}</section>}
       </div>
+      <FloatingScrollbar container={scrollRef} className="is-in-panel" />
       {pendingBatch ? (
         <ApprovalDock
           batch={pendingBatch}
@@ -353,7 +360,7 @@ function formatConversationDate(value: string) {
   return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(value))
 }
 
-function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: boolean; error?: string }) {
+function BatchCard({ batch, approving, error, showAttribution }: { batch: IdoAiBatch; approving: boolean; error?: string; showAttribution: boolean }) {
   const [expanded, setExpanded] = useState(false)
   const reduced = useReducedMotion()
   const isResearch = batch.actions.every((action) => action.destination === 'vendor research')
@@ -373,14 +380,11 @@ function BatchCard({ batch, approving, error }: { batch: IdoAiBatch; approving: 
 
   return (
     <article className="ido-ai-message is-assistant">
-      <span className="ido-ai-message-mark"><SparkleMark /></span>
+      {showAttribution ? <span className="ido-ai-message-mark"><SparkleMark /></span> : <span className="ido-ai-message-mark is-spacer" aria-hidden="true" />}
       <div>
-        <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>
+        {showAttribution && <span className="ido-ai-message-meta"><strong>I Do AI</strong></span>}
         <section className="ido-ai-activity" aria-labelledby={`ido-ai-batch-title-${batch.id}`}>
           <div className="ido-ai-activity-head">
-            <span className={`ido-ai-activity-icon is-${settled.toLowerCase().replace(' ', '-')}`}>
-              {settled === 'Applied' ? <Check size={15} /> : settled === 'Declined' ? <X size={15} /> : <Sparkle size={15} />}
-            </span>
             <div>
               <strong id={`ido-ai-batch-title-${batch.id}`}>{batch.summary}</strong>
               <code>{isResearch ? 'vendor.research' : `workspace.update · ${batch.actions.length} change${batch.actions.length === 1 ? '' : 's'}`}</code>
