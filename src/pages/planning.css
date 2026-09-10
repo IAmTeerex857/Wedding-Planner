@@ -19,13 +19,8 @@
 .status-select.status-tentative select { border-color: #d9c7ac; color: var(--planning-amber); background: #f7efd9 !important; }
 .ceremony-fields { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(260px, 1.5fr) minmax(120px, .5fr); gap: 14px; margin: 28px 0 0 54px; }
 .planning-field { display: flex; min-width: 0; flex-direction: column; gap: 7px; }
-.planning-field > span { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
-.planning-field small { margin-left: auto; color: var(--faint); font-size: 12px; font-weight: 500; text-transform: none; }
-.planning-field input, .planning-field select, .planning-field textarea { width: 100%; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--paper); font-size: 12px; }
-.planning-field input, .planning-field select { height: 42px; padding: 0 11px; }
-.planning-field textarea { min-height: 90px; resize: vertical; padding: 11px; line-height: 1.5; }
-.planning-field input::placeholder, .planning-field textarea::placeholder { color: #aaa9a3; }
-.planning-field input:focus, .planning-field select:focus, .planning-field textarea:focus { border-color: var(--ink); outline: 0; }
+.planning-field > span { display: flex; align-items: center; gap: 6px; }
+.planning-field small { margin-left: auto; }
 .segments-section { margin: 32px 0 0 54px; border: 1px solid var(--line); }
 .segments-header { display: flex; min-height: 75px; align-items: center; justify-content: space-between; gap: 20px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
 .segments-header .eyebrow { margin-bottom: 3px; }

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Armchair, Lock, Plus, Trash2, Unlock, Users } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { Modal } from '../components/Modal'
 import { Select } from '../components/Select'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
@@ -29,6 +30,7 @@ export function SeatingPage() {
   const [tableName, setTableName] = useState('')
   const [capacity, setCapacity] = useState('10')
   const [operationError, setOperationError] = useState('')
+  const [addTableOpen, setAddTableOpen] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<Table | null>(null)
 
   const ceremoniesQuery = useQuery({
@@ -136,6 +138,7 @@ export function SeatingPage() {
     if (isPreview) {
       setPreviewTables((current) => ({ ...current, [activeEvent]: [...(current[activeEvent] ?? []), { id: crypto.randomUUID(), name, capacity: tableCapacity, locked: false }] }))
       setTableName('')
+      setAddTableOpen(false)
       return
     }
     persistMutation.mutate({ type: 'add-table', name, capacity: tableCapacity }, { onSuccess: () => setTableName('') })
@@ -218,7 +221,26 @@ export function SeatingPage() {
     </header>
     {dataError && <p className="seating-data-error" role="alert">{dataError}</p>}
     <section className="seating-summary"><div><strong>{guests.length}</strong><span>Confirmed guests</span></div><div><strong>{guests.length - waiting.length}</strong><span>Seated</span></div><div><strong>{waiting.length}</strong><span>Waiting</span></div><div><strong>{tables.length}</strong><span>Tables</span></div></section>
-    <div className="seating-tools"><form onSubmit={addTable}><Armchair size={15} /><input required minLength={2} maxLength={100} value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="Table name" /><input type="number" required min="1" max="1000" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} aria-label="Capacity" /><button type="submit" disabled={busy || (!isPreview && !ceremony)}>{busy ? 'Saving...' : 'Add table'}</button></form></div>
+    <div className="seating-tools">
+      <button className="button primary" type="button" disabled={!isPreview && !ceremony} onClick={() => setAddTableOpen(true)}><Plus size={15} /> Add table</button>
+    </div>
+    {addTableOpen && (
+      <Modal
+        open
+        title="Add table"
+        description="Name the table and set how many guests it seats."
+        onClose={() => setAddTableOpen(false)}
+        footer={<>
+          <button className="button secondary" type="button" onClick={() => setAddTableOpen(false)}>Cancel</button>
+          <button className="button primary" type="submit" form="add-table-form" disabled={busy || !tableName.trim()}>{busy ? 'Saving...' : 'Add table'}</button>
+        </>}
+      >
+        <form className="seating-table-form" id="add-table-form" onSubmit={addTable}>
+          <label><span>Table name</span><input required minLength={2} maxLength={100} value={tableName} onChange={(change) => setTableName(change.target.value)} placeholder="e.g. Table 1, Family table" /></label>
+          <label><span>Capacity</span><input type="number" required min="1" max="1000" step="1" value={capacity} onChange={(change) => setCapacity(change.target.value)} /></label>
+        </form>
+      </Modal>
+    )}
     <div className="seating-workspace">
       <aside className="waiting-list">
         <header><div><p className="eyebrow">Waiting list</p><h2>Unseated guests</h2></div><span>{selected.length} selected</span></header>

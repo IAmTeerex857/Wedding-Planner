@@ -5,8 +5,7 @@
 .registry-form header button { display: grid; width: 32px; height: 32px; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: white; }
 .registry-form form { padding: 18px 20px; }
 .registry-form form > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-.registry-form label, .settings-grid label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 650; letter-spacing: .05em; text-transform: uppercase; }
-.registry-form input, .registry-form select, .settings-grid input, .settings-grid select { width: 100%; height: 40px; min-width: 0; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font-size: 12px; text-transform: none; }
+.registry-form label, .settings-grid label { display: flex; flex-direction: column; gap: 6px; }
 .registry-form footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
 .registry-panel { border: 1px solid var(--line); }
 .registry-panel > header { display: flex; min-height: 65px; align-items: center; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line); }

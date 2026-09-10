@@ -58,8 +58,8 @@ const planningNavigation = [
 
 /** Creating a record should never mean navigating to a page and hunting for a button. */
 const createActions = [
-  { to: '/tasks?new=1', label: 'Task', icon: ClipboardCheck },
   { to: '/ceremonies?new=1', label: 'Ceremony', icon: HeartHandshake },
+  { to: '/tasks?new=1', label: 'Task', icon: ClipboardCheck },
   { to: '/guests?new=1', label: 'Guest', icon: Users },
   { to: '/budget?new=1', label: 'Expense', icon: CircleDollarSign },
   { to: '/vendors?new=1', label: 'Vendor', icon: Store },

@@ -927,10 +927,10 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
    outside a page — the shared Modal portals to <body> — therefore got no
    sizing at all, and date/time inputs were never styled anywhere.
    ========================================================================== */
-.ui-page input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.ui-page input:where(:not([type="file"]),:not([type="checkbox"]),:not([type="radio"])),
 .ui-page select,
 .ui-page textarea,
-.ui-modal-panel input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.ui-modal-panel input:where(:not([type="file"]),:not([type="checkbox"]),:not([type="radio"])),
 .ui-modal-panel select,
 .ui-modal-panel textarea {
   width: 100%;
@@ -1468,7 +1468,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 
 /* Response tone belongs to the pill set, and "declined" was still magenta.
    Left unscoped because the modal portals to <body>, outside .ui-page. */
-.rsvp-select .ui-select-trigger { font-weight: 500; }
+
 .rsvp-select.attending .ui-select-trigger { border-color: #a6f4c5; color: #067647; background-color: #ecfdf3; }
 .rsvp-select.pending .ui-select-trigger { border-color: #fedf89; color: #b54708; background-color: #fffaeb; }
 .rsvp-select.declined .ui-select-trigger { border-color: #fecdca; color: #b42318; background-color: #fef3f2; }
@@ -1477,3 +1477,131 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 @media (max-width: 700px) {
   .ui-modal-panel .entry-rsvps { grid-template-columns: 1fr; }
 }
+
+
+/* ==========================================================================
+   ONE field system
+   Every labelled control in the app uses these rules. Six page stylesheets
+   used to define their own, with label weights of 650 in uppercase that the
+   inputs then inherited through `font: inherit` — which is why placeholders
+   and values read as bold, and why no two forms matched.
+   Change a field here, not in a page.
+   ========================================================================== */
+.ui-field,
+.planning-field,
+.logistics-field,
+.budget-field,
+.entry-fields label,
+.entry-rsvps label,
+.registry-form label,
+.settings-grid label,
+.honeymoon-form label,
+.honeymoon-detail-form label,
+.allocation-entry > label,
+.mapping-grid label,
+.ceremony-form label,
+.ui-modal-panel label {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* The label's own text, where a field wraps it in a span alongside a hint. */
+.planning-field > span,
+.budget-field > span,
+.entry-fields label > span,
+.ceremony-form label > span,
+.ui-modal-panel label > span:first-child {
+  color: var(--ui-gray-700);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Optional-style hints sit beside the label and must never look like a label. */
+.planning-field small,
+.budget-field small,
+.entry-fields small,
+.ui-modal-panel label small {
+  color: var(--ui-gray-500);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* Controls never inherit a label's weight. */
+.ui-page input,
+.ui-page select,
+.ui-page textarea,
+.ui-modal-panel input,
+.ui-modal-panel select,
+.ui-modal-panel textarea,
+.ui-select-trigger {
+  font-weight: 400;
+}
+
+/* Placeholders must read as prompts, not as entered values. */
+.ui-page input::placeholder,
+.ui-page textarea::placeholder,
+.ui-modal-panel input::placeholder,
+.ui-modal-panel textarea::placeholder,
+.ui-select-value.is-placeholder {
+  color: var(--ui-gray-500);
+  font-weight: 400;
+  opacity: 1;
+}
+
+/* A group divider inside a form. */
+.ui-field-divider {
+  grid-column: 1 / -1;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--ui-gray-200);
+}
+
+
+/* ==========================================================================
+   Corrections to the base controls
+   ========================================================================== */
+
+/* Filter pills used a 999px radius while every other control used 8px. There
+   was no reason for it; the radius now matches the rest of the system. */
+.ui-select.is-compact .ui-select-trigger { border-radius: 8px; }
+
+/* The New menu list matches the width of the button that opens it. */
+.menu-popover { min-width: 100%; }
+
+/* A response is a value, not an alert. Tinting these amber made a neutral
+   default look like a warning, and put three orange blocks in one form. */
+.rsvp-select .ui-select-trigger,
+.rsvp-select.attending .ui-select-trigger,
+.rsvp-select.pending .ui-select-trigger,
+.rsvp-select.declined .ui-select-trigger {
+  border-color: var(--ui-gray-300);
+  color: var(--ui-gray-900);
+  background-color: white;
+}
+.rsvp-select .ui-select-caret { color: var(--ui-gray-500); opacity: 1; }
+
+/* A checkbox reads as one control row with its own text, not as a label with a
+   box stranded underneath it. */
+.entry-fields .plus-one-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  align-self: end;
+  min-height: 40px;
+}
+.entry-fields .plus-one-toggle input { width: 18px; height: 18px; margin: 0; }
+.entry-fields .plus-one-toggle > span { font-size: 14px; font-weight: 500; }
+
+/* The filter row above a list: same control, same height, same radius. */
+.ui-page .page-ceremony-filter { display: block; }

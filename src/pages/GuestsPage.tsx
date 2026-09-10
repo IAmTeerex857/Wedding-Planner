@@ -434,10 +434,10 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
         <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
         <label><span>Email</span><input type="email" required={!guest.phone.trim()} maxLength={254} value={guest.email} onChange={(event) => setField('email', event.target.value)} placeholder="name@example.com" /></label>
         <label><span>Phone</span><input type="tel" required={!guest.email.trim()} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter a valid phone number with 7 to 20 digits and common separators." value={guest.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
-        <label className="plus-one-toggle"><span>Plus-one allowed</span><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /></label>
-        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
         <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
         <label><span>Accommodation</span><input maxLength={160} value={guest.accommodation} onChange={(event) => setField('accommodation', event.target.value)} placeholder="Hotel or arrangement" /></label>
+        <label className="plus-one-toggle"><input type="checkbox" checked={guest.plusOneAllowed} onChange={(event) => setGuest((current) => ({ ...current, plusOneAllowed: event.target.checked, plusOneName: event.target.checked ? current.plusOneName : '' }))} /><span>Plus-one allowed</span></label>
+        <label><span>Plus-one name</span><input disabled={!guest.plusOneAllowed} maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
       </div>
       <div className="entry-rsvp-group">
       <p className="entry-group-label">Ceremony responses</p>

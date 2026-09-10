@@ -10,7 +10,6 @@ import {
   Search,
   Trash2,
   WalletCards,
-  X,
 } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import './budget.css'
@@ -19,6 +18,7 @@ import { useWorkspace } from '../lib/workspace-context'
 import { fetchNgnRate } from '../lib/exchange-rates'
 import { pillTone } from '../lib/pills'
 import { Select } from '../components/Select'
+import { Modal } from '../components/Modal'
 import { useCreateParam } from '../lib/use-create-param'
 import { DateField } from '../components/DateField'
 
@@ -306,7 +306,7 @@ export function BudgetPage() {
           <p className="page-lead">Create spending allocations, connect them to ceremonies, and record every payment and contribution in its original currency.</p>
         </div>
         <div className="header-actions">
-          <label className="page-ceremony-filter"><span>Ceremony</span><Select compact aria-label="Filter by ceremony" value={ceremonyFilter} onChange={setCeremonyFilter} options={[{ value: 'all', label: 'All ceremonies' }, { value: 'general', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></label>
+          <label className="page-ceremony-filter"><span>Ceremony</span><Select compact label="Ceremony" aria-label="Filter by ceremony" value={ceremonyFilter} onChange={setCeremonyFilter} options={[{ value: 'all', label: 'All ceremonies' }, { value: 'general', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></label>
           <button className="button secondary" type="button" onClick={() => openForm('contribution')}><ArrowDownLeft size={15} /> Add contribution</button>
           <button className="button primary" type="button" onClick={() => openForm('expense')}><Plus size={15} /> Add expense</button>
         </div>
@@ -435,7 +435,7 @@ function ExpenseForm({ allocations, ceremonies, initial, onSave, onClose }: { al
 
   async function lookup(nextCurrency: Currency, nextDate = date) { setCurrency(nextCurrency); if (nextCurrency === 'NGN') { setRate('1'); setRateSource('native'); return } if (isPreview || !nextDate) { setRateSource('manual'); return } try { const result = await fetchNgnRate(workspace.id, nextCurrency, nextDate); setRate(String(result.rate)); setRateSource(result.source) } catch { setRateSource('manual') } }
 
-  return <MoneyForm title={initial ? 'Edit expense' : 'Add an expense'} eyebrow={initial ? 'Update outgoing record' : 'New outgoing record'} submitLabel={initial ? 'Save changes' : 'Add expense'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
+  return <MoneyForm title={initial ? 'Edit expense' : 'Add an expense'} submitLabel={initial ? 'Save changes' : 'Add expense'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
     <label className="budget-field field-span-2"><span>Description</span><input autoFocus value={description} onChange={(change) => setDescription(change.target.value)} placeholder="What is this expense for?" /></label>
     <label className="budget-field"><span>Category</span><input value={category} onChange={(change) => setCategory(change.target.value)} placeholder="e.g. Venue or attire" /></label>
     <AllocationField value={allocationId} allocations={allocations} onChange={setAllocationId} />
@@ -470,7 +470,7 @@ function ContributionForm({ ceremonies, initial, onSave, onClose }: { ceremonies
 
   async function lookup(nextCurrency: Currency, nextDate = date || new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Lagos' }).format(new Date())) { setCurrency(nextCurrency); if (nextCurrency === 'NGN') { setRate('1'); setRateSource('native'); return } if (isPreview) { setRateSource('manual'); return } try { const result = await fetchNgnRate(workspace.id, nextCurrency, nextDate); setRate(String(result.rate)); setRateSource(result.source) } catch { setRateSource('manual') } }
 
-  return <MoneyForm title={initial ? 'Edit contribution' : 'Add a contribution'} eyebrow={initial ? 'Update incoming record' : 'New incoming record'} submitLabel={initial ? 'Save changes' : 'Add contribution'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
+  return <MoneyForm title={initial ? 'Edit contribution' : 'Add a contribution'} submitLabel={initial ? 'Save changes' : 'Add contribution'} canSubmit={canSubmit} currency={currency} amount={amount} rate={rate} rateSource={rateSource} amountNgn={amountNgn} onCurrency={(value) => void lookup(value)} onAmount={setAmount} onRate={(value) => { setRate(value); setRateSource('manual') }} onClose={onClose} onSubmit={submit}>
     <label className="budget-field field-span-2"><span>Contributor or source</span><input autoFocus value={contributor} onChange={(change) => setContributor(change.target.value)} placeholder="Name or funding source" /></label>
     <CeremonyField value={ceremonyId} ceremonies={ceremonies} onChange={setCeremonyId} />
     <label className="budget-field"><span>Percentage received</span><input type="number" min="0" max="100" step="1" value={receivedPercent} onChange={(change) => setReceivedPercent(change.target.value)} /></label>
@@ -489,7 +489,6 @@ function CeremonyField({ value, ceremonies, onChange }: { value: string; ceremon
 
 interface MoneyFormProps {
   title: string
-  eyebrow: string
   submitLabel: string
   canSubmit: boolean
   currency: Currency
@@ -505,24 +504,34 @@ interface MoneyFormProps {
   children: React.ReactNode
 }
 
-function MoneyForm({ title, eyebrow, submitLabel, canSubmit, currency, amount, rate, rateSource, amountNgn, onCurrency, onAmount, onRate, onClose, onSubmit, children }: MoneyFormProps) {
+function MoneyForm({ title, submitLabel, canSubmit, currency, amount, rate, rateSource, amountNgn, onCurrency, onAmount, onRate, onClose, onSubmit, children }: MoneyFormProps) {
   function changeCurrency(next: Currency) {
     onCurrency(next)
   }
 
+  const formId = 'money-form'
+
   return (
-    <section className="budget-entry-panel" aria-labelledby="money-form-title">
-      <div className="budget-entry-intro"><div><p className="eyebrow">{eyebrow}</p><h2 id="money-form-title">{title}</h2><p>Source values remain visible; reporting uses the NGN equivalent.</p></div><button className="budget-icon-button" type="button" onClick={onClose} aria-label="Close form"><X size={17} /></button></div>
-      <form onSubmit={onSubmit}>
+    <Modal
+      open
+      size="wide"
+      title={title}
+      description="Source values remain visible; reporting uses the NGN equivalent."
+      onClose={onClose}
+      footer={<>
+        <button className="button secondary" type="button" onClick={onClose}>Cancel</button>
+        <button className="button primary" type="submit" form={formId} disabled={!canSubmit}>{submitLabel}</button>
+      </>}
+    >
+      <form id={formId} onSubmit={onSubmit}>
         <div className="budget-form-grid">{children}
           <label className="budget-field"><span>Original currency</span><Select aria-label="Currency" value={currency} onChange={(next) => changeCurrency(next as Currency)} options={CURRENCIES.map((item) => ({ value: item, label: item }))} /></label>
           <label className="budget-field"><span>Original amount</span><input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(event) => onAmount(event.target.value)} placeholder="0.00" /></label>
           <label className="budget-field"><span>NGN per {currency}</span><input type="number" min="0" step="0.01" inputMode="decimal" disabled={currency === 'NGN'} value={currency === 'NGN' ? '1' : rate} onChange={(event) => onRate(event.target.value)} /></label>
-          <div className="ngn-preview"><span>NGN equivalent</span><strong>{formatNgn(amountNgn)}</strong><small>{currency === 'NGN' ? 'No conversion required' : `${currency} 1 × NGN ${numberFormatter.format(toAmount(rate))} / ${rateSource}`}</small></div>
+          <div className="ngn-preview"><span>NGN equivalent</span><strong>{formatNgn(amountNgn)}</strong><small>{currency === 'NGN' ? 'No conversion required' : `${currency} 1 \u2248 NGN ${numberFormatter.format(toAmount(rate))} / ${rateSource}`}</small></div>
         </div>
-        <div className="budget-form-actions"><button className="button secondary" type="button" onClick={onClose}>Cancel</button><button className="button primary" type="submit" disabled={!canSubmit}>{submitLabel}</button></div>
       </form>
-    </section>
+    </Modal>
   )
 }
 

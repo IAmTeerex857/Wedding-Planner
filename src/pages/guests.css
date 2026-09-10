@@ -12,10 +12,9 @@
 .entry-intro h2 { font-size: 28px; font-weight: 400; letter-spacing: -.04em; }
 .entry-intro > p:last-child { margin-top: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .entry-fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
-.entry-fields label, .entry-rsvps label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 650; }
+.entry-fields label, .entry-rsvps label { display: flex; flex-direction: column; gap: 6px; }
 .entry-fields label > span { display: flex; justify-content: space-between; }
-.entry-fields small { color: var(--faint); font-size: 12px; font-weight: 400; }
-.entry-fields input, .entry-rsvps select { width: 100%; height: 38px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font: inherit; font-size: 12px; }
+.entry-fields small { font-weight: 400; }
 .entry-rsvps { display: grid; grid-column: 2; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .entry-actions { display: flex; grid-column: 2; justify-content: flex-end; gap: 8px; }
 

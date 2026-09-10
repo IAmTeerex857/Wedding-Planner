@@ -283,6 +283,7 @@ export function TasksPage() {
                   <span>Assignee <small>Optional</small></span>
                   <input value={draft.assignee} placeholder="Enter a name" onChange={(event) => setDraft({ ...draft, assignee: event.target.value })} />
                 </label>
+                <hr className="ui-field-divider" />
                 <label className="planning-field">
                   <span>Deadline <small>Optional</small></span>
                   <DateTimeField aria-label="Due" value={draft.dueAt} onChange={(next) => setDraft({ ...draft, dueAt: next })} />

@@ -2,7 +2,7 @@
 import type { ComponentType, SVGAttributes } from 'react'
 import {
   Airplane,
-  Armchair as PhArmchair,
+  Chair,
   ArrowCounterClockwise,
   ArrowDownLeft as PhArrowDownLeft,
   ArrowRight as PhArrowRight,
@@ -94,7 +94,7 @@ function icon(Component: PhosphorIcon, extraClass = '') {
 }
 
 export const AlignJustify = icon(TextAlignJustify)
-export const Armchair = icon(PhArmchair)
+export const Armchair = icon(Chair)
 export const ArrowDownLeft = icon(PhArrowDownLeft)
 export const ArrowRight = icon(PhArrowRight)
 export const ArrowUpRight = icon(PhArrowUpRight)
