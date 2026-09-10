@@ -1,11 +1,6 @@
 /* Untitled UI-inspired application foundation, scoped to migrated pages. */
 :root {
-  --ui-brand-50: #f9f5ff;
-  --ui-brand-100: #f4ebff;
-  --ui-brand-200: #e9d7fe;
-  --ui-brand-500: #9e77ed;
-  --ui-brand-600: #7f56d9;
-  --ui-brand-700: #6941c6;
+  /* No brand hue: this product's accent is its ink. */
   --ui-gray-25: #fcfcfd;
   --ui-gray-50: #f9fafb;
   --ui-gray-100: #f2f4f7;
@@ -26,6 +21,10 @@
      signal. A transparent no-op keeps the ~55 combined `box-shadow` lists that
      reference these tokens valid, so the insets alongside them still render.
      Overlays and drawers keep their own real shadows: they are genuinely raised. */
+  /* Focus ring. The primary action in this product is black, so a purple ring
+     read as borrowed from another system. Both now come from the same ink. */
+  --ui-focus-border: var(--ui-gray-900);
+  --ui-focus-ring: 0 0 0 4px rgba(16, 24, 40, .10);
   --ui-shadow-xs: 0 0 #0000;
   --ui-shadow-sm: 0 0 #0000;
 }
@@ -252,7 +251,6 @@
 .ui-page .budget-section-heading h2 { font-size: 18px; }
 .ui-page .budget-section-heading > span { color: var(--ui-gray-500); font-size: 12px; letter-spacing: 0; text-transform: none; }
 .ui-page .allocation-entry { padding: 18px 24px; border-color: var(--ui-gray-200); background: var(--ui-gray-50); }
-.ui-page .money-input { border-color: var(--ui-gray-300); border-radius: 8px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .allocation-row { min-height: 76px; padding: 10px 24px; border-color: var(--ui-gray-100); }
 .ui-page .allocation-index { color: var(--ui-gray-500); font-family: inherit; font-size: 12px; }
 .ui-page .allocation-name strong { font-size: 14px; }
@@ -327,7 +325,7 @@
 .vendors-page .category-filters > button { min-height: 28px; padding: 5px 10px; }
 .vendors-page .category-filters > span > button { min-height: 28px; }
 .vendors-page .category-filters > button.active,
-.vendors-page .category-filters > span.active { color: var(--ui-brand-700); background: var(--ui-brand-50) !important; box-shadow: inset 0 0 0 1px var(--ui-brand-200); }
+.vendors-page .category-filters > span.active { color: var(--ui-gray-900); background: var(--ui-gray-100) !important; box-shadow: inset 0 0 0 1px var(--ui-gray-300); }
 .vendors-page .registry-list article { min-height: 88px; grid-template-columns: minmax(0, 1fr) 150px 72px; padding: 16px 24px; border-color: var(--ui-gray-100); }
 .vendors-page .registry-list article:hover { background: var(--ui-gray-25); }
 .vendors-page .registry-list strong { font-size: 14px; }
@@ -968,9 +966,9 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-modal-panel input:focus-visible,
 .ui-modal-panel select:focus-visible,
 .ui-modal-panel textarea:focus-visible {
-  border-color: var(--ui-brand-500);
+  border-color: var(--ui-focus-border);
   outline: none;
-  box-shadow: 0 0 0 4px var(--ui-brand-100);
+  box-shadow: var(--ui-focus-ring);
 }
 
 /* Date and time fields were fully native: no sizing, and a browser-default
@@ -1013,7 +1011,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
   width: 16px;
   height: 16px;
   margin: 0;
-  accent-color: var(--ui-brand-600);
+  accent-color: var(--ui-gray-900);
   cursor: pointer;
 }
 
@@ -1234,9 +1232,9 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 
 .ui-select-trigger:hover:not(:disabled) { border-color: var(--ui-gray-400); }
 .ui-select-trigger:focus-visible {
-  border-color: var(--ui-brand-500);
+  border-color: var(--ui-focus-border);
   outline: none;
-  box-shadow: 0 0 0 4px var(--ui-brand-100);
+  box-shadow: var(--ui-focus-ring);
 }
 .ui-select-trigger:disabled { cursor: not-allowed; color: var(--ui-gray-500); background: var(--ui-gray-50); }
 
@@ -1293,7 +1291,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-select-option[data-active="true"], .ui-select-option:hover { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-select-option[aria-selected="true"] { color: var(--ui-gray-900); font-weight: 500; }
 .ui-select-option[aria-disabled="true"] { color: var(--ui-gray-400); cursor: not-allowed; }
-.ui-select-tick { flex: 0 0 auto; color: var(--ui-brand-600); }
+.ui-select-tick { flex: 0 0 auto; color: var(--ui-gray-900); }
 .ui-timelist { max-height: 260px; }
 
 /* ---- Calendar ---- */
@@ -1381,7 +1379,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .budget-search input,
 .ui-page .registry-panel > header input,
 .ui-page .seating-tools input,
-.ui-page .money-input input,
 .ui-page .allocation-amount input,
 .ui-page .import-paste input {
   min-height: 0;
@@ -1397,7 +1394,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .budget-search input:focus-visible,
 .ui-page .registry-panel > header input:focus-visible,
 .ui-page .seating-tools input:focus-visible,
-.ui-page .money-input input:focus-visible,
 .ui-page .allocation-amount input:focus-visible {
   border-color: transparent;
   outline: none;
@@ -1408,17 +1404,9 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .guest-search,
 .ui-page .budget-search,
 .ui-page .registry-panel > header label,
-.ui-page .money-input {
-  border-radius: 8px;
-  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
-}
 .ui-page .guest-search:focus-within,
 .ui-page .budget-search:focus-within,
 .ui-page .registry-panel > header label:focus-within,
-.ui-page .money-input:focus-within {
-  border-color: var(--ui-brand-500);
-  box-shadow: 0 0 0 4px var(--ui-brand-100);
-}
 
 /* The search pill is a real bordered field rather than a bottom-ruled input. */
 .ui-page .guest-search,
@@ -1766,8 +1754,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .budget-toolbar-note { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
 
 .allocation-form { display: flex; flex-direction: column; gap: 16px; }
-.allocation-form .money-input { display: flex; align-items: center; gap: 8px; min-height: 40px; border: 1px solid var(--ui-gray-300); border-radius: 8px; padding: 0 12px; background: white; }
-.allocation-form .money-input b { color: var(--ui-gray-500); font-size: 14px; font-weight: 500; }
 
 /* A hint sits with its label. `justify-content: space-between` threw it to the
    far edge of the field, where it read as an unrelated column heading. */
@@ -1934,7 +1920,7 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 .ui-modal-panel .file-picker:hover .file-picker-drop { border-color: var(--ui-gray-400); background: var(--ui-gray-50); }
-.ui-modal-panel .file-picker input:focus-visible + .file-picker-drop { border-color: var(--ui-brand-500); box-shadow: 0 0 0 4px var(--ui-brand-100); }
+.ui-modal-panel .file-picker input:focus-visible + .file-picker-drop { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
 .ui-modal-panel .file-picker-drop .app-icon { color: var(--ui-gray-500); }
 .ui-modal-panel .file-picker-drop strong,
 .ui-page .file-picker-drop strong { height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; box-shadow: none; }
@@ -1948,3 +1934,61 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .category-manage-name { flex: 1; min-width: 0; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; }
 .category-manage-count { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
 .category-manage-list li input { flex: 1; min-width: 0; }
+
+
+/* ==========================================================================
+   Input group — a control with leading or trailing text
+   The group owns the border and the focus ring; the input inside is
+   transparent. Previously both drew their own, so focusing a money field lit a
+   ring around the number and left the currency outside it.
+   ========================================================================== */
+.ui-input-group {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid var(--ui-gray-300);
+  border-radius: 8px;
+  background: white;
+  transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.ui-input-group:hover:not(:focus-within) { border-color: var(--ui-gray-400); }
+.ui-input-group:focus-within { border-color: var(--ui-focus-border); box-shadow: var(--ui-focus-ring); }
+
+/* A hairline separates the addon, so it reads as attached to the field rather
+   than as text someone typed into it. */
+.ui-input-group-addon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 12px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ui-input-group-addon.is-prefix { border-right: 1px solid var(--ui-gray-200); }
+.ui-input-group-addon.is-suffix { border-left: 1px solid var(--ui-gray-200); }
+
+/* The inner control never draws chrome of its own. */
+.ui-page .ui-input-group > input,
+.ui-modal-panel .ui-input-group > input,
+.ui-input-group > input {
+  min-width: 0;
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 0;
+  padding: 8px 12px;
+  background: transparent;
+  box-shadow: none;
+  font-variant-numeric: tabular-nums;
+}
+.ui-page .ui-input-group > input:focus-visible,
+.ui-modal-panel .ui-input-group > input:focus-visible,
+.ui-input-group > input:focus-visible { border-color: transparent; outline: none; box-shadow: none; }
+
+.ui-input-group:has(> input:disabled) { background: var(--ui-gray-50); }

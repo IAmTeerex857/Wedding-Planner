@@ -46,9 +46,6 @@
 .allocation-entry > label { display: flex; flex-direction: column; gap: 6px; }
 .allocation-entry input, .allocation-entry select { width: 100%; height: 38px; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--ink); background: white; font-size: 12px; }
 .allocation-entry input:focus { border-color: var(--ink); outline: 0; }
-.money-input { display: grid; grid-template-columns: auto 1fr; align-items: center; border: 1px solid var(--line); border-radius: 5px; background: white; }
-.money-input b { padding-left: 10px; color: var(--faint); font-size: 12px; }
-.money-input input { border: 0; }
 .allocation-list { display: flex; flex-direction: column; }
 .allocation-row { display: grid; min-height: 72px; grid-template-columns: 35px minmax(140px, 1fr) minmax(100px, 1.2fr) minmax(150px, .6fr) 32px; align-items: center; gap: 16px; padding: 9px 19px; border-bottom: 1px solid var(--soft-line); }
 .allocation-row:last-child { border-bottom: 0; }

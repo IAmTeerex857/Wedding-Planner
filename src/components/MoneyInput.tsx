@@ -1,5 +1,6 @@
 import { useId, type InputHTMLAttributes } from 'react'
 import { formatAmount, parseAmount } from '../lib/amount'
+import { InputGroup } from './InputGroup'
 
 type MoneyInputProps = {
   value: string | number
@@ -19,18 +20,16 @@ type MoneyInputProps = {
 export function MoneyInput({ value, onChange, prefix, decimals = true, className = '', ...props }: MoneyInputProps) {
   const id = useId()
   return (
-    <div className="money-input">
-      {prefix && <b aria-hidden="true">{prefix}</b>}
-      <input
-        {...props}
-        className={className}
-        id={props.id ?? id}
-        type="text"
-        inputMode={decimals ? 'decimal' : 'numeric'}
-        autoComplete="off"
-        value={formatAmount(value)}
-        onChange={(event) => onChange(parseAmount(event.target.value))}
-      />
-    </div>
+    <InputGroup
+      {...props}
+      className={className}
+      id={props.id ?? id}
+      prefix={prefix}
+      type="text"
+      inputMode={decimals ? 'decimal' : 'numeric'}
+      autoComplete="off"
+      value={formatAmount(value)}
+      onChange={(event) => onChange(parseAmount(event.target.value))}
+    />
   )
 }
