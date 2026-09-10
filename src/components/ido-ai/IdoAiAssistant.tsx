@@ -4,6 +4,9 @@ import { ArrowUp, Check, Chats, Microphone, Paperclip, Plus, PushPin, SidebarSim
 import { archiveIdoAiConversation, dismissIdoAiSuggestion, loadIdoAiState, reviewIdoAiBatch, saveIdoAiOnboarding, sendIdoAiMessage, type IdoAiBatch, type IdoAiConversation } from '../../lib/ido-ai'
 import { useWorkspace } from '../../lib/workspace-context'
 import { useDictation } from '../../lib/use-dictation'
+import { AnimatePresence, LazyMotion, domAnimation, m, useReducedMotion } from 'motion/react'
+import { SPRING_PRESS, listVariants, messageVariants, panelVariants, rowVariants } from '../../lib/motion'
+import { StreamingText } from './StreamingText'
 import './ido-ai.css'
 
 const PANEL_KEY = 'wedding-planner:ido-ai-panel:v2'
@@ -109,6 +112,11 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
     setHistoryOpen(false)
   }
 
+  // Only replies that arrive after the panel opened get the speaking cadence.
+  // Older history should not retype itself, and comparing against the moment of
+  // opening needs no bookkeeping.
+  const [openedAt] = useState(() => new Date().toISOString())
+  const reduced = useReducedMotion()
   const dictation = useDictation((text) => setComposer((current) => (current ? `${current} ${text}` : text)))
 
   const isThinking = Boolean(optimisticMessage && !optimisticMessage.failed) || (state.job?.kind === 'agent_turn' && ['queued', 'running'].includes(state.job.status))
@@ -120,13 +128,14 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
     }),
   ].sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.order - right.order)
 
+
   function sendOnEnter(event: ReactKeyboardEvent<HTMLTextAreaElement>, value: string, onboarding = false) {
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
     submitMessage(value, onboarding)
   }
 
-  return <div className={`ido-ai-workspace${open ? ' is-agent-open' : ''}`}>
+  return <LazyMotion features={domAnimation} strict><div className={`ido-ai-workspace${open ? ' is-agent-open' : ''}`}>
     <div className="ido-ai-page-slot">{children}</div>
     {!open && <button className="ido-ai-launcher" type="button" onClick={() => setOpen(true)} aria-label="Open I Do AI"><SparkleMark /><span>I Do AI</span>{state.suggestionCount > 0 && <b>{state.suggestionCount}</b>}</button>}
     {open && <button className="ido-ai-backdrop" type="button" aria-label="Close I Do AI" onClick={() => setOpen(false)} />}
@@ -142,6 +151,7 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
       </header>
       {confirmDelete && <div className="ido-ai-delete-confirm" role="alert"><div><strong>Archive this conversation?</strong><span>You can reopen it from chat history.</span></div><button type="button" onClick={() => setConfirmDelete(false)}>Cancel</button><button type="button" disabled={archiveMutation.isPending} onClick={() => archiveMutation.mutate()}>Archive</button></div>}
       <ConversationHistory
+        reduced={Boolean(reduced)}
         open={historyOpen}
         conversations={state.conversations}
         selectedId={state.conversationId}
@@ -154,9 +164,11 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
       <div className="ido-ai-scroll" ref={scrollRef} aria-live="polite">
         <div className="ido-ai-date"><span>Today</span></div>
         <article className="ido-ai-message is-assistant"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><p>I can set up your wedding plan, research public vendor profiles, and prepare changes across your workspace. I will always ask before changing anything.</p></div></article>
+        <AnimatePresence initial={false}>
         {timeline.map((item) => item.kind === 'message'
-          ? <article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`}>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{item.message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><ReactMarkdown>{item.message.body}</ReactMarkdown></Suspense></div> : <p>{item.message.body}</p>}</div></article>
+          ? <m.article className={`ido-ai-message is-${item.message.role}`} key={`message:${item.id}`} variants={reduced ? undefined : messageVariants} initial="hidden" animate="visible" exit="exit" layout>{item.message.role === 'assistant' && <span className="ido-ai-message-mark"><SparkleMark /></span>}<div><strong>{item.message.role === 'assistant' ? 'I Do AI' : 'You'}</strong>{item.message.role === 'assistant' ? <div className="ido-ai-message-body"><Suspense fallback={<span>{item.message.body}</span>}><StreamingText text={item.message.body} animate={item.createdAt > openedAt}>{(visible) => <ReactMarkdown>{visible}</ReactMarkdown>}</StreamingText></Suspense></div> : <p>{item.message.body}</p>}</div></m.article>
           : <BatchCard key={`batch:${item.id}`} batch={item.batch} pending={reviewMutation.isPending} approving={reviewMutation.isPending && reviewMutation.variables?.batchId === item.batch.id && reviewMutation.variables.decision === 'approve'} error={reviewMutation.variables?.batchId === item.batch.id ? reviewMutation.error?.message : undefined} onReview={(decision) => reviewMutation.mutate({ batchId: item.batch.id, decision })} />)}
+        </AnimatePresence>
         {optimisticMessage && !state.messages.some((message) => message.id === optimisticMessage.id) && <article className={`ido-ai-message is-user${optimisticMessage.failed ? ' is-failed' : ''}`}><div><strong>You</strong><p>{optimisticMessage.body}</p>{optimisticMessage.failed && <button className="ido-ai-retry" type="button" onClick={() => { setComposer(optimisticMessage.body); setOptimisticMessage(null); sendMutation.reset() }}>Retry</button>}</div></article>}
         {isThinking && <article className="ido-ai-message is-assistant ido-ai-thinking" aria-label="I Do AI is thinking"><span className="ido-ai-message-mark"><SparkleMark /></span><div><strong>I Do AI</strong><div className="ido-ai-thinking-bubble"><span /><span /><span /></div></div></article>}
         {stateQuery.isError && <p className="ido-ai-error">{stateQuery.error.message}</p>}
@@ -199,16 +211,17 @@ Attached: ${attachments.map((file) => file.name).join(', ')}` : ''
               </button>
             )}
             <span className="ido-ai-composer-hint">Enter to send</span>
-            <button className="ido-ai-send" type="submit" disabled={!composer.trim() || sendMutation.isPending} aria-label="Send message"><ArrowUp size={17} /></button>
+            <m.button className="ido-ai-send" whileTap={reduced ? undefined : { scale: 0.92 }} transition={SPRING_PRESS} type="submit" disabled={!composer.trim() || sendMutation.isPending} aria-label="Send message"><ArrowUp size={17} /></m.button>
           </div>
         </div>
         {dictation.error && <p className="ido-ai-error" role="alert">{dictation.error}</p>}
       </form>
     </aside>
-  </div>
+  </div></LazyMotion>
 }
 
-function ConversationHistory({ open, conversations, selectedId, pinned, onTogglePin, onNew, onSelect, onClose }: {
+function ConversationHistory({ reduced, open, conversations, selectedId, pinned, onTogglePin, onNew, onSelect, onClose }: {
+  reduced: boolean
   open: boolean
   conversations: IdoAiConversation[]
   selectedId: string | null
@@ -226,7 +239,16 @@ function ConversationHistory({ open, conversations, selectedId, pinned, onToggle
   })
 
   return (
-    <section className={`ido-ai-history${open ? ' is-open' : ''}`} aria-label="Chat history" aria-hidden={!open} inert={!open || undefined}>
+    <AnimatePresence>
+      {open && (
+    <m.section
+      className="ido-ai-history is-open"
+      aria-label="Chat history"
+      variants={reduced ? undefined : panelVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <header>
         <button className="ido-ai-icon-button" type="button" onClick={onClose} aria-label="Close chat history"><SidebarSimple size={18} /></button>
         <strong>Chats</strong>
@@ -234,9 +256,9 @@ function ConversationHistory({ open, conversations, selectedId, pinned, onToggle
       <div className="ido-ai-history-body">
         <button className="ido-ai-new-chat" type="button" onClick={onNew}><Plus size={16} /> New chat</button>
         {ordered.length ? (
-          <div className="ido-ai-history-list">
+          <m.div className="ido-ai-history-list" variants={reduced ? undefined : listVariants} initial="hidden" animate="visible">
             {ordered.map((conversation) => (
-              <div className={`ido-ai-history-row${conversation.id === selectedId ? ' is-selected' : ''}`} key={conversation.id}>
+              <m.div className={`ido-ai-history-row${conversation.id === selectedId ? ' is-selected' : ''}`} key={conversation.id} variants={reduced ? undefined : rowVariants}>
                 <button type="button" onClick={() => onSelect(conversation.id)}>
                   <span className="ido-ai-history-title">{conversation.title}</span>
                   <span className="ido-ai-history-meta">{formatConversationDate(conversation.updatedAt)}</span>
@@ -248,14 +270,16 @@ function ConversationHistory({ open, conversations, selectedId, pinned, onToggle
                   aria-label={pinned.includes(conversation.id) ? `Unpin ${conversation.title}` : `Pin ${conversation.title}`}
                   onClick={() => onTogglePin(conversation.id)}
                 ><PushPin size={14} /></button>
-              </div>
+              </m.div>
             ))}
-          </div>
+          </m.div>
         ) : (
           <p className="ido-ai-history-empty">Conversations you start will be listed here.</p>
         )}
       </div>
-    </section>
+    </m.section>
+      )}
+    </AnimatePresence>
   )
 }
 

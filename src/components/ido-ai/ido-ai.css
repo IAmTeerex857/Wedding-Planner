@@ -247,11 +247,7 @@
 }
 
 /* ---- Bubbles ------------------------------------------------------------- */
-.ido-ai-message { margin-bottom: 18px; animation: ido-ai-message-in 260ms var(--ease-out) both; }
-@keyframes ido-ai-message-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
-}
+.ido-ai-message { margin-bottom: 18px; }
 
 .ido-ai-message > div > strong { display: block; margin: 0 0 5px; color: var(--ui-gray-500); font-size: 12px; font-weight: 500; }
 .ido-ai-message.is-user > div > strong { text-align: right; }
@@ -341,6 +337,7 @@
 .ido-ai-attachments button:hover { color: var(--ui-gray-900); background: var(--ui-gray-200); }
 
 /* ---- History: an overlay across the whole widget ------------------------- */
+/* motion drives the slide; CSS only positions the panel. */
 .ido-ai-history {
   position: absolute;
   inset: 0;
@@ -348,11 +345,7 @@
   display: flex;
   flex-direction: column;
   background: white;
-  transform: translateX(-100%);
-  visibility: hidden;
-  transition: transform 260ms var(--ease-out), visibility 260ms;
 }
-.ido-ai-history.is-open { transform: translateX(0); visibility: visible; }
 
 .ido-ai-history > header {
   display: flex;
@@ -432,7 +425,5 @@
 .ido-ai-history-empty { padding: 24px 4px; color: var(--ui-gray-500); font-size: 14px; text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ido-ai-message { animation: none; }
-  .ido-ai-history { transition: visibility 0s; }
   .ido-ai-icon-button.is-listening::after { animation: none; }
 }
