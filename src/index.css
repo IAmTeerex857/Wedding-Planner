@@ -16,6 +16,8 @@
   --paper: #fff;
   --wash: #f7f7f5;
   --sidebar: 248px;
+  /* One content width for every page. */
+  --page-max: 1380px;
 }
 
 * { box-sizing: border-box; }
@@ -291,7 +293,7 @@ h1, h2, h3, h4, h5, h6, p { margin: 0; }
 
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #999; }
 
-.page { width: min(1260px, 100%); margin: 0 auto; padding: 52px 56px 72px; }
+.page { width: 100%; max-width: var(--page-max); margin: 0 auto; padding: 52px 56px 72px; }
 
 .page-header {
   display: flex;

@@ -1,4 +1,4 @@
-.budget-page { max-width: 1380px; --budget-green: #3e684e; --budget-amber: #94682f; --budget-red: #914942; }
+.budget-page {--budget-green: #3e684e; --budget-amber: #94682f; --budget-red: #914942; }
 .budget-page select { font: inherit; }
 .budget-page select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .budget-header { margin-bottom: 32px; }

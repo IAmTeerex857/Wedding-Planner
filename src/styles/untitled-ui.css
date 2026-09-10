@@ -32,7 +32,7 @@
 
 .ui-page {
   width: 100%;
-  max-width: 1280px;
+  max-width: var(--page-max);
   color: var(--ui-gray-900);
   font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -750,7 +750,6 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 .ui-page .file-upload label { color: var(--ui-gray-700); font-size: 12px; font-weight: 500; text-transform: none; }
 .ui-page .file-upload input,
 .ui-page .file-upload select { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; padding-inline: 12px; font-size: 14px; box-shadow: var(--ui-shadow-xs); }
-.ui-page .file-picker strong { height: 40px; border-color: var(--ui-gray-300); border-radius: 8px; color: var(--ui-gray-700); font-size: 13px; box-shadow: var(--ui-shadow-xs); }
 .ui-page .file-upload footer { border-color: var(--ui-gray-200); }
 .ui-page .file-validation-error { grid-column: 1 / -1; margin: 0; }
 .ui-page .file-toolbar { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--ui-gray-200); border-radius: 12px; background: white; box-shadow: var(--ui-shadow-xs); }
@@ -1913,3 +1912,39 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
   .ui-page .seating-workspace { grid-template-columns: 1fr; }
   .ui-page .waiting-list { position: static; }
 }
+
+
+/* An empty state inside a multi-column grid must span it, or it sits in the
+   first column and reads as left-aligned. */
+.ui-empty { grid-column: 1 / -1; }
+
+/* The file picker is the point of the modal, so it looks like a drop target. */
+.ui-page .file-picker,
+.ui-modal-panel .file-picker { position: relative; display: block; cursor: pointer; }
+.ui-modal-panel .file-picker input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ui-modal-panel .file-picker-drop {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 12px;
+  background: var(--ui-gray-25);
+  text-align: center;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .file-picker:hover .file-picker-drop { border-color: var(--ui-gray-400); background: var(--ui-gray-50); }
+.ui-modal-panel .file-picker input:focus-visible + .file-picker-drop { border-color: var(--ui-brand-500); box-shadow: 0 0 0 4px var(--ui-brand-100); }
+.ui-modal-panel .file-picker-drop .app-icon { color: var(--ui-gray-500); }
+.ui-modal-panel .file-picker-drop strong,
+.ui-page .file-picker-drop strong { height: auto; border: 0; border-radius: 0; padding: 0; background: transparent; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; box-shadow: none; }
+.ui-modal-panel .file-picker-drop small { color: var(--ui-gray-500); font-size: 13px; }
+
+/* ---- Category manager ---------------------------------------------------- */
+.category-add { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 16px; }
+.category-manage-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; border: 1px solid var(--ui-gray-200); border-radius: 10px; overflow: hidden; }
+.category-manage-list li { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 8px 6px 14px; border-bottom: 1px solid var(--ui-gray-200); }
+.category-manage-list li:last-child { border-bottom: 0; }
+.category-manage-name { flex: 1; min-width: 0; color: var(--ui-gray-900); font-size: 14px; font-weight: 500; }
+.category-manage-count { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+.category-manage-list li input { flex: 1; min-width: 0; }

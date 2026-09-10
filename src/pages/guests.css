@@ -1,4 +1,4 @@
-.guests-page { max-width: 1380px; }
+.guests-page {}
 .guests-header { margin-bottom: 32px; }
 .guest-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); }
 .guest-summary-item { display: flex; min-height: 112px; align-items: flex-end; gap: 14px; padding: 18px; }

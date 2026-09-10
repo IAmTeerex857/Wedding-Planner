@@ -23,6 +23,7 @@ import { EmptyState } from '../components/EmptyState'
 import { useCreateParam } from '../lib/use-create-param'
 import { DateField } from '../components/DateField'
 import { Button } from '../components/Button'
+import { MoneyInput } from '../components/MoneyInput'
 
 type Currency = 'NGN' | 'USD' | 'GBP' | 'EUR'
 type ExpenseStatus = 'planned' | 'due' | 'paid'
@@ -347,7 +348,7 @@ export function BudgetPage() {
                   <span className="allocation-index">{String(index + 1).padStart(2, '0')}</span>
                   <div className="allocation-name"><strong>{allocation.name}</strong><span>{allocation.ceremony} / {formatNgn(allocationCommitted)} committed</span></div>
                   <div className="allocation-progress" aria-label={`${Math.round(percentage)} percent used`}><span style={{ width: `${Math.min(percentage, 100)}%` }} /></div>
-                   <label className="allocation-amount"><span>NGN</span><input aria-label={`${allocation.name} allocation`} type="number" min="0" step="1000" value={allocation.amountNgn || ''} onChange={(event) => updateAllocation(allocation.id, toAmount(event.target.value))} onBlur={() => { if (!isPreview) financeMutation.mutate({ type: 'allocation-save', id: allocation.id, amount: allocation.amountNgn }) }} /></label>
+                   <label className="allocation-amount"><span>NGN</span><MoneyInput aria-label={`${allocation.name} allocation`} value={allocation.amountNgn || ''} onChange={(next) => updateAllocation(allocation.id, toAmount(next))} onBlur={() => { if (!isPreview) financeMutation.mutate({ type: 'allocation-save', id: allocation.id, amount: allocation.amountNgn }) }} /></label>
                     <Button variant="ghost" icon type="button" aria-label={`Remove ${allocation.name} allocation`} onClick={() => setPendingDelete({ type: 'allocation', id: allocation.id, label: allocation.name })}><Trash2 size={14} /></Button>
                 </article>
               )
@@ -438,7 +439,7 @@ function AllocationModal({ onAdd, onClose, allocations, ceremonies }: { onAdd: (
       <form className="allocation-form" id="allocation-form" onSubmit={submit}>
         <label><span>Allocation name</span><input autoFocus value={name} onChange={(change) => setName(change.target.value)} placeholder="e.g. Venue, attire or transport" /></label>
         <label><span>Ceremony</span><Select aria-label="Ceremony" value={ceremonyId} onChange={setCeremonyId} options={[{ value: '', label: 'General / shared' }, ...ceremonies.map((ceremony) => ({ value: ceremony.id, label: ceremony.name }))]} /></label>
-        <label><span>Amount</span><div className="money-input"><b>NGN</b><input type="number" min="0" step="1000" value={amount} onChange={(change) => setAmount(change.target.value)} placeholder="0" /></div></label>
+        <label><span>Amount</span><MoneyInput prefix="NGN" value={amount} onChange={setAmount} placeholder="0" /></label>
       </form>
     </Modal>
   )
@@ -562,9 +563,9 @@ function MoneyForm({ title, submitLabel, canSubmit, currency, amount, rate, rate
       <form id={formId} onSubmit={onSubmit}>
         <div className="budget-form-grid">{children}
           <label className="budget-field"><span>Original currency</span><Select aria-label="Currency" value={currency} onChange={(next) => changeCurrency(next as Currency)} options={CURRENCIES.map((item) => ({ value: item, label: item }))} /></label>
-          <label className="budget-field"><span>Original amount</span><input type="number" min="0" step="0.01" inputMode="decimal" value={amount} onChange={(event) => onAmount(event.target.value)} placeholder="0.00" /></label>
+          <label className="budget-field"><span>Original amount</span><MoneyInput value={amount} onChange={onAmount} placeholder="0.00" /></label>
           {currency !== 'NGN' && (
-          <label className="budget-field"><span>NGN per {currency}</span><input type="number" min="0" step="0.01" inputMode="decimal" value={rate} onChange={(event) => onRate(event.target.value)} /></label>
+          <label className="budget-field"><span>NGN per {currency}</span><MoneyInput value={rate} onChange={onRate} placeholder="0.00" /></label>
           )}
           {currency !== 'NGN' && (
           <div className="ngn-preview"><span>NGN equivalent</span><strong>{formatNgn(amountNgn)}</strong><small>{`${currency} 1 \u2248 NGN ${numberFormatter.format(toAmount(rate))} / ${rateSource}`}</small></div>

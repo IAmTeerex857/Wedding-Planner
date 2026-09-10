@@ -1,4 +1,4 @@
-.logistics-page { max-width: 1380px; }
+.logistics-page {}
 .logistics-summary { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--ink); }
 .logistics-summary > div { display: flex; min-height: 138px; flex-direction: column; justify-content: flex-end; padding: 18px; }
 .logistics-summary > div + div { border-left: 1px solid var(--ink); }

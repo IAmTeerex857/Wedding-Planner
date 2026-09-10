@@ -1,7 +1,7 @@
 import { useDeferredValue, useId, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload as TusUpload } from 'tus-js-client'
-import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Trash2, Upload, X } from '../components/Icon'
+import { ArrowUpRight, Download, FileImage, FileText, Pencil, Plus, Search, Tag, Trash2, Upload, X } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { Select } from '../components/Select'
@@ -93,11 +93,11 @@ function Registry({ title, definition }: { title: string; definition: Definition
   const persistent = isRegistryTitle(title) && !isPreview
   const [previewRecords, setPreviewRecords] = useState<RegistryRecord[]>([])
   const [adding, setAdding] = useState(false)
+  const [managingCategories, setManagingCategories] = useState(false)
   useCreateParam(() => setAdding(true))
   const [editing, setEditing] = useState<RegistryRecord | null>(null)
   const [query, setQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('All')
-  const [newCategory, setNewCategory] = useState('')
   const [previewCategories, setPreviewCategories] = useState<VendorCategory[]>(() => defaultVendorCategories.map((name, position) => ({ id: crypto.randomUUID(), name, position })))
   const [pendingDelete, setPendingDelete] = useState<{ kind: 'record'; record: RegistryRecord; label: string } | { kind: 'category'; category: VendorCategory } | { kind: 'rate-card'; file: VendorRateCard } | null>(null)
   const [viewingRateCard, setViewingRateCard] = useState<VendorRateCard | null>(null)
@@ -182,7 +182,21 @@ function Registry({ title, definition }: { title: string; definition: Definition
       const { error } = await supabase!.from('vendor_categories').insert({ workspace_id: workspace.id, name, position, created_by: userId, updated_by: userId })
       if (error) throw error
     },
-    onSuccess: async () => { setNewCategory(''); await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] }) },
+  })
+  const renameCategoryMutation = useMutation({
+    mutationFn: async ({ category, name }: { category: VendorCategory; name: string }) => {
+      const { error } = await supabase!.from('vendor_categories').update({ name, updated_by: userId }).eq('workspace_id', workspace.id).eq('id', category.id)
+      if (error) throw error
+      // Vendors store the category by name, so they move with it.
+      const { error: recordError } = await supabase!.from('vendors').update({ category: name, updated_by: userId }).eq('workspace_id', workspace.id).eq('category', category.name)
+      if (recordError) throw recordError
+    },
+    onSuccess: async (_, { category, name }) => {
+      if (categoryFilter === category.name) setCategoryFilter(name)
+      await queryClient.invalidateQueries({ queryKey: ['vendor-categories', workspace.id] })
+      await queryClient.invalidateQueries({ queryKey: ['registry', title, workspace.id] })
+    },
   })
   const removeCategoryMutation = useMutation({
     mutationFn: async (category: VendorCategory) => {
@@ -240,12 +254,17 @@ function Registry({ title, definition }: { title: string; definition: Definition
     else deleteMutation.mutate(record)
   }
 
-  function addCategory(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const name = newCategory.trim()
-    if (!name || categories.some((category) => category.toLocaleLowerCase() === name.toLocaleLowerCase())) return
-    if (categoryPersistent) addCategoryMutation.mutate(name)
-    else { setPreviewCategories((current) => [...current, { id: crypto.randomUUID(), name, position: current.length }]); setNewCategory('') }
+
+  function renameCategory(category: VendorCategory, next: string) {
+    const name = next.trim()
+    if (!name || name === category.name) return
+    if (categories.some((item) => item.toLocaleLowerCase() === name.toLocaleLowerCase())) return
+    if (categoryPersistent) renameCategoryMutation.mutate({ category, name })
+    else {
+      setPreviewCategories((current) => current.map((item) => item.id === category.id ? { ...item, name } : item))
+      setPreviewRecords((current) => current.map((record) => record.values.category === category.name ? { ...record, values: { ...record.values, category: name } } : record))
+      if (categoryFilter === category.name) setCategoryFilter(name)
+    }
   }
 
   function removeCategory(category: VendorCategory) {
@@ -263,17 +282,31 @@ function Registry({ title, definition }: { title: string; definition: Definition
   }
 
   return <div className={`page registry-page ui-page${title === 'Vendors' ? ' vendors-page' : ''}`}>
-    <header className="page-header"><div><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><Button variant="primary" type="button" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</Button></header>
+    <header className="page-header"><div><h1>{title}</h1><p className="page-lead">{definition.description}</p></div><div className="header-actions">
+      {title === 'Vendors' && <Button variant="secondary" onClick={() => setManagingCategories(true)}><Tag size={15} /> Manage categories</Button>}
+      <Button variant="primary" onClick={() => { setEditing(null); setAdding(true); addMutation.reset() }}><Plus size={15} /> Add {definition.noun}</Button>
+    </div></header>
     {adding && <RegistryForm definition={formDefinition} allowRateCards={title === 'Vendors'} saving={addMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setAdding(false)} onSave={addRecord} />}
     {editing && <RegistryForm key={editing.id} definition={formDefinition} initialValues={editing.values} allowRateCards={title === 'Vendors'} saving={updateMutation.isPending || uploadRateCardsMutation.isPending} onClose={() => setEditing(null)} onSave={updateRecord} />}
     {error && <p className="data-error">{error.message}</p>}
     <section className="registry-panel">
       <header><div className="registry-search-controls"><label><Search size={15} /><span className="sr-only">Search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${title.toLocaleLowerCase()}`} /></label>{title === 'Vendors' && <label className="vendor-category-select"><span className="sr-only">Filter vendors by category</span><Select compact label="Category" aria-label="Filter by category" value={categoryFilter} onChange={setCategoryFilter} options={[{ value: 'All', label: 'All' }, ...categories.map((category) => ({ value: category, label: category }))]} /></label>}</div><span>{filtered.length} record{filtered.length === 1 ? '' : 's'}</span></header>
-      {title === 'Vendors' && <div className="category-tools"><form onSubmit={addCategory}><input value={newCategory} maxLength={100} placeholder="New category" aria-label="New vendor category" onChange={(event) => setNewCategory(event.target.value)} /><button type="submit" disabled={!newCategory.trim() || addCategoryMutation.isPending}><Plus size={12} /> Add</button></form><div className="category-filters" aria-label="Filter vendors by category"><button className={categoryFilter === 'All' ? 'active' : ''} type="button" onClick={() => setCategoryFilter('All')}>All</button>{categories.map((category) => { const categoryRecord = categoryRecords.find((item) => item.name === category); const inUse = records.some((record) => record.values.category.toLocaleLowerCase() === category.toLocaleLowerCase()); const canRemove = Boolean(categoryRecord && (!categoryPersistent || categoryQuery.data)); const isLast = categoryRecords.length === 1; return <span className={`${pillTone(category)}${categoryFilter === category ? ' active' : ''}`} key={category}><button type="button" onClick={() => setCategoryFilter(category)}>{category}</button>{canRemove && <button className="category-remove" type="button" disabled={inUse || isLast || removeCategoryMutation.isPending} title={inUse ? 'Reassign vendors before removing this category' : isLast ? 'Keep at least one vendor category' : `Remove ${category}`} aria-label={`Remove ${category}`} onClick={() => categoryRecord && setPendingDelete({ kind: 'category', category: categoryRecord })}><X size={9} /></button>}</span> })}</div></div>}
+      
       {recordsQuery.isLoading && persistent ? <EmptyState compact title="Loading records" /> : filtered.length ? <div className="registry-list">{filtered.map((record) => { const label = record.values[definition.primaryKey ?? definition.fields[0].key]; const rateCards = title === 'Vendors' ? (rateCardsQuery.data ?? []).filter((file) => file.vendor_id === record.id) : []; return <article key={record.id}><div><strong>{label}</strong>{title === 'Vendors' && <span className={`category-pill ${pillTone(record.values.category)}`}>{record.values.category}</span>}{title === 'Vendors' && record.values.link && <a className="vendor-link" href={record.values.link} target="_blank" rel="noreferrer">View work <ArrowUpRight size={11} /></a>}<small>{definition.fields.filter((field) => field.key !== (definition.primaryKey ?? definition.fields[0].key) && (title !== 'Vendors' || !['category', 'link'].includes(field.key))).map((field) => record.values[field.key]).filter(Boolean).join(' / ') || `No additional ${definition.noun} details`}</small>{title === 'Vendors' && <div className="vendor-rate-cards">{rateCards.map((file) => <span className="vendor-rate-card" key={file.id}><button type="button" title={`View ${file.original_name}`} onClick={() => setViewingRateCard(file)}>{file.mime_type.startsWith('image/') ? <FileImage size={12} /> : <FileText size={12} />}<span>{file.original_name}</span></button><button type="button" aria-label={`Remove ${file.original_name}`} onClick={() => setPendingDelete({ kind: 'rate-card', file })}><X size={10} /></button></span>)}<label className={`vendor-rate-card-upload${uploadRateCardsMutation.isPending ? ' disabled' : ''}`}><Upload size={12} /><span>{rateCards.length ? 'Add another' : 'Add rate card'}</span><input type="file" multiple disabled={uploadRateCardsMutation.isPending} accept="application/pdf,image/jpeg,image/png,image/webp" onChange={(event) => { const files = Array.from(event.target.files ?? []); if (files.length) uploadRateCardsMutation.mutate({ vendorId: record.id, files }); event.currentTarget.value = '' }} /></label></div>}</div><Select compact className={`record-status ${pillTone(record.status)}`} aria-label={`Status for ${label}`} value={record.status} onChange={(next) => changeStatus(record, next)} options={definition.statuses.map((status) => ({ value: status, label: status }))} /><div className="registry-actions"><button type="button" aria-label={`Edit ${definition.noun}`} onClick={() => { setAdding(false); setEditing(record); updateMutation.reset() }}><Pencil size={14} /></button><button className="registry-delete" type="button" aria-label={`Remove ${definition.noun}`} onClick={() => setPendingDelete({ kind: 'record', record, label })}><Trash2 size={14} /></button></div></article> })}</div> : <EmptyState icon={<Plus size={22} />} title={`No ${definition.noun}s yet`} description="Add the first record when the information is ready." />}
     </section>
     {pendingDelete && <ConfirmDialog title={pendingDelete.kind === 'record' ? `Delete ${pendingDelete.label}?` : pendingDelete.kind === 'category' ? `Remove ${pendingDelete.category.name}?` : `Remove ${pendingDelete.file.original_name}?`} description={pendingDelete.kind === 'record' ? `This ${definition.noun} will be removed from the active workspace.` : pendingDelete.kind === 'category' ? 'This category will be removed from the vendor list. It can only be removed while no vendors use it.' : 'This rate card will move to the recycle bin. Its private file will remain available for recovery.'} onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     {viewingRateCard && <VendorRateCardViewer file={viewingRateCard} onClose={() => setViewingRateCard(null)} />}
+    {managingCategories && (
+      <CategoryManager
+        categories={categoryRecords}
+        usage={records}
+        saving={addCategoryMutation.isPending || renameCategoryMutation.isPending || removeCategoryMutation.isPending}
+        onAdd={(name) => { if (categoryPersistent) addCategoryMutation.mutate(name); else setPreviewCategories((current) => [...current, { id: crypto.randomUUID(), name, position: current.length }]) }}
+        onRename={renameCategory}
+        onRemove={removeCategory}
+        onClose={() => setManagingCategories(false)}
+      />
+    )}
     {uploadProgress && <aside className="rate-card-upload-status" role="status" aria-live="polite"><span className="rate-card-upload-percentage">{uploadProgress.percentage}%</span><div><strong>Uploading rate card {uploadProgress.current} of {uploadProgress.total}</strong><p>{uploadProgress.fileName}</p><span className="rate-card-upload-track"><span style={{ width: `${uploadProgress.percentage}%` }} /></span></div></aside>}
   </div>
 }
@@ -296,4 +329,83 @@ function ReportsPage() {
 
 function SettingsPage() {
   return <div className="page registry-page ui-page"><header className="page-header"><div><h1>Settings</h1><p className="page-lead">Manage ceremony defaults, reporting currency, timezone, reminders, and account details.</p></div></header><section className="settings-grid"><label>Workspace name<input defaultValue="Timmy & Bisola" /></label><label>Reporting currency<Select aria-label="Reporting currency" value="NGN" onChange={() => {}} options={[{ value: 'NGN', label: 'NGN' }, { value: 'GBP', label: 'GBP' }, { value: 'USD', label: 'USD' }, { value: 'EUR', label: 'EUR' }]} /></label><label>Timezone<input defaultValue="Africa/Lagos" readOnly /></label><label>Weekly summary<Select aria-label="Weekly summary" value="Sunday evening" onChange={() => {}} options={[{ value: 'Sunday evening', label: 'Sunday evening' }]} /></label><Button variant="primary" type="button">Save settings</Button></section></div>
+}
+
+
+/**
+ * Categories ship pre-filled, so they belong in a management surface rather than
+ * as an editable strip above the vendor list. That strip also duplicated the
+ * category filter that already sits in the toolbar.
+ */
+function CategoryManager({ categories, usage, saving, onAdd, onRename, onRemove, onClose }: {
+  categories: VendorCategory[]
+  usage: RegistryRecord[]
+  saving: boolean
+  onAdd: (name: string) => void
+  onRename: (category: VendorCategory, name: string) => void
+  onRemove: (category: VendorCategory) => void
+  onClose: () => void
+}) {
+  const [draft, setDraft] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingName, setEditingName] = useState('')
+  const countFor = (name: string) => usage.filter((record) => record.values.category?.toLocaleLowerCase() === name.toLocaleLowerCase()).length
+
+  return (
+    <Modal
+      open
+      title="Vendor categories"
+      description="Rename a category to update every vendor using it. Categories in use cannot be removed."
+      onClose={onClose}
+      footer={<Button variant="secondary" onClick={onClose}>Done</Button>}
+    >
+      <form
+        className="category-add"
+        onSubmit={(event) => { event.preventDefault(); const name = draft.trim(); if (!name) return; onAdd(name); setDraft('') }}
+      >
+        <input value={draft} maxLength={100} placeholder="Add a category" aria-label="New vendor category" onChange={(event) => setDraft(event.target.value)} />
+        <Button variant="secondary" type="submit" disabled={!draft.trim() || saving}>Add</Button>
+      </form>
+
+      <ul className="category-manage-list">
+        {categories.map((category) => {
+          const inUse = countFor(category.name)
+          const isEditing = editingId === category.id
+          return (
+            <li key={category.id}>
+              {isEditing ? (
+                <>
+                  <input
+                    autoFocus
+                    value={editingName}
+                    maxLength={100}
+                    aria-label={`Rename ${category.name}`}
+                    onChange={(event) => setEditingName(event.target.value)}
+                    onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); onRename(category, editingName); setEditingId(null) } }}
+                  />
+                  <Button variant="secondary" size="sm" onClick={() => { onRename(category, editingName); setEditingId(null) }}>Save</Button>
+                  <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>Cancel</Button>
+                </>
+              ) : (
+                <>
+                  <span className="category-manage-name">{category.name}</span>
+                  <span className="category-manage-count">{inUse ? `${inUse} vendor${inUse === 1 ? '' : 's'}` : 'Unused'}</span>
+                  <Button variant="ghost" icon size="sm" aria-label={`Rename ${category.name}`} onClick={() => { setEditingId(category.id); setEditingName(category.name) }}><Pencil size={14} /></Button>
+                  <Button
+                    variant="ghost"
+                    icon
+                    size="sm"
+                    aria-label={`Remove ${category.name}`}
+                    disabled={Boolean(inUse) || categories.length === 1 || saving}
+                    title={inUse ? 'Reassign these vendors before removing this category' : categories.length === 1 ? 'Keep at least one category' : undefined}
+                    onClick={() => onRemove(category)}
+                  ><Trash2 size={14} /></Button>
+                </>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </Modal>
+  )
 }

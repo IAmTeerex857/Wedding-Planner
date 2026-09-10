@@ -93,7 +93,15 @@ function UploadForm({ saving, onClose, onUpload }: { saving: boolean; onClose: (
       <Button variant="primary" type="submit" form="upload-form" disabled={saving || !file}>{saving ? 'Uploading...' : 'Upload file'}</Button>
     </>}
   >
-    <form id="upload-form" className="ui-form" onSubmit={submit}><label><span>Title <small>optional</small></span><input maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Name this file" /></label><label><span>Category</span><Select aria-label="Category" value={category} onChange={setCategory} options={categories.map((value) => ({ value, label: value }))} /></label><label><span>Related link <small>optional</small></span><input type="url" pattern="https?://.*" title="Enter a complete http:// or https:// URL." maxLength={2048} placeholder="https://..." value={link} onChange={(event) => setLink(event.target.value)} /></label><label className="file-picker"><span>File</span><input type="file" required accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.xlsx" onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setValidationError(nextFile && nextFile.size > maxFileSize ? 'Choose a file smaller than 25 MB.' : '') }} /><strong>{file?.name ?? 'Choose a file up to 25 MB'}</strong></label>{validationError && <p className="data-error file-validation-error" role="alert">{validationError}</p>}</form>
+    <form id="upload-form" className="ui-form" onSubmit={submit}><label className="file-picker field-full">
+      <input type="file" required accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.xlsx" onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setValidationError(nextFile && nextFile.size > maxFileSize ? 'Choose a file smaller than 25 MB.' : '') }} />
+      <span className="file-picker-drop">
+        <Upload size={22} />
+        <strong>{file?.name ?? 'Choose a file'}</strong>
+        <small>{file ? formatBytes(file.size) : 'PDF, image, CSV or spreadsheet, up to 25 MB'}</small>
+      </span>
+    </label>
+    <label><span>Title <small>optional</small></span><input maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Name this file" /></label><label><span>Category</span><Select aria-label="Category" value={category} onChange={setCategory} options={categories.map((value) => ({ value, label: value }))} /></label><label><span>Related link <small>optional</small></span><input type="url" pattern="https?://.*" title="Enter a complete http:// or https:// URL." maxLength={2048} placeholder="https://..." value={link} onChange={(event) => setLink(event.target.value)} /></label>{validationError && <p className="data-error file-validation-error" role="alert">{validationError}</p>}</form>
   </Modal>
 }
 

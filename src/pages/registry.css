@@ -1,4 +1,4 @@
-.registry-page { max-width: 1380px; }
+.registry-page {}
 .registry-form { margin: -8px 0 26px; border: 1px solid var(--ink); background: #f8f8f5; }
 .registry-form > header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 .registry-form h2 { font-size: 25px; font-weight: 400; }
