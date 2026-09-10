@@ -601,9 +601,12 @@
    ========================================================================== */
 .ido-ai-activity { border: 1px solid var(--ui-gray-200); border-radius: 12px; padding: 12px; background: white; }
 
-.ido-ai-activity-head { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 10px; }
-.ido-ai-activity-head .ido-ai-activity-badge { grid-column: 2; justify-self: start; margin-top: 6px; }
-.ido-ai-activity-head > div { min-width: 0; }
+/* One row: the title takes the space that is left, the badge keeps its own and
+   never leaves the card. The grid template here still had a column for the
+   status icon after that icon was removed, which pushed the badge out of frame. */
+.ido-ai-activity-head { display: flex; align-items: flex-start; gap: 10px; }
+.ido-ai-activity-head > div { min-width: 0; flex: 1; }
+.ido-ai-activity-head .ido-ai-activity-badge { flex: 0 0 auto; }
 .ido-ai-activity-head strong { display: block; color: var(--ui-gray-900); font-size: 14px; font-weight: 600; line-height: 1.4; }
 .ido-ai-activity-head code { display: block; margin-top: 2px; overflow: hidden; color: var(--ui-gray-500); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -676,6 +679,3 @@
 /* A run of messages from the same speaker keeps the alignment without repeating
    the mark, so the thread reads as one turn rather than several. */
 .ido-ai-message-mark.is-spacer { background: transparent; box-shadow: none; }
-
-/* The panel borrows the app's scrollbar rather than growing a native one. */
-.ido-ai-panel .fsb { position: absolute; right: 6px; z-index: 7; }
