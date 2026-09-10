@@ -93,13 +93,9 @@
 .add-inline { display: flex; min-height: 38px; align-items: center; gap: 6px; margin: 0 10px 10px; padding: 0 9px; border: 0; color: var(--muted); background: transparent; font-size: 12px; cursor: pointer; }
 .add-inline:hover { color: var(--ink); background: var(--paper); }
 
-.modal-layer { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.36); }
-.task-modal { width: min(570px, 100%); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid var(--ink); background: var(--paper); box-shadow: 0 22px 70px rgba(0,0,0,.18); }
 .modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 22px; border-bottom: 1px solid var(--line); }
 .modal-header .eyebrow { margin-bottom: 4px; }
 .modal-header h2 { font-size: 27px; font-weight: 400; letter-spacing: -.03em; }
-.task-modal form { display: flex; flex-direction: column; gap: 18px; padding: 22px; }
-.task-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 12px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin: 4px -22px -22px; padding: 15px 22px; border-top: 1px solid var(--line); background: #fafaf8; }
 .modal-actions .button.danger { margin-right: auto; border-color: #d5b7b4; color: #813c36; background: #fff8f7; }
 

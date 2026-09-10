@@ -164,7 +164,9 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .confirm-dialog footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 26px; }
 .button.danger { border-color: #85443f; color: white; background: #85443f; }
 
-h1, h2, p { margin: 0; }
+/* h3-h6 were missing here, so every heading below h2 carried a browser margin
+   that reads as an accidental gap. */
+h1, h2, h3, h4, h5, h6, p { margin: 0; }
 
 .app-frame { min-height: 100vh; }
 

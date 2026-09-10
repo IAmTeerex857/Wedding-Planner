@@ -414,6 +414,9 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
   const [guest, setGuest] = useState<Omit<Guest, 'id'>>(() => ({ ...(initialGuest ? { firstName: initialGuest.firstName, lastName: initialGuest.lastName, email: initialGuest.email, phone: initialGuest.phone, plusOneAllowed: initialGuest.plusOneAllowed, plusOneName: initialGuest.plusOneName, tags: [...initialGuest.tags], accommodation: initialGuest.accommodation } : emptyGuest), rsvps: Object.fromEntries(ceremonies.map((ceremony) => [ceremony.id, initialGuest?.rsvps[ceremony.id] ?? 'pending'])) }))
   const [tags, setTags] = useState(initialGuest?.tags.join(', ') ?? '')
   const formId = useId()
+  // A name and one way to reach them: the same rule the form already enforced
+  // on submit, surfaced on the button so the state is visible before clicking.
+  const canSubmit = Boolean((guest.firstName.trim() || guest.lastName.trim()) && (guest.email.trim() || guest.phone.trim()))
   const setField = (field: keyof Omit<Guest, 'id' | 'rsvps' | 'tags'>, value: string) => setGuest((current) => ({ ...current, [field]: value }))
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -428,12 +431,12 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
       title={initialGuest ? 'Edit guest' : 'Add a guest'}
       description="Name and one contact method are required."
       onClose={onClose}
-      footer={<><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" form={formId} disabled={isSaving}>{isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</Button></>}
+      footer={<><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" form={formId} disabled={isSaving || !canSubmit}>{isSaving ? 'Saving...' : initialGuest ? 'Save changes' : 'Add to list'}</Button></>}
     >
     <form className="guest-entry in-modal" id={formId} onSubmit={submit}>
       <div className="entry-fields">
-        <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} onChange={(event) => setField('firstName', event.target.value)} /></label>
-        <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} onChange={(event) => setField('lastName', event.target.value)} /></label>
+        <label><span>First name</span><input required={!guest.lastName.trim()} maxLength={80} value={guest.firstName} placeholder="Ada" onChange={(event) => setField('firstName', event.target.value)} /></label>
+        <label><span>Last name</span><input required={!guest.firstName.trim()} maxLength={80} value={guest.lastName} placeholder="Okafor" onChange={(event) => setField('lastName', event.target.value)} /></label>
         <label><span>Email</span><input type="email" required={!guest.phone.trim()} maxLength={254} value={guest.email} onChange={(event) => setField('email', event.target.value)} placeholder="name@example.com" /></label>
         <label><span>Phone</span><input type="tel" required={!guest.email.trim()} pattern="\+?[0-9][0-9 ()-]{6,19}" title="Enter a valid phone number with 7 to 20 digits and common separators." value={guest.phone} onChange={(event) => setField('phone', event.target.value)} placeholder="+234 800 000 0000" /></label>
         <label><span>Tags <small>comma separated</small></span><input maxLength={500} value={tags} onChange={(event) => setTags(event.target.value)} placeholder="Family, Lagos" /></label>
@@ -446,7 +449,7 @@ function GuestEntry({ initialGuest, ceremonies, onSave, onClose, isSaving }: { i
           />
         </div>
         {guest.plusOneAllowed && (
-          <label className="entry-span-2"><span>Plus-one name</span><input maxLength={160} value={guest.plusOneName} onChange={(event) => setField('plusOneName', event.target.value)} /></label>
+          <label className="entry-span-2 is-revealed"><span>Plus-one name</span><input maxLength={160} value={guest.plusOneName} placeholder="Name of their guest" onChange={(event) => setField('plusOneName', event.target.value)} /></label>
         )}
       </div>
       <div className="entry-rsvp-group">

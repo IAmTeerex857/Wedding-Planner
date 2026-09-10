@@ -1780,3 +1780,60 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 /* The empty state owns its own type wherever it is nested. */
 .ui-page .ui-empty h3 { font-size: 16px; font-weight: 600; }
 .ui-page .ui-empty p { color: var(--ui-gray-600); font-size: 14px; line-height: 20px; }
+
+/* ==========================================================================
+   Empty state and modal form rhythm
+   ========================================================================== */
+/* Wide enough that a one-sentence description stays on one line. */
+.ui-page .ui-empty p,
+.ui-empty p { max-width: 60ch; }
+.ui-page .ui-empty,
+.ui-empty { gap: 4px; }
+.ui-page .ui-empty-action,
+.ui-empty-action { margin-top: 14px; }
+
+/* ---- One modal form layout ----------------------------------------------
+   Fields sit two to a row at most: three and four columns made a modal wide
+   and hard to scan, and every form used a different gap. Space between
+   fields is larger than the space inside one, so a label reads as belonging
+   to the control under it. */
+.ui-modal-panel .ui-form,
+.ui-modal-panel form > .ui-form-grid,
+.ui-modal-panel .budget-form-grid,
+.ui-modal-panel .task-form-grid,
+.ui-modal-panel .ceremony-form-grid,
+.ui-modal-panel .entry-fields,
+.ui-modal-panel .registry-form.in-modal > form > div,
+.ui-modal-panel .logistics-fields,
+.ui-modal-panel .seating-table-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 16px;
+}
+
+.ui-modal-panel .field-span-2,
+.ui-modal-panel .field-full,
+.ui-modal-panel .field-wide,
+.ui-modal-panel .entry-span-2 { grid-column: 1 / -1; }
+
+.ui-modal-panel .ngn-preview { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .ui-modal-panel .ui-form,
+  .ui-modal-panel .budget-form-grid,
+  .ui-modal-panel .task-form-grid,
+  .ui-modal-panel .entry-fields,
+  .ui-modal-panel .registry-form.in-modal > form > div,
+  .ui-modal-panel .logistics-fields,
+  .ui-modal-panel .seating-table-form { grid-template-columns: 1fr; }
+}
+
+/* A revealed field grows in rather than appearing instantly. */
+@keyframes field-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+.ui-modal-panel .is-revealed { animation: field-reveal var(--dur) var(--ease-out); }
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-panel .is-revealed { animation: overlay-in var(--dur-fast) ease; }
+}

@@ -1,10 +1,11 @@
-import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound, X } from '../components/Icon'
+import { AlignJustify, Columns3, Pencil, Plus, Trash2, UserRound } from '../components/Icon'
 import { useEffect, useEffectEvent, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Select } from '../components/Select'
 import { DateTimeField } from '../components/DateField'
 import { useCreateParam } from '../lib/use-create-param'
+import { Modal } from '../components/Modal'
 import { supabase } from '../lib/supabase'
 import { ceremonyLabel, relationOne, useWorkspace } from '../lib/workspace-context'
 import './planning.css'
@@ -248,61 +249,58 @@ export function TasksPage() {
       )}
 
       {(isAdding || editingId) && (
-        <div className="modal-layer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && closeModal()}>
-          <section className="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-form-title">
-            <div className="modal-header">
-              <div><h2 id="task-form-title">{editingId ? 'Edit task' : 'Add a task'}</h2></div>
-              <Button variant="ghost" icon type="button" aria-label="Close" onClick={closeModal}><X size={18} /></Button>
-            </div>
-            <form onSubmit={addTask}>
-              <label className="planning-field field-full">
-                <span>Task name</span>
-                <input autoFocus required value={draft.title} placeholder="What needs to happen?" onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
-              </label>
-              <label className="planning-field field-full">
-                <span>Notes <small>Optional</small></span>
-                <textarea value={draft.description} placeholder="Add context or a useful next step" onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
-              </label>
-              <div className="task-form-grid">
-                <label className="planning-field">
-                  <span>Status</span>
-                  <Select aria-label="Status" value={draft.status} onChange={(next) => setDraft({ ...draft, status: next as TaskStatus })} options={columns.map((column) => ({ value: column.id, label: column.label }))} />
-                </label>
-                <label className="planning-field">
-                  <span>Priority</span>
-                  <Select aria-label="Priority" value={draft.priority} onChange={(next) => setDraft({ ...draft, priority: next as TaskPriority })} options={[{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }]} />
-                </label>
-                <label className="planning-field">
-                  <span>Event</span>
-                  <Select
-                    aria-label="Event"
-                    value={draft.ceremonyId ?? ''}
-                    onChange={(next) => { const ceremony = ceremonyOptions.find((item) => item.id === next); setDraft({ ...draft, ceremonyId: ceremony?.id ?? null, event: ceremonyLabel(ceremony) }) }}
-                    options={[{ value: '', label: 'General / shared' }, ...ceremonyOptions.map((ceremony) => ({ value: ceremony.id, label: ceremonyLabel(ceremony) }))]}
-                  />
-                </label>
-                <label className="planning-field">
-                  <span>Assignee <small>Optional</small></span>
-                  <input value={draft.assignee} placeholder="Enter a name" onChange={(event) => setDraft({ ...draft, assignee: event.target.value })} />
-                </label>
-                <hr className="ui-field-divider" />
-                <label className="planning-field">
-                  <span>Deadline <small>Optional</small></span>
-                  <DateTimeField aria-label="Due" value={draft.dueAt} onChange={(next) => setDraft({ ...draft, dueAt: next })} />
-                </label>
-                <label className="planning-field">
-                  <span>Email reminder <small>Optional</small></span>
-                  <DateTimeField aria-label="Reminder" value={draft.reminderAt} onChange={(next) => setDraft({ ...draft, reminderAt: next })} />
-                </label>
-              </div>
-              <div className="modal-actions">
-                {editingId && <Button variant="danger" type="button" disabled={deleteMutation.isPending} onClick={() => setPendingDelete(tasks.find((item) => item.id === editingId) ?? null)}><Trash2 size={14} /> Delete</Button>}
-                <Button variant="secondary" type="button" onClick={closeModal}>Cancel</Button>
-                <Button variant="primary" type="submit" disabled={addMutation.isPending || updateMutation.isPending}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</Button>
-              </div>
-            </form>
-          </section>
-        </div>
+        <Modal
+          open
+          size="wide"
+          title={editingId ? 'Edit task' : 'Add a task'}
+          onClose={closeModal}
+          footer={<>
+            {editingId && <Button variant="danger" onClick={() => setPendingDelete(tasks.find((item) => item.id === editingId) ?? null)} disabled={deleteMutation.isPending}>Delete</Button>}
+            <Button variant="secondary" onClick={closeModal}>Cancel</Button>
+            <Button variant="primary" type="submit" form="task-form" disabled={addMutation.isPending || updateMutation.isPending || !draft.title.trim()}>{addMutation.isPending || updateMutation.isPending ? 'Saving...' : editingId ? 'Save changes' : 'Add task'}</Button>
+          </>}
+        >
+          <form className="ui-form" id="task-form" onSubmit={addTask}>
+            <label className="planning-field field-full">
+              <span>Task name</span>
+              <input autoFocus required value={draft.title} placeholder="What needs to happen?" onChange={(event) => setDraft({ ...draft, title: event.target.value })} />
+            </label>
+            <label className="planning-field field-full">
+              <span>Notes <small>Optional</small></span>
+              <textarea value={draft.description} placeholder="Add context or a useful next step" onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+            </label>
+            <label className="planning-field">
+              <span>Status</span>
+              <Select aria-label="Status" value={draft.status} onChange={(next) => setDraft({ ...draft, status: next as TaskStatus })} options={columns.map((column) => ({ value: column.id, label: column.label }))} />
+            </label>
+            <label className="planning-field">
+              <span>Priority</span>
+              <Select aria-label="Priority" value={draft.priority} onChange={(next) => setDraft({ ...draft, priority: next as TaskPriority })} options={[{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }]} />
+            </label>
+            <label className="planning-field">
+              <span>Event</span>
+              <Select
+                aria-label="Event"
+                value={draft.ceremonyId ?? ''}
+                onChange={(next) => { const ceremony = ceremonyOptions.find((item) => item.id === next); setDraft({ ...draft, ceremonyId: ceremony?.id ?? null, event: ceremonyLabel(ceremony) }) }}
+                options={[{ value: '', label: 'General / shared' }, ...ceremonyOptions.map((ceremony) => ({ value: ceremony.id, label: ceremonyLabel(ceremony) }))]}
+              />
+            </label>
+            <label className="planning-field">
+              <span>Assignee <small>Optional</small></span>
+              <input value={draft.assignee} placeholder="Enter a name" onChange={(event) => setDraft({ ...draft, assignee: event.target.value })} />
+            </label>
+            <hr className="ui-field-divider" />
+            <label className="planning-field">
+              <span>Deadline <small>Optional</small></span>
+              <DateTimeField aria-label="Due" value={draft.dueAt} onChange={(next) => setDraft({ ...draft, dueAt: next })} />
+            </label>
+            <label className="planning-field">
+              <span>Email reminder <small>Optional</small></span>
+              <DateTimeField aria-label="Reminder" value={draft.reminderAt} onChange={(next) => setDraft({ ...draft, reminderAt: next })} />
+            </label>
+          </form>
+        </Modal>
       )}
       {pendingDelete && <ConfirmDialog title={`Delete ${pendingDelete.title}?`} description="This task will move to the recycle bin and can be restored later." onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     </div>
