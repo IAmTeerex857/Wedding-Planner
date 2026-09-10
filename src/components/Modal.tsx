@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from './Icon'
 
@@ -25,6 +25,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), textarea:not([disabled]), in
  */
 export function Modal({ open, title, description, onClose, children, footer, size = 'default', closeLabel = 'Close' }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const restoreTo = useRef<HTMLElement | null>(null)
   const titleId = useId()
   const descriptionId = useId()
@@ -76,6 +78,34 @@ export function Modal({ open, title, description, onClose, children, footer, siz
     }
   }, [open, onClose])
 
+  // The card grows and shrinks with its content. This writes to the node rather
+  // than through state: the height is a measurement of the DOM, and routing it
+  // through a render would lag a frame behind the content it describes.
+  useLayoutEffect(() => {
+    const content = contentRef.current
+    const body = bodyRef.current
+    if (!open || !content || !body) return
+
+    // scrollHeight rather than a rect: a rect read mid-layout comes back
+    // fractionally short, which left the body clipped by a few pixels.
+    const apply = () => { body.style.height = `${content.scrollHeight}px` }
+    apply()
+
+    // Re-measure once the first paint settles, and only then allow the
+    // transition, so the card does not visibly jump as it opens.
+    const settle = requestAnimationFrame(() => {
+      apply()
+      requestAnimationFrame(() => body.setAttribute('data-animate', 'true'))
+    })
+
+    const observer = new ResizeObserver(apply)
+    observer.observe(content)
+    return () => {
+      cancelAnimationFrame(settle)
+      observer.disconnect()
+    }
+  }, [open])
+
   if (!open) return null
 
   return createPortal(
@@ -96,7 +126,9 @@ export function Modal({ open, title, description, onClose, children, footer, siz
           </div>
           <button className="ui-modal-close" type="button" onClick={onClose} aria-label={closeLabel}><X size={18} /></button>
         </header>
-        <div className="ui-modal-body">{children}</div>
+        <div className="ui-modal-body" ref={bodyRef}>
+          <div ref={contentRef}>{children}</div>
+        </div>
         {footer && <footer className="ui-modal-footer">{footer}</footer>}
       </div>
     </div>,

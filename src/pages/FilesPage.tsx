@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowUpRight, Download, File, FileImage, FileText, Trash2, Upload, X } from '../components/Icon'
+import { ArrowUpRight, Download, File, FileImage, FileText, Trash2, Upload } from '../components/Icon'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Select } from '../components/Select'
 import { VendorRateCardViewer, type VendorRateCard } from '../components/VendorRateCardViewer'
@@ -9,6 +9,7 @@ import { useWorkspace } from '../lib/workspace-context'
 import './files.css'
 import { Button } from '../components/Button'
 import { EmptyState } from '../components/EmptyState'
+import { Modal } from '../components/Modal'
 
 const categories = ['Photo', 'Inspiration', 'Receipt', 'Contract', 'Quote', 'Rate card', 'Invitation', 'Travel', 'Other']
 const maxFileSize = 25 * 1024 * 1024
@@ -82,7 +83,18 @@ function UploadForm({ saving, onClose, onUpload }: { saving: boolean; onClose: (
   const [file, setFile] = useState<File | null>(null); const [title, setTitle] = useState(''); const [category, setCategory] = useState(categories[0]); const [link, setLink] = useState('')
   const [validationError, setValidationError] = useState('')
   function submit(event: FormEvent) { event.preventDefault(); if (!file) return; if (file.size > maxFileSize) { setValidationError('Choose a file smaller than 25 MB.'); return } setValidationError(''); onUpload({ file, title: title.trim(), category, link: link.trim() }) }
-  return <section className="file-upload"><header><div><p className="eyebrow">Private upload</p><h2>Add a file</h2></div><button type="button" onClick={onClose}><X size={17} /></button></header><form onSubmit={submit}><label><span>Title <small>optional</small></span><input maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} /></label><label><span>Category</span><Select aria-label="Category" value={category} onChange={setCategory} options={categories.map((value) => ({ value, label: value }))} /></label><label><span>Related link <small>optional</small></span><input type="url" pattern="https?://.*" title="Enter a complete http:// or https:// URL." maxLength={2048} placeholder="https://..." value={link} onChange={(event) => setLink(event.target.value)} /></label><label className="file-picker"><span>File</span><input type="file" required accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.xlsx" onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setValidationError(nextFile && nextFile.size > maxFileSize ? 'Choose a file smaller than 25 MB.' : '') }} /><strong>{file?.name ?? 'Choose a file up to 25 MB'}</strong></label>{validationError && <p className="data-error file-validation-error" role="alert">{validationError}</p>}<footer><Button variant="secondary" type="button" onClick={onClose}>Cancel</Button><Button variant="primary" type="submit" disabled={!file || Boolean(validationError) || saving}>{saving ? 'Uploading...' : 'Upload'}</Button></footer></form></section>
+  return <Modal
+    open
+    title="Add a file"
+    description="Files are private. Downloads use short-lived signed links."
+    onClose={onClose}
+    footer={<>
+      <Button variant="secondary" onClick={onClose}>Cancel</Button>
+      <Button variant="primary" type="submit" form="upload-form" disabled={saving || !file}>{saving ? 'Uploading...' : 'Upload file'}</Button>
+    </>}
+  >
+    <form id="upload-form" className="ui-form" onSubmit={submit}><label><span>Title <small>optional</small></span><input maxLength={160} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Name this file" /></label><label><span>Category</span><Select aria-label="Category" value={category} onChange={setCategory} options={categories.map((value) => ({ value, label: value }))} /></label><label><span>Related link <small>optional</small></span><input type="url" pattern="https?://.*" title="Enter a complete http:// or https:// URL." maxLength={2048} placeholder="https://..." value={link} onChange={(event) => setLink(event.target.value)} /></label><label className="file-picker"><span>File</span><input type="file" required accept="image/jpeg,image/png,image/webp,application/pdf,text/csv,.xlsx" onChange={(event) => { const nextFile = event.target.files?.[0] ?? null; setFile(nextFile); setValidationError(nextFile && nextFile.size > maxFileSize ? 'Choose a file smaller than 25 MB.' : '') }} /><strong>{file?.name ?? 'Choose a file up to 25 MB'}</strong></label>{validationError && <p className="data-error file-validation-error" role="alert">{validationError}</p>}</form>
+  </Modal>
 }
 
 function formatBytes(bytes: number) { if (bytes < 1024) return `${bytes} B`; if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / 1048576).toFixed(1)} MB` }

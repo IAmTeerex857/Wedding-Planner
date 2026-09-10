@@ -245,7 +245,7 @@ export function SeatingPage() {
     )}
     <div className="seating-workspace">
       <aside className="waiting-list">
-        <header><div><p className="eyebrow">Waiting list</p><h2>Unseated guests</h2></div><span>{selected.length} selected</span></header>
+        <header><h2>Unseated guests</h2><span>{selected.length} selected</span></header>
         {waitingTags.length > 0 && <div className="tag-actions">{waitingTags.map((tag) => <button type="button" key={tag} onClick={() => selectTag(tag)}>Select {tag}</button>)}</div>}
         <div>{waiting.length ? waiting.map((guest) => <label className="seat-guest" key={guest.id}><input type="checkbox" checked={selected.includes(guest.id)} onChange={(change) => setSelected((current) => change.target.checked ? [...current, guest.id] : current.filter((id) => id !== guest.id))} /><span><strong>{guest.name}</strong><small>{guest.tags.join(', ') || 'No tag'}</small></span></label>) : <EmptyState
               compact

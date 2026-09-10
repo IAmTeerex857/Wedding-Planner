@@ -151,7 +151,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
 .ui-modal-header p { margin-top: 4px; color: var(--ui-gray-600); font-size: 13px; line-height: 1.5; }
 .ui-modal-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 8px; color: var(--ui-gray-500); background: transparent; cursor: pointer; transition: color var(--dur-fast) ease, background var(--dur-fast) ease; }
 .ui-modal-close:hover { color: var(--ui-gray-900); background: var(--ui-gray-100); }
-.ui-modal-body { overflow-y: auto; padding: 20px; }
+/* Padding lives on the inner wrapper so the measured content height equals the
+   height the body needs, with no border-box discrepancy. */
+.ui-modal-body { overflow-y: auto; }
+.ui-modal-body > * { padding: 20px; }
 .ui-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--ui-gray-200); background: var(--ui-gray-25); }
 
 .confirm-layer { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; background: rgba(17,17,17,.42); backdrop-filter: blur(3px); animation: overlay-in var(--dur) var(--ease-out); }

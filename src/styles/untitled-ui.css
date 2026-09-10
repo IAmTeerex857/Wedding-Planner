@@ -1837,3 +1837,79 @@ body { color: var(--ui-gray-900); background: var(--ui-gray-50); }
 @media (prefers-reduced-motion: reduce) {
   .ui-modal-panel .is-revealed { animation: overlay-in var(--dur-fast) ease; }
 }
+
+/* The card grows and shrinks with its content. Without this the panel jumped
+   to its new size while the revealed field faded in, which read as instant. */
+.ui-modal-body[data-animate] { transition: height var(--dur) var(--ease-out); }
+.ui-modal-body { overflow-x: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal-body[data-animate] { transition: none; }
+}
+
+
+/* A plus-one is part of who the guest is, so it sits with the name. */
+.ui-page .guest-plus-one {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  border: 1px solid var(--ui-gray-200);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--ui-gray-600);
+  background: var(--ui-gray-50);
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+/* The rate-card picker gave no sign it accepted a file. */
+.ui-page .rate-card-picker strong,
+.ui-modal-panel .rate-card-picker strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px dashed var(--ui-gray-300);
+  border-radius: 8px;
+  padding: 0 14px;
+  color: var(--ui-gray-700);
+  background: var(--ui-gray-25);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.ui-modal-panel .rate-card-picker strong:hover { border-color: var(--ui-gray-400); background: var(--ui-gray-50); }
+
+/* The RSVP controls now carry the ceremony name as well as the response, so the
+   column needs real width. At 1.4fr with a 5px gap the value was clipped to
+   "Court P...", which hid the one thing the control exists to show. */
+.ui-page .guest-row { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(430px, auto) 60px; }
+.ui-page .rsvp-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.ui-page .rsvp-list .ui-select-trigger { padding-inline: 10px; gap: 6px; }
+.ui-page .rsvp-list .ui-select-label { flex: 0 0 auto; font-size: 13px; }
+.ui-page .rsvp-list .ui-select-value { font-size: 13px; }
+
+@media (max-width: 1240px) {
+  .ui-page .guest-row { grid-template-columns: minmax(0, 1fr) minmax(300px, auto) 60px; }
+  .ui-page .guest-notes { grid-column: 1; }
+  .ui-page .rsvp-list { grid-column: 2; }
+}
+@media (max-width: 900px) {
+  .ui-page .guest-row { grid-template-columns: 1fr; }
+  .ui-page .guest-notes, .ui-page .rsvp-list { grid-column: 1; }
+}
+
+/* Seating: the waiting list is a companion to the floor plan, not a peer panel.
+   A fixed, narrower rail leaves the tables area the room it actually needs. */
+.ui-page .seating-workspace { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); gap: 20px; align-items: start; }
+.ui-page .waiting-list > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; padding: 0 16px; border-bottom: 1px solid var(--ui-gray-200); }
+.ui-page .waiting-list > header h2 { font-size: 15px; font-weight: 600; }
+.ui-page .waiting-list > header span { color: var(--ui-gray-500); font-size: 13px; white-space: nowrap; }
+.ui-page .waiting-list { position: sticky; top: 20px; border: 1px solid var(--ui-gray-200); border-radius: 12px; overflow: hidden; }
+.ui-page .table-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+
+@media (max-width: 1000px) {
+  .ui-page .seating-workspace { grid-template-columns: 1fr; }
+  .ui-page .waiting-list { position: static; }
+}

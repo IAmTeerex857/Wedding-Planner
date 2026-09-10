@@ -381,7 +381,7 @@ function Summary({ value, label, detail }: { value: number; label: string; detai
 function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Guest; ceremonies: CeremonyOption[]; onRsvp: (guestId: string, event: EventName, status: RsvpStatus) => void; onEdit: (guest: Guest) => void; onRemove: (guestId: string) => void }) {
   return (
     <article className="guest-row">
-      <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
+      <div className="guest-identity"><span className="guest-avatar"><UserRound size={25} /></span><div><h2>{guest.firstName} {guest.lastName}{guest.plusOneAllowed && <span className="guest-plus-one" title={guest.plusOneName || 'Plus-one allowed'}>+1</span>}</h2><div className="guest-contact">{guest.email && <span><Mail size={12} />{guest.email}</span>}{guest.phone && <span><Phone size={12} />{guest.phone}</span>}</div></div></div>
       <div className="guest-notes">
         <div className="tag-list">{guest.tags.map((tag) => <span className={`guest-tag ${pillTone(tag)}`} key={tag}><Tag size={10} />{tag}</span>)}</div>
         {guest.accommodation && <span className="guest-stay"><BedDouble size={13} />{guest.accommodation}</span>}
@@ -395,18 +395,18 @@ function GuestRow({ guest, ceremonies, onRsvp, onEdit, onRemove }: { guest: Gues
 }
 
 function RsvpBadge({ label, status, onChange }: { label: string; status: RsvpStatus; onChange: (status: RsvpStatus) => void }) {
+  // The ceremony name rides inside the control. Three unlabelled "Pending"
+  // boxes in a row said nothing about which ceremony each one answered.
   return (
-    <span className={`rsvp-badge ${status}`}>
-      <i />
-      <Select
-        compact
-        className={`rsvp-select ${status}`}
-        aria-label={`${label} RSVP`}
-        value={status}
-        onChange={(next) => onChange(next as RsvpStatus)}
-        options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
-      />
-    </span>
+    <Select
+      compact
+      className="rsvp-select"
+      label={label}
+      aria-label={`${label} RSVP`}
+      value={status}
+      onChange={(next) => onChange(next as RsvpStatus)}
+      options={[{ value: 'pending', label: 'Pending' }, { value: 'attending', label: 'Attending' }, { value: 'declined', label: 'Declined' }]}
+    />
   )
 }
 
