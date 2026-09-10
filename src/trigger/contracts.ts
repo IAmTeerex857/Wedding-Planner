@@ -98,6 +98,7 @@ export type AgentTurnPayload = {
   runId: string;
   messageId: string;
   requesterId: string;
+  fileId?: string;
 };
 
 export type VendorResearchPayload = {

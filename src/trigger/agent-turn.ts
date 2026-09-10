@@ -19,12 +19,25 @@ export const agentTurn = task({
       admin.from("agent_planning_profiles").select("wedding_date,priorities,preferences,constraints,onboarding_answers").eq("workspace_id", payload.workspaceId).maybeSingle(),
     ]);
     if (historyResult.error || profileResult.error) throw new Error("Could not load agent memory");
-    const batch = await structuredResponse(JSON.stringify({
+    const contextInput = JSON.stringify({
       user_message: message.content,
       recent_conversation: (historyResult.data ?? []).reverse(),
       planning_profile: profileResult.data,
       workspace_context: context,
-    }));
+    });
+    let userContent: unknown = contextInput;
+    if (payload.fileId) {
+      const { data: file, error: fileError } = await admin.from("files").select("id,bucket_id,storage_path,original_name,mime_type,size_bytes").eq("id", payload.fileId).eq("workspace_id", payload.workspaceId).is("deleted_at", null).single();
+      if (fileError || !file || !file.mime_type.startsWith("image/")) throw new Error("Attached image is unavailable");
+      if (Number(file.size_bytes) > 10 * 1024 * 1024) throw new Error("Attached image exceeds the 10 MB limit");
+      const { data: signed, error: signedError } = await admin.storage.from(file.bucket_id).createSignedUrl(file.storage_path, 300);
+      if (signedError || !signed) throw new Error("Could not create a private image URL");
+      userContent = [
+        { type: "input_text", text: contextInput },
+        { type: "input_image", image_url: signed.signedUrl },
+      ];
+    }
+    const batch = await structuredResponse(userContent);
     const savedBatch = await saveProposedBatch({ workspaceId: payload.workspaceId, conversationId: payload.conversationId, runId: payload.runId, requesterId: payload.requesterId, batch });
     const reply = await saveAssistantReply({ workspaceId: payload.workspaceId, conversationId: payload.conversationId, runId: payload.runId, replyToId: message.id, content: batch.reply });
     const { error: completionError } = await admin.from("agent_runs").update({ status: "completed", output: { message_id: reply.id, batch_id: savedBatch.id }, completed_at: new Date().toISOString() }).eq("id", payload.runId).eq("workspace_id", payload.workspaceId);

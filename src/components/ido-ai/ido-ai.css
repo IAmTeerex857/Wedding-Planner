@@ -130,6 +130,7 @@
 .ido-ai-message-body a { color: #6941c6; text-decoration: underline; text-underline-offset: 2px; }
 .ido-ai-message.is-user strong { text-align: right; }
 .ido-ai-message.is-user > div > p { border-color: #101828; border-radius: 12px 4px 12px 12px; color: white; background: #101828; white-space: pre-wrap; }
+.ido-ai-message-attachment { display: flex; max-width: 100%; align-items: center; gap: 5px; margin-top: 5px; color: #667085; font-size: 9px; overflow-wrap: anywhere; }
 .ido-ai-message.is-failed > div > p { border-color: #fda29b; }
 .ido-ai-retry { float: right; margin-top: 5px; border: 0; padding: 0; color: #b42318; background: transparent; font-size: 10px; font-weight: 650; cursor: pointer; }
 .ido-ai-thinking-bubble { display: grid; width: 190px; gap: 8px; border: 1px solid #e4e7ec; border-radius: 4px 12px 12px; padding: 12px; background: white; box-shadow: 0 1px 2px rgba(16, 24, 40, .04); }
@@ -207,9 +208,20 @@
 
 .ido-ai-composer { flex: 0 0 auto; padding: 12px 14px max(12px, env(safe-area-inset-bottom)); border-top: 1px solid #e4e7ec; background: white; }
 .ido-ai-composer textarea { min-height: 22px; max-height: 100px; overflow-y: auto; border: 0; padding: 2px; box-shadow: none; }
-.ido-ai-composer > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
-.ido-ai-composer span { color: #98a2b3; font-size: 9px; }
-.ido-ai-composer button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }
+.ido-ai-composer-actions { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.ido-ai-composer-actions > span { flex: 1; color: #98a2b3; font-size: 9px; }
+.ido-ai-composer-actions > button { display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 7px; color: white; background: #101828; font-size: 17px; cursor: pointer; }
+.ido-ai-attach { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border: 1px solid #d0d5dd; border-radius: 7px; color: #475467; background: white; cursor: pointer; }
+.ido-ai-attach:hover { border-color: #98a2b3; background: #f9fafb; }
+.ido-ai-attach.is-disabled { cursor: not-allowed; opacity: .4; }
+.ido-ai-attach input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.ido-ai-composer-attachment { display: grid; grid-template-columns: 42px minmax(0, 1fr) 28px; align-items: center; gap: 9px; margin-bottom: 9px; border: 1px solid #e4e7ec; border-radius: 9px; padding: 7px; background: #f9fafb; }
+.ido-ai-composer-attachment img { width: 42px; height: 42px; border-radius: 6px; object-fit: cover; }
+.ido-ai-composer-attachment > span { display: flex; min-width: 0; flex-direction: column; }
+.ido-ai-composer-attachment strong { overflow: hidden; color: #344054; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.ido-ai-composer-attachment small { color: #98a2b3; font-size: 9px; }
+.ido-ai-composer-attachment button { display: grid; width: 28px; height: 28px; place-items: center; border: 0; border-radius: 6px; color: #667085; background: transparent; cursor: pointer; }
+.ido-ai-attachment-error { margin-bottom: 7px; color: #b42318; font-size: 10px; }
 
 .ido-ai-panel button:focus-visible, .ido-ai-panel textarea:focus-visible, .ido-ai-launcher:focus-visible { outline: 2px solid #7f56d9; outline-offset: 2px; }
 

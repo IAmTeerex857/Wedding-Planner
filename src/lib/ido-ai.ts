@@ -122,8 +122,24 @@ export async function loadIdoAiState(workspaceId: string, selectedConversationId
   }
 }
 
-export async function sendIdoAiMessage(workspaceId: string, conversationId: string | null, content: string, requestId: string) {
-  const { data, error } = await requireSupabase().functions.invoke('agent-message', { body: { workspaceId, conversationId: conversationId ?? crypto.randomUUID(), requestId, content } })
+export async function uploadIdoAiImage(workspaceId: string, userId: string, file: File) {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) throw new Error('Choose a JPEG, PNG, or WebP image')
+  if (file.size > 10 * 1024 * 1024) throw new Error('Choose an image smaller than 10 MB')
+  const db = requireSupabase()
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-') || 'chat-image'
+  const storagePath = `${workspaceId}/${crypto.randomUUID()}/${safeName}`
+  const { error: storageError } = await db.storage.from('wedding-files').upload(storagePath, file, { contentType: file.type, upsert: false })
+  if (storageError) throw storageError
+  const { data, error } = await db.from('files').insert({ workspace_id: workspaceId, bucket_id: 'wedding-files', storage_path: storagePath, original_name: file.name, mime_type: file.type, size_bytes: file.size, category: 'I Do AI', description: 'Chat image', uploaded_by: userId, created_by: userId, updated_by: userId }).select('id').single()
+  if (error) {
+    await db.storage.from('wedding-files').remove([storagePath])
+    throw error
+  }
+  return data.id as string
+}
+
+export async function sendIdoAiMessage(workspaceId: string, conversationId: string | null, content: string, requestId: string, fileId?: string) {
+  const { data, error } = await requireSupabase().functions.invoke('agent-message', { body: { workspaceId, conversationId: conversationId ?? crypto.randomUUID(), requestId, content, fileId } })
   if (error) throw error
   return data as { conversationId: string; runId: string }
 }

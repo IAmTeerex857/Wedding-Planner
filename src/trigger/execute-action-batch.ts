@@ -36,8 +36,9 @@ export const executeActionBatch = task({
         const result = await executeResearch(payload, action);
         await setActionStatus(action.id, "executed", result);
       } else {
-        const { error: executionError } = await admin.rpc("execute_agent_domain_action", { target_action_id: action.id, requester_id: payload.requesterId });
-        if (executionError) throw executionError;
+        const executor = action.resource_type === "food_drink_plan" ? "execute_agent_food_drink_action" : "execute_agent_domain_action";
+        const { error: executionError } = await admin.rpc(executor, { target_action_id: action.id, requester_id: payload.requesterId });
+        if (executionError) throw new Error(executionError.message);
       }
     }
     return { batchId: payload.batchId, actionsProcessed: data?.length ?? 0 };
@@ -45,7 +46,7 @@ export const executeActionBatch = task({
   onFailure: async ({ payload, error }: { payload: ExecuteBatchPayload; error: unknown }) => {
     const admin = adminClient();
     const { data } = await admin.from("agent_actions").select("id,status").eq("workspace_id", payload.workspaceId).eq("batch_id", payload.batchId).in("status", ["approved", "executing"]);
-    const message = error instanceof Error ? error.message : "Action execution failed after retries";
+    const message = error instanceof Error ? error.message : typeof error === "object" && error && "message" in error && typeof error.message === "string" ? error.message : "Action execution failed after retries";
     for (const action of data ?? []) await setActionStatus(action.id, "failed", undefined, message);
   },
 });
